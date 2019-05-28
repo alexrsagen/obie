@@ -166,7 +166,7 @@ $error_handler = function($errno, $errstr, $errfile, $errline) use($config) {
 	error_log($error_plain);
 
 	if ($config->get('errors', 'mail')) {
-		Util::sendMail('info+error@0x.ms', 'Internal server error on 0x.ms', $error_html, true);
+		Util::sendMail($config->get('errors', 'mail_address'), 'Internal server error on ' . $config->get('site_name'), $error_html, true);
 	}
 
 	if ($config->get('errors', 'dump')) {

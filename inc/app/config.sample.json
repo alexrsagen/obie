@@ -5,6 +5,7 @@
 	"lang": "en_US",
 	"errors": {
 		"mail": false,
+		"mail_address": "errors@example.com",
 		"dump": false,
 		"handle": true
 	},
