@@ -1,0 +1,13 @@
+tmp/*
+!tmp/sessions/.gitkeep
+logs/*
+!logs/.gitkeep
+vendor/
+inc/app/*
+!inc/app/config.sample.json
+!inc/app/models/.gitkeep
+!inc/app/routes/.gitkeep
+!inc/app/views/.gitkeep
+!inc/app/index.sample.php
+public/*
+!public/index.php
