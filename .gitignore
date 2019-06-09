@@ -2,16 +2,16 @@ tmp/*
 logs/*
 vendor/
 
-!app/config.sample.json
-!app/index.sample.php
 app/*
 !app/models/
 app/models/*
 !app/routes/
-!app/routes/index.sample.php
 app/routes/*
 !app/views/
 app/views/*
+!app/config.sample.json
+!app/index.sample.php
+!app/routes/index.sample.php
 
 public/*
 !public/index.php
