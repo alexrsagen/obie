@@ -15,7 +15,7 @@ class Util {
 		return $ip;
 	}
 
-	public static function randomString(int $length, string $charset = static::BASE62_ALPHABET) {
+	public static function randomString(int $length, string $charset = self::BASE62_ALPHABET) {
 		$random_string = '';
 		for ($i = 0; $i < $length; $i++) {
 			$random_string .= $charset[random_int(0, strlen($charset) - 1)];
