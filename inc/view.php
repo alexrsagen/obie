@@ -1,27 +1,30 @@
 <?php namespace ZeroX;
 use ZeroX\Vars\VarTrait;
 if (!defined('IN_ZEROX')) {
-	exit;
+	return;
 }
 
 class View {
 	use VarTrait;
 
+	public static $views_dir = '';
+	public static $default_vars = [];
+
 	public static function getPath(string $name) {
-		$safe_path = ZEROX_BASE_DIR . '/inc/app/views/' . str_replace('.', '', str_replace([
-			'\\',
-			'/./',
-			'../',
-			'.../'
-		], '/', $name));
-		$safe_path_file = $safe_path . '.tpl.php';
-		$safe_path_folder_index = rtrim($safe_path, '/') . '/index.tpl.php';
-		if (file_exists($safe_path_file) && is_file($safe_path_file)) {
-			return $safe_path_file;
-		} else if (file_exists($safe_path_folder_index) && is_file($safe_path_folder_index)) {
-			return $safe_path_folder_index;
+		$path = realpath(static::$views_dir . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, ltrim(str_replace('/./', '', preg_replace('/(\.)\.+|(\/)\/+/g', '$1$2', '/' . trim(str_replace('\\', '/', $name), '/'))), '/')));
+		if (strncmp($path, static::$views_dir, strlen(static::$views_dir)) !== 0) {
+			throw new \Exception('View path directory escape');
 		}
-		throw new \Exception('Could not find path or path is not a template');
+
+		$file = $path . '.tpl.php';
+		$file_index = rtrim($path, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 'index.tpl.php';
+		if (file_exists($file) && is_file($file)) {
+			return $file;
+		} else if (file_exists($file_index) && is_file($file_index)) {
+			return $file_index;
+		}
+
+		throw new \Exception('Could not find view');
 	}
 
 	public static function render(string $name, array $vars = null) {
@@ -36,20 +39,12 @@ class View {
 
 	public function __construct(string $name, $vars = null, array $blocks = []) {
 		$this->name = $name;
-		$this->_init_vars($vars);
+		$this->_init_vars(array_merge_recursive($vars === null ? [] : $vars, static::$default_vars));
 		$this->blocks = $blocks;
-
-		// Initialize default variables
-		if (!array_key_exists('base_url', $this->vars)) {
-			$this->vars['base_url'] = rtrim(Config::get('url'), '/');
-		}
-		if (!array_key_exists('site_name', $this->vars)) {
-			$this->vars['site_name'] = Config::get('site_name');
-		}
 
 		// Eval view code
 		try {
-			require self::getPath($name);
+			require static::getPath($name);
 		} catch (\Exception $e) {
 			throw new \Exception("Error loading view \"{$name}\": {$e->getMessage()}");
 		}

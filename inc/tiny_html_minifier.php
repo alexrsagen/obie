@@ -1,6 +1,6 @@
 <?php namespace ZeroX;
 if (!defined('IN_ZEROX')) {
-	exit;
+	return;
 }
 
 // Obtained from: https://github.com/jenstornell/tiny-html-minifier/blob/master/tiny-html-minifier.php

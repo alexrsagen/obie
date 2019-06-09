@@ -1,6 +1,6 @@
 <?php namespace ZeroX;
 if (!defined('IN_ZEROX')) {
-	exit;
+	return;
 }
 
 class Util {
@@ -15,7 +15,7 @@ class Util {
 		return $ip;
 	}
 
-	public static function randomString(int $length, string $charset = self::BASE62_ALPHABET) {
+	public static function randomString(int $length, string $charset = static::BASE62_ALPHABET) {
 		$random_string = '';
 		for ($i = 0; $i < $length; $i++) {
 			$random_string .= $charset[random_int(0, strlen($charset) - 1)];
@@ -160,7 +160,7 @@ class Util {
 		if (!is_array($recipients)) {
 			throw new \TypeError('Recipients must be string or array');
 		}
-		if (!Config::get('mail', 'enable')) {
+		if (!Config::getGlobal()->get('mail', 'enable')) {
 			throw new \Exception('Mail is not enabled in the server configuration');
 		}
 
@@ -169,14 +169,14 @@ class Util {
 			$content_type = 'text/html';
 		}
 
-		$transport = new \Swift_SmtpTransport(Config::get('mail', 'host'), Config::get('mail', 'port'), Config::get('mail', 'security'));
-		$transport->setUsername(Config::get('mail', 'username'));
-		$transport->setPassword(Config::get('mail', 'password'));
+		$transport = new \Swift_SmtpTransport(Config::getGlobal()->get('mail', 'host'), Config::getGlobal()->get('mail', 'port'), Config::getGlobal()->get('mail', 'security'));
+		$transport->setUsername(Config::getGlobal()->get('mail', 'username'));
+		$transport->setPassword(Config::getGlobal()->get('mail', 'password'));
 
 		$mailer = new \Swift_Mailer($transport);
 
 		$message = new \Swift_Message($subject);
-		$message->setFrom([Config::get('mail', 'from_email') => Config::get('mail', 'from_name')]);
+		$message->setFrom([Config::getGlobal()->get('mail', 'from_email') => Config::getGlobal()->get('mail', 'from_name')]);
 		$message->setTo($recipients);
 		$message->setBody($body, $content_type);
 
@@ -189,7 +189,7 @@ class Util {
 
 	public static function genVirtualID(bool $short = false) {
 		$upload_id_part_time = (string)round(microtime(true) * 1000);
-		$upload_id_part_svid = (string)self::$server_virtual_id;
+		$upload_id_part_svid = (string)static::$server_virtual_id;
 		$upload_id_part_prng = random_bytes(32);
 
 		$upload_id_hash_ctx = hash_init('sha256');
@@ -254,6 +254,69 @@ class Util {
 			], (Session::get('messages') ?? [])));
 		} else {
 			throw new \InvalidArgumentException('Message must be string or array');
+		}
+	}
+
+	public static function errorHandler($errno, $errstr, $errfile, $errline) {
+		switch ($errno){
+			case E_ERROR: // 1
+				$typestr = 'E_ERROR'; break;
+			case E_WARNING: // 2
+				$typestr = 'E_WARNING'; break;
+			case E_PARSE: // 4
+				$typestr = 'E_PARSE'; break;
+			case E_NOTICE: // 8
+				$typestr = 'E_NOTICE'; break;
+			case E_CORE_ERROR: // 16
+				$typestr = 'E_CORE_ERROR'; break;
+			case E_CORE_WARNING: // 32
+				$typestr = 'E_CORE_WARNING'; break;
+			case E_COMPILE_ERROR: // 64
+				$typestr = 'E_COMPILE_ERROR'; break;
+			case E_CORE_WARNING: // 128
+				$typestr = 'E_COMPILE_WARNING'; break;
+			case E_USER_ERROR: // 256
+				$typestr = 'E_USER_ERROR'; break;
+			case E_USER_WARNING: // 512
+				$typestr = 'E_USER_WARNING'; break;
+			case E_USER_NOTICE: // 1024
+				$typestr = 'E_USER_NOTICE'; break;
+			case E_STRICT: // 2048
+				$typestr = 'E_STRICT'; break;
+			case E_RECOVERABLE_ERROR: // 4096
+				$typestr = 'E_RECOVERABLE_ERROR'; break;
+			case E_DEPRECATED: // 8192
+				$typestr = 'E_DEPRECATED'; break;
+			case E_USER_DEPRECATED: // 16384
+				$typestr = 'E_USER_DEPRECATED'; break;
+		}
+
+		$error_plain = $typestr . ': ' . $errstr . ' in ' . $errfile . ' on line ' . $errline;
+		$error_html = "<p>A fatal error occurred at " . date(DATE_ATOM) . ".</p><p><b>" . $typestr . ": </b>" . $errstr . " in <b>" . $errfile . "</b> on line <b>" . $errline . "</b></p>";
+		error_log($error_plain);
+
+		if (Config::getGlobal()->get('errors', 'mail')) {
+			static::sendMail(Config::getGlobal()->get('errors', 'mail_address'), 'Internal server error on ' . Config::getGlobal()->get('site_name'), $error_html, true);
+		}
+
+		if (Config::getGlobal()->get('errors', 'dump')) {
+			Router::sendResponse($error_html);
+		} else {
+			Router::sendResponse('Something went wrong while processing the request.', Router::CONTENT_TYPE_TEXT);
+		}
+		exit;
+	}
+
+	public static function shutdownHandler() {
+		// Ensure router deferred functions are always ran before shutdown
+		Router::runDeferred();
+
+		// Handle fatal errors
+		if (Config::getGlobal()->get('errors', 'handle')) {
+			$error = error_get_last();
+			if ($error && ($error['type'] & (E_ERROR | E_USER_ERROR | E_PARSE | E_CORE_ERROR | E_COMPILE_ERROR | E_RECOVERABLE_ERROR))){
+				Util::errorHandler($error['type'], $error['message'], $error['file'], $error['line']);
+			}
 		}
 	}
 }

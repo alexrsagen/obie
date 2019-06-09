@@ -1,6 +1,6 @@
 <?php namespace ZeroX\Vars;
 if (!defined('IN_ZEROX')) {
-	exit;
+	return;
 }
 
 trait VarTrait {

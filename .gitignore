@@ -2,17 +2,20 @@ tmp/*
 logs/*
 vendor/
 
-inc/app/*
-!inc/app/models/
-inc/app/models/*
-!inc/app/routes/
-inc/app/routes/*
-!inc/app/views/
-inc/app/views/*
-!inc/app/config.sample.json
-!inc/app/index.sample.php
+!app/config.sample.json
+!app/index.sample.php
+app/*
+!app/models/
+app/models/*
+!app/routes/
+!app/routes/index.sample.php
+app/routes/*
+!app/views/
+app/views/*
 
 public/*
 !public/index.php
 
 !.gitkeep
+
+composer.lock

@@ -1,7 +1,7 @@
 <?php namespace ZeroX\Models;
 use ZeroX\Util;
 if (!defined('IN_ZEROX')) {
-	exit;
+	return;
 }
 
 trait VirtualIDTrait {

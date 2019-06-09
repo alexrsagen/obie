@@ -1,6 +1,6 @@
 <?php namespace ZeroX\Validation;
 if (!defined('IN_ZEROX')) {
-	exit;
+	return;
 }
 
 class FormValidator implements IValidator {

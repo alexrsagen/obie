@@ -1,4 +1,8 @@
 <?php namespace ZeroX;
+if (!defined('IN_ZEROX')) {
+	return;
+}
+
 class Mime {
 	const TYPES = [
 		'.123' => 'application/vnd.lotus-1-2-3',
@@ -943,13 +947,13 @@ class Mime {
 	];
 
 	public static function embedType(string $ext) {
-		if (in_array($ext, self::EMBED_IMG_TYPES)) {
+		if (in_array($ext, static::EMBED_IMG_TYPES)) {
 			return 'img';
-		} elseif (in_array($ext, self::EMBED_TXT_TYPES)) {
+		} elseif (in_array($ext, static::EMBED_TXT_TYPES)) {
 			return 'txt';
-		} elseif (in_array($ext, self::EMBED_AUDIO_TYPES)) {
+		} elseif (in_array($ext, static::EMBED_AUDIO_TYPES)) {
 			return 'audio';
-		} elseif (in_array($ext, self::EMBED_VIDEO_TYPES)) {
+		} elseif (in_array($ext, static::EMBED_VIDEO_TYPES)) {
 			return 'video';
 		}
 

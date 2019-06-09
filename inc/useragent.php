@@ -1,6 +1,6 @@
 <?php namespace ZeroX;
 if (!defined('IN_ZEROX')) {
-	exit;
+	return;
 }
 
 class Useragent {

@@ -1,5 +1,8 @@
 <?php namespace ZeroX;
 use ZeroX\Vars\VarTrait;
+if (!defined('IN_ZEROX')) {
+	return;
+}
 
 class Config {
     use VarTrait;
@@ -22,9 +25,7 @@ class Config {
         self::$global_config = $config;
     }
 
-	public static function __callStatic(string $method_name, array $args) {
-		if (self::$global_config !== null && is_callable([self::$global_config, $method_name])) {
-			return call_user_func_array([self::$global_config, $method_name], $args);
-		}
-	}
+    public static function getGlobal() {
+        return self::$global_config;
+    }
 }

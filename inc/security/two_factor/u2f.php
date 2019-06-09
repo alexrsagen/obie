@@ -1,7 +1,7 @@
 <?php namespace ZeroX\Security\TwoFactor;
 use ZeroX\Util;
 if (!defined('IN_ZEROX')) {
-	exit;
+	return;
 }
 
 class U2F {

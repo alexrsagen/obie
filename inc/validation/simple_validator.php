@@ -1,6 +1,6 @@
 <?php namespace ZeroX\Validation;
 if (!defined('IN_ZEROX')) {
-	exit;
+	return;
 }
 
 class SimpleValidator implements IValidator {
@@ -32,7 +32,7 @@ class SimpleValidator implements IValidator {
 	}
 
 	public function validate($input) : bool {
-		return self::isValid($input, $this->type, $this->cv);
+		return static::isValid($input, $this->type, $this->cv);
 	}
 
 	public static function isValid($input, int $type, IValidator $cv = null) {

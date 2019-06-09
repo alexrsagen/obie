@@ -1,4 +1,7 @@
 {
+    "autoload": {
+        "files": ["autoload.php"]
+    },
     "require": {
         "swiftmailer/swiftmailer": "^6.0",
         "matthiasmullie/minify": "^1.3"

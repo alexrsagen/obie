@@ -1,7 +1,7 @@
 <?php namespace ZeroX;
 use MatthiasMullie\Minify as MMM;
 if (!defined('IN_ZEROX')) {
-	exit;
+	return;
 }
 
 class Minify {

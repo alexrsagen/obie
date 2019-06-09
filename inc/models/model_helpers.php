@@ -1,6 +1,6 @@
 <?php namespace ZeroX\Models;
 if (!defined('IN_ZEROX')) {
-	exit;
+	return;
 }
 
 class ModelHelpers {
@@ -32,7 +32,7 @@ class ModelHelpers {
 		if ($class_name_ns_pos !== false) {
 			$class_name = substr($class_name, $class_name_ns_pos + 1);
 		}
-		return self::getSingular(self::getSnakeCase($class_name));
+		return static::getSingular(static::getSnakeCase($class_name));
 	}
 
 	public static function getEscapedList(array $column_names = [], string $table_prefix = null) {
@@ -40,9 +40,9 @@ class ModelHelpers {
 		foreach ($column_names as $i => $key) {
 			$list_parts[$i] = '';
 			if ($table_prefix !== null) {
-				$list_parts[$i] .= self::getEscapedSource($table_prefix) . '.';
+				$list_parts[$i] .= static::getEscapedSource($table_prefix) . '.';
 			}
-			$list_parts[$i] .= self::getEscapedSource($key);
+			$list_parts[$i] .= static::getEscapedSource($key);
 		}
 		return implode(',', $list_parts);
 	}
@@ -52,9 +52,9 @@ class ModelHelpers {
 		foreach ($column_names as $i => $key) {
 			$set_parts[$i] = '';
 			if ($table_prefix !== null) {
-				$set_parts[$i] .= self::getEscapedSource($table_prefix) . '.';
+				$set_parts[$i] .= static::getEscapedSource($table_prefix) . '.';
 			}
-			$set_parts[$i] .= self::getEscapedSource($key) . ' = ?';
+			$set_parts[$i] .= static::getEscapedSource($key) . ' = ?';
 		}
 		return implode(',', $set_parts);
 	}
@@ -64,9 +64,9 @@ class ModelHelpers {
 		foreach ($column_names as $i => $key) {
 			$where_parts[$i] = '';
 			if ($table_prefix !== null) {
-				$where_parts[$i] .= self::getEscapedSource($table_prefix) . '.';
+				$where_parts[$i] .= static::getEscapedSource($table_prefix) . '.';
 			}
-			$where_parts[$i] .= self::getEscapedSource($key) . ' = ?';
+			$where_parts[$i] .= static::getEscapedSource($key) . ' = ?';
 		}
 		return implode(' AND ', $where_parts);
 	}
@@ -80,13 +80,13 @@ class ModelHelpers {
 		for ($i = 0; $i < count($source_column_names); $i++) {
 			$on_parts[$i] = '';
 			if ($source_table_prefix !== null) {
-				$on_parts[$i] .= self::getEscapedSource($source_table_prefix) . '.';
+				$on_parts[$i] .= static::getEscapedSource($source_table_prefix) . '.';
 			}
-			$on_parts[$i] .= self::getEscapedSource($source_column_names[$i]) . ' = ';
+			$on_parts[$i] .= static::getEscapedSource($source_column_names[$i]) . ' = ';
 			if ($target_table_prefix !== null) {
-				$on_parts[$i] .= self::getEscapedSource($target_table_prefix) . '.';
+				$on_parts[$i] .= static::getEscapedSource($target_table_prefix) . '.';
 			}
-			$on_parts[$i] .= self::getEscapedSource($target_column_names[$i]);
+			$on_parts[$i] .= static::getEscapedSource($target_column_names[$i]);
 		}
 		return implode(' AND ', $on_parts);
 	}

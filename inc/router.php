@@ -2,7 +2,7 @@
 use ZeroX\Vars\VarCollection;
 use ZeroX\Vars\VarTrait;
 if (!defined('IN_ZEROX')) {
-	exit;
+	return;
 }
 
 class Router {
@@ -221,10 +221,10 @@ class Router {
 	private static $response_sent     = false;
 
 	public static function stripTrailingSlash() {
-		$path = self::path();
-		$qs = self::queryString();
+		$path = static::getPath();
+		$qs = static::getQueryString();
 		if (substr($path, -1) === '/' && strlen($path) > 1) {
-			self::redirect(rtrim($path, '/') . $qs, self::HTTP_TEMPORARY_REDIRECT);
+			static::redirect(rtrim($path, '/') . $qs, static::HTTP_TEMPORARY_REDIRECT);
 			return true;
 		}
 		return false;
@@ -232,8 +232,8 @@ class Router {
 
 	public static function getPost(string $key = null) {
 		$data = [];
-		$request_method = self::method();
-		$content_type = self::getRequestHeader('Content-Type');
+		$request_method = static::getMethod();
+		$content_type = static::getRequestHeader('Content-Type');
 		switch ($content_type) {
 			case 'multipart/form-data':
 			case 'application/x-www-form-urlencoded':
@@ -262,7 +262,7 @@ class Router {
 	}
 
 	public static function getPostBool(string $key) {
-		$var = self::getPost($key);
+		$var = static::getPost($key);
 		if ($var === '1' || is_string($var) && strtolower($var) === 'true') {
 			return true;
 		}
@@ -270,14 +270,13 @@ class Router {
 	}
 
 	public static function getQuery(string $key = null) {
-		$data = $_GET;
-		if ($key === null) return $data;
-		if (!is_array($data) || !array_key_exists($key, $data)) return null;
-		return $data[$key];
+		if ($key === null) return $_GET;
+		if (!is_array($_GET) || !array_key_exists($key, $_GET)) return null;
+		return $_GET[$key];
 	}
 
 	public static function getQueryBool(string $key) {
-		$var = self::getQuery($key);
+		$var = static::getQuery($key);
 		if ($var === '1' || is_string($var) && strtolower($var) === 'true') {
 			return true;
 		}
@@ -303,18 +302,18 @@ class Router {
 	}
 
 	public static function parseRequestHeader(string $key, string $delimiter = ',', string $endchar = ';') {
-		$val = self::getRequestHeader($key);
+		$val = static::getRequestHeader($key);
 		if ($val === null) return [];
 		$end = strpos($val, $endchar);
 		if ($end === false || empty($endchar)) $end = strlen($val);
 		return array_map('trim', explode($delimiter, substr($val, 0, $end)));
 	}
 
-	public static function method() {
+	public static function getMethod() {
 		return strtoupper($_SERVER['REQUEST_METHOD']);
 	}
 
-	public static function path() {
+	public static function getPath() {
 		$path = $_SERVER['REQUEST_URI'];
 		$qs_pos = strpos($path, '?');
 		if ($qs_pos !== false) {
@@ -323,13 +322,28 @@ class Router {
 		return $path;
 	}
 
-	public static function queryString() {
+	public static function getQueryString() {
 		$request_uri = $_SERVER['REQUEST_URI'];
 		$qs_pos = strpos($request_uri, '?');
 		if ($qs_pos !== false) {
 			return substr($request_uri, $qs_pos);
 		}
 		return '';
+	}
+
+	public static function getHost(bool $validate_strict = false) {
+		$host = null;
+		if (!empty($_SERVER['HTTP_HOST'])) {
+			$host = $_SERVER['HTTP_HOST'];
+		} elseif (!empty($_SERVER['SERVER_NAME'])) {
+			$host = $_SERVER['SERVER_NAME'];
+		} elseif (!empty($_SERVER['SERVER_ADDR'])) {
+			$host = $_SERVER['SERVER_ADDR'];
+		}
+		if ($validate_strict && filter_var($host, FILTER_VALIDATE_DOMAIN, FILTER_FLAG_HOSTNAME) === false) {
+			return null;
+		}
+		return $host;
 	}
 
 	public static function sendResponse($response = null, string $content_type = self::CONTENT_TYPE_HTML, string $charset = 'utf-8', bool $minify = true) {
@@ -351,8 +365,8 @@ class Router {
 			if ($content_type === self::CONTENT_TYPE_HTML) {
 				$response .= self::$html_suffix;
 			}
-			self::setResponseHeader('Content-Type', $content_type . '; charset=' . $charset);
-			self::setResponseHeader('Content-Length', (string)strlen($response));
+			static::setResponseHeader('Content-Type', $content_type . '; charset=' . $charset);
+			static::setResponseHeader('Content-Length', (string)strlen($response));
 		}
 		if (ob_get_contents() !== false) ob_clean();
 		http_response_code(self::$response_code);
@@ -364,7 +378,7 @@ class Router {
 	}
 
 	public static function sendJSON($input) {
-		self::sendResponse($input, self::CONTENT_TYPE_JSON);
+		static::sendResponse($input, self::CONTENT_TYPE_JSON);
 	}
 
 	public static function isResponseSent() {
@@ -373,12 +387,12 @@ class Router {
 
 	public static function redirectOut(string $location, int $code = self::HTTP_FOUND) {
 		if (self::$response_sent) return;
-		self::setResponseHeader('Location', str_replace(array(';', "\r", "\n"), '', $location));
-		self::sendResponse();
+		static::setResponseHeader('Location', str_replace(array(';', "\r", "\n"), '', $location));
+		static::sendResponse();
 	}
 
 	public static function redirect(string $location, int $code = self::HTTP_FOUND) {
-		self::redirectOut(rtrim(Config::get('url'), '/') . '/' . ltrim($location, '/'), $code);
+		static::redirectOut(rtrim(Config::getGlobal()->get('url'), '/') . '/' . ltrim($location, '/'), $code);
 	}
 
 	public static function setResponseCode(int $response_code) {
@@ -539,12 +553,12 @@ class Route {
 	public function execute(string $method = null, string $path = null) {
 		// Default values
 		if ($method === null) {
-			$method = Router::method();
+			$method = Router::getMethod();
 		} else {
 			$method = strtoupper($method);
 		}
 		if ($path === null) {
-			$path = Router::path();
+			$path = Router::getPath();
 		}
 
 		if (!$this->isRouteCatchall()) {

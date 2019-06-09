@@ -1,6 +1,6 @@
 <?php namespace ZeroX\Security\TwoFactor;
 if (!defined('IN_ZEROX')) {
-	exit;
+	return;
 }
 
 class TOTP {

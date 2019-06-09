@@ -1,6 +1,6 @@
 <?php namespace ZeroX\Validation;
 if (!defined('IN_ZEROX')) {
-	exit;
+	return;
 }
 
 class PasswordValidator implements IValidator {
@@ -77,7 +77,7 @@ class PasswordValidator implements IValidator {
 		}
 
 		// String entropy of password must be >=2.5
-		if (self::entropy($input) < 2.5) {
+		if (static::entropy($input) < 2.5) {
 			$this->message = 'Password entropy is too low. Mix it up a little, use more different characters!';
 			return false;
 		}
