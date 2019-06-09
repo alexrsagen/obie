@@ -1,8 +1,27 @@
 {
+    "name": "alexrsagen/zerox",
+    "type": "framework",
+    "description": "ZeroX is a PHP framework originally made for the file upload site 0x.ms, now released to the public.",
+    "keywords": ["framework", "php", "http", "template", "view", "router", "routing", "model", "models", "session", "sessions"],
+    "homepage": "https://github.com/alexrsagen/zerox",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Alexander Sagen",
+            "email": "alexander@sagen.me",
+            "homepage": "https://sagen.me",
+            "role": "Developer"
+        }
+    ],
+    "support": {
+        "issues": "https://github.com/alexrsagen/zerox/issues",
+        "source": "https://github.com/alexrsagen/zerox"
+    },
     "autoload": {
         "files": ["autoload.php"]
     },
     "require": {
+        "php": ">=7.0.0",
         "swiftmailer/swiftmailer": "^6.0",
         "matthiasmullie/minify": "^1.3"
     }
