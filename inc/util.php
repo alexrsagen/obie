@@ -187,6 +187,12 @@ class Util {
 		}
 	}
 
+	protected static $server_virtual_id = 0;
+
+	public static function setServerVirtualID(int $server_virtual_id) {
+		self::$server_virtual_id = $server_virtual_id;
+	}
+
 	public static function genVirtualID(bool $short = false) {
 		$upload_id_part_time = (string)round(microtime(true) * 1000);
 		$upload_id_part_svid = (string)static::$server_virtual_id;
