@@ -3,7 +3,7 @@ if (!defined('IN_ZEROX')) {
 	return;
 }
 
-class VirtualIDModel extends BaseModel {
+class VirtualIdModel extends BaseModel {
 	const RESERVED_IDS = [
 		// base36 variants
 		1243314,     // 0xms

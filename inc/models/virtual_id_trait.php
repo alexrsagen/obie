@@ -4,7 +4,7 @@ if (!defined('IN_ZEROX')) {
 	return;
 }
 
-trait VirtualIDTrait {
+trait VirtualIdTrait {
 	private static $_use_short_virtual_id = false;
 
 	public static function useShortVirtualID(bool $use_short_virtual_id) {
