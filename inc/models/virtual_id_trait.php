@@ -19,7 +19,7 @@ trait VirtualIdTrait {
 		$i = 0;
 		do {
 			$this->virtual_id = Util::genVirtualID(static::$_use_short_virtual_id);
-			$stmt = static::$db->prepare('SELECT COUNT(`virtual_id`) AS `rowcount` FROM ' . $this->getEscapedSource() . ' WHERE `virtual_id` = ?');
+			$stmt = static::getDatabase()->prepare('SELECT COUNT(`virtual_id`) AS `rowcount` FROM ' . $this->getEscapedSource() . ' WHERE `virtual_id` = ?');
 			$stmt->bindValue(1, $this->virtual_id, \PDO::PARAM_INT);
 			$stmt->execute();
 			$i++;
