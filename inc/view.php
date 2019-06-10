@@ -38,8 +38,9 @@ class View {
 	private $parent = null;
 
 	public function __construct(string $name, $vars = null, array $blocks = []) {
+		$vars = array_merge_recursive($vars === null ? [] : $vars, static::$default_vars);
 		$this->name = $name;
-		$this->_init_vars(array_merge_recursive($vars === null ? [] : $vars, static::$default_vars));
+		$this->_init_vars($vars);
 		$this->blocks = $blocks;
 
 		// Eval view code
