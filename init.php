@@ -86,8 +86,10 @@ setlocale(LC_ALL, $config->get('lang') . (strtoupper(substr(PHP_OS, 0, 3)) === '
 
 // Update CSP with values from config
 Router::setResponseHeader('Content-Security-Policy', "img-src data: 'self' " .
-implode(' ', $config->get('server', 'csp_sources')) . "; media-src 'self' " .
-implode(' ', $config->get('server', 'csp_sources')) . "; script-src 'self' 'nonce-$nonce'; style-src 'self' 'unsafe-inline'");
+	implode(' ', $config->get('server', 'csp_sources', 'img')) . "; media-src 'self' " .
+	implode(' ', $config->get('server', 'csp_sources', 'media')) . "; script-src 'self' 'nonce-$nonce' " .
+	implode(' ', $config->get('server', 'csp_sources', 'script')) . "; style-src 'self' 'unsafe-inline' " .
+	implode(' ', $config->get('server', 'csp_sources', 'style')) . "");
 
 // Set up sessions
 if ($config->get('sessions', 'enable')) {

@@ -13,7 +13,12 @@
 		"handle": true
 	},
 	"server": {
-		"csp_sources": []
+		"csp_sources": {
+			"img": [],
+			"media": [],
+			"script": [],
+			"style": []
+		}
 	},
 	"db": {
 		"enable": true,
