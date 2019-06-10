@@ -4,7 +4,7 @@ if (!defined('IN_ZEROX')) {
 	return;
 }
 
-class U2F {
+class U2f {
 	private static function armor(string $public_key_raw) {
 		return "-----BEGIN PUBLIC KEY-----\n" .
 			base64_encode(

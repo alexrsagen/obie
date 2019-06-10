@@ -3,7 +3,7 @@ if (!defined('IN_ZEROX')) {
 	return;
 }
 
-class TOTP {
+class Totp {
 	public static function gen(string $k, int $time = null) {
 		if ($time === null) {
 			$time = time();
