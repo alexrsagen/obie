@@ -122,7 +122,7 @@ if (!defined('ZEROX_TMP_DIR')) {
 	} elseif ($config->isset('paths', 'tmp_dir')) {
 		define('ZEROX_TMP_DIR', $config->get('paths', 'tmp_dir'));
 	} else {
-		define('ZEROX_TMP_DIR', ZEROX_BASE_DIR . DIRECTORY_SEPARATOR . 'tmp');
+		define('ZEROX_TMP_DIR', ZEROX_APP_DIR . DIRECTORY_SEPARATOR . 'tmp');
 	}
 }
 ini_set('sys_temp_dir', ZEROX_TMP_DIR);

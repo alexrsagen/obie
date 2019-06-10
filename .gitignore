@@ -1,5 +1,3 @@
-tmp/*
-logs/*
 vendor/
 
 app/*
@@ -9,6 +7,10 @@ app/models/*
 app/routes/*
 !app/views/
 app/views/*
+!app/tmp/
+app/tmp/*
+!app/logs/
+app/logs/*
 !app/config.sample.json
 !app/index.sample.php
 !app/routes/index.sample.php
