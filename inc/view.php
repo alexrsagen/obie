@@ -11,16 +11,20 @@ class View {
 	public static $default_vars = [];
 
 	public static function getPath(string $name) {
-		$path = realpath(static::$views_dir . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, ltrim(str_replace('/./', '', preg_replace('/(\.)\.+|(\/)\/+/', '$1$2', '/' . trim(str_replace('\\', '/', $name), '/'))), '/')));
-		if (strncmp($path, static::$views_dir, strlen(static::$views_dir)) !== 0) {
+		$base = static::$views_dir . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, ltrim(str_replace('/./', '', preg_replace('/(\.)\.+|(\/)\/+/', '$1$2', '/' . trim(str_replace('\\', '/', $name), '/'))), '/'));
+		$file = realpath($base . '.tpl.php');
+		if ($file !== false && strncmp($file, static::$views_dir, strlen(static::$views_dir)) !== 0) {
 			throw new \Exception('View path directory escape');
 		}
 
-		$file = $path . '.tpl.php';
-		$file_index = rtrim($path, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 'index.tpl.php';
-		if (file_exists($file) && is_file($file)) {
+		$file_index = realpath($base . DIRECTORY_SEPARATOR . 'index.tpl.php');
+		if ($file_index !== false && strncmp($file_index, static::$views_dir, strlen(static::$views_dir)) !== 0) {
+			throw new \Exception('View path directory escape');
+		}
+
+		if ($file !== false && file_exists($file) && is_file($file)) {
 			return $file;
-		} else if (file_exists($file_index) && is_file($file_index)) {
+		} elseif ($file_index !== false && file_exists($file_index) && is_file($file_index)) {
 			return $file_index;
 		}
 
@@ -38,10 +42,15 @@ class View {
 	private $parent = null;
 
 	public function __construct(string $name, $vars = null, array $blocks = []) {
-		$vars = array_merge_recursive($vars === null ? [] : $vars, static::$default_vars);
 		$this->name = $name;
 		$this->_init_vars($vars);
 		$this->blocks = $blocks;
+		foreach (static::$default_vars as $k => $v) {
+			$k = explode('.', $k);
+			if (!$this->isset(...$k)) {
+				$this->set(...array_merge($k, [$v]));
+			}
+		}
 
 		// Eval view code
 		try {
