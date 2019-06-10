@@ -24,7 +24,7 @@ trait VirtualIdTrait {
 			$stmt->execute();
 			$i++;
 		} while ($i < 10 && (
-			in_array($this->virtual_id, VirtualIDModel::RESERVED_IDS, true) ||
+			in_array($this->virtual_id, VirtualIdModel::RESERVED_IDS, true) ||
 			(int)$stmt->fetch()['rowcount'] > 0));
 
 		if ($i === 10) {
