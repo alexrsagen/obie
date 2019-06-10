@@ -11,7 +11,7 @@ class View {
 	public static $default_vars = [];
 
 	public static function getPath(string $name) {
-		$path = realpath(static::$views_dir . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, ltrim(str_replace('/./', '', preg_replace('/(\.)\.+|(\/)\/+/g', '$1$2', '/' . trim(str_replace('\\', '/', $name), '/'))), '/')));
+		$path = realpath(static::$views_dir . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, ltrim(str_replace('/./', '', preg_replace('/(\.)\.+|(\/)\/+/', '$1$2', '/' . trim(str_replace('\\', '/', $name), '/'))), '/')));
 		if (strncmp($path, static::$views_dir, strlen(static::$views_dir)) !== 0) {
 			throw new \Exception('View path directory escape');
 		}
