@@ -212,51 +212,6 @@ class Util {
 		return gmp_intval($upload_id_gmp);
 	}
 
-	public static function outputError(int $code, User $user = null, string $error_message = null, string $error_title = null, bool $close = false) {
-		$title = $error_title ?? (array_key_exists($code, Router::HTTP_STATUSTEXT) ? Router::HTTP_STATUSTEXT[$code] : 'Error');
-		Router::setResponseCode($code);
-		$accept = Router::parseRequestHeader('accept');
-		if (in_array('application/json', $accept)) {
-			Router::sendJSON([
-				'Success' => false,
-				'Error' => [
-					'Title' => $title,
-					'Message' => $error_message
-				]
-			]);
-		} elseif (in_array('text/html', $accept) || in_array('*/*', $accept)) {
-			Router::sendResponse(View::render('error', [
-				'page_title' => $title,
-				'error_icon' => ($code >= 400 && $code < 404 || $code >= 500 && $code < 600 ? 'warning' : 'help'),
-				'error_class' => ($code >= 200 && $code < 300 ? 'success' : ($code >= 400 && $code < 404 || $code >= 500 && $code < 600 ? 'error' : 'info')),
-				'error_message' => $error_message,
-				'error_title' => $error_title,
-				'close' => $close
-			]));
-		} else {
-			if ($error_message !== null) {
-				Router::sendResponse($title . ': ' . $error_message, Router::CONTENT_TYPE_TEXT);
-			} else {
-				Router::sendResponse($title, Router::CONTENT_TYPE_TEXT);
-			}
-		}
-	}
-
-	public static function addMessage($message) {
-		if (is_string($message)) {
-			$message = [
-				'body' => $message
-			];
-		}
-		if (is_array($message)) {
-			Session::set('messages', array_merge([
-				$message
-			], (Session::get('messages') ?? [])));
-		} else {
-			throw new \InvalidArgumentException('Message must be string or array');
-		}
-	}
-
 	public static function errorHandler($errno, $errstr, $errfile, $errline) {
 		switch ($errno){
 			case E_ERROR: // 1
