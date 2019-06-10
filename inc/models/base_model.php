@@ -12,11 +12,11 @@ class BaseModel {
 		'date'
 	];
 
-	private $_new             = true;
-	private $_data            = [];
-	private $_changed_columns = [];
-	private $_relation_cache  = [];
-	private $_default_db      = null;
+	private $_new               = true;
+	private $_data              = [];
+	private $_changed_columns   = [];
+	private $_relation_cache    = [];
+	private static $_default_db = null;
 
 	// Model definition methods
 
