@@ -1,5 +1,7 @@
 <?php namespace MyZeroXApp;
+use ZeroX\Router;
 
 Router::get('/', function() {
-	$this->sendResponse('hello world', Router::CONTENT_TYPE_TEXT);
+	$this->setContentType(Router::CONTENT_TYPE_TEXT);
+	return 'hello world';
 });

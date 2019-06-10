@@ -33,7 +33,7 @@ spl_autoload_register(function(string $name) {
 });
 
 // Autoload route
-$route_parts = explode('/', ltrim(str_replace('/./', '', preg_replace('/(\.)\.+|(\/)\/+/g', '$1$2', '/' . trim(Router::getPath(), '/'))), '/'));
+$route_parts = explode('/', ltrim(str_replace('/./', '', preg_replace('/(\.)\.+|(\/)\/+/', '$1$2', '/' . trim(Router::getPath(), '/'))), '/'));
 $route_cur_dir = ZEROX_APP_DIR . DIRECTORY_SEPARATOR . 'routes';
 $route_handler = $cur_route_dir . DIRECTORY_SEPARATOR . 'index.php';
 foreach ($route_parts as $part) {
