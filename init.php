@@ -20,7 +20,7 @@ if (!defined('ZEROX_IS_VENDORED')) {
 	if (array_key_exists('ZEROX_IS_VENDORED', $_ENV)) {
 		define('ZEROX_IS_VENDORED', $_ENV['ZEROX_IS_VENDORED']);
 	} else {
-		define('ZEROX_IS_VENDORED', basename(dirname(ZEROX_BASE_DIR)) === 'vendor');
+		define('ZEROX_IS_VENDORED', basename(dirname(ZEROX_BASE_DIR)) === 'alexrsagen');
 	}
 }
 if (!ZEROX_IS_VENDORED) {
@@ -36,7 +36,7 @@ if (!defined('ZEROX_APP_DIR')) {
 	if (array_key_exists('ZEROX_APP_DIR', $_ENV)) {
 		define('ZEROX_APP_DIR', $_ENV['ZEROX_APP_DIR']);
 	} elseif (ZEROX_IS_VENDORED) {
-		define('ZEROX_APP_DIR', dirname(dirname(ZEROX_BASE_DIR)));
+		define('ZEROX_APP_DIR', dirname(dirname(dirname(ZEROX_BASE_DIR))));
 	} else {
 		define('ZEROX_APP_DIR', ZEROX_BASE_DIR . DIRECTORY_SEPARATOR . 'app');
 	}
