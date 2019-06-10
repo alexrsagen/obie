@@ -71,7 +71,7 @@ class Route {
 					if ($part_end === false) $part_end = strlen($this->route);
 
 					$regex .= '\/';
-					if ($this->route[$offset-1] === ':') {
+					if ($this->route[$offset] === ':') {
 						$part_name = substr($this->route, $offset + 1, $part_end - $offset - 1);
 						if (array_key_exists($part_name, $this->patterns)) {
 							$regex .= '(' . $this->patterns[$part_name] . ')';
