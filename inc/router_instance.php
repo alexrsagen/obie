@@ -11,7 +11,6 @@ class RouterInstance {
 
 	public $vars;
 
-	private $status;
 	private $routes       = [];
 	private $deferred     = [];
 	private $ran_deferred = false;
@@ -32,7 +31,7 @@ class RouterInstance {
 		if ($this->ran_deferred) return;
 		$vc = $this->vars->getContainer();
 		foreach ($this->deferred as $handler) {
-			$handler->bindTo($vc, $vc)($this->status);
+			$handler->bindTo($vc, $vc)();
 		}
 	}
 
@@ -57,14 +56,11 @@ class RouterInstance {
 			}
 		}
 		if ($responded) {
-			$this->status = self::OK;
+			return self::OK;
 		} elseif ($invalid_method) {
-			$this->status = self::EINVALID_METHOD;
-		} else {
-			$this->status = self::ENOT_FOUND;
+			return self::EINVALID_METHOD;
 		}
-		$this->runDeferred();
-		return $this->status;
+		return self::ENOT_FOUND;
 	}
 
 	public function route(string $method_str, string $route_str, \Closure ...$handlers) {

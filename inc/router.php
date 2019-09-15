@@ -230,30 +230,33 @@ class Router {
 	}
 
 	public static function getPost(string $key = null) {
-		$data = [];
-		$request_method = static::getMethod();
-		$content_type = static::getRequestHeader('Content-Type');
-		switch ($content_type) {
-			case 'multipart/form-data':
-			case 'application/x-www-form-urlencoded':
-				switch ($request_method) {
-					case 'PUT':
-						parse_str(file_get_contents('php://input'), $data);
-						break;
-					case 'POST':
-						$data = $_POST;
-						break;
-					default:
-						$data = null;
-						break;
-				}
-				break;
-			case 'application/json':
-				$data = json_decode(file_get_contents('php://input'), true);
-				break;
-			default:
-				$data = null;
-				break;
+		static $data = null;
+		if ($data === null) {
+			$data = [];
+			$request_method = static::getMethod();
+			$content_type = static::getRequestHeader('Content-Type');
+			switch ($content_type) {
+				case 'multipart/form-data':
+				case 'application/x-www-form-urlencoded':
+					switch ($request_method) {
+						case 'PUT':
+							parse_str(file_get_contents('php://input'), $data);
+							break;
+						case 'POST':
+							$data = $_POST;
+							break;
+						default:
+							$data = null;
+							break;
+					}
+					break;
+				case 'application/json':
+					$data = json_decode(file_get_contents('php://input'), true);
+					break;
+				default:
+					$data = null;
+					break;
+			}
 		}
 		if ($key === null) return $data;
 		if (!is_array($data) || !array_key_exists($key, $data)) return null;
@@ -347,6 +350,8 @@ class Router {
 
 	public static function sendResponse($response = null, string $content_type = self::CONTENT_TYPE_HTML, string $charset = 'utf-8', bool $minify = true) {
 		if (self::$response_sent) return;
+
+		// Prepare response
 		if ($response !== null) {
 			if ($content_type === self::CONTENT_TYPE_JSON) {
 				$json_options = JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE;
@@ -367,12 +372,20 @@ class Router {
 			static::setResponseHeader('Content-Type', $content_type . '; charset=' . $charset);
 			static::setResponseHeader('Content-Length', (string)strlen($response));
 		}
+
+		// Run deferred functions from all router instances
+		static::runDeferred();
+
+		// Remove any buffered output
 		if (ob_get_contents() !== false) ob_clean();
+
+		// Flush response to client
 		http_response_code(self::$response_code);
 		foreach (self::$headers as $name => $value) {
 			header(sprintf('%s: %s', $name, $value));
 		}
 		if ($response !== null) echo $response;
+		flush();
 		self::$response_sent = true;
 	}
 
