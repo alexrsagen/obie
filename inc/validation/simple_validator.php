@@ -18,10 +18,15 @@ class SimpleValidator implements IValidator {
 	const TYPE_URL          = 11; // RFC 2396
 	const TYPE_UUID         = 12; // 01234567-89ab-cdef-0123-456789abcdef
 	const TYPE_NONEMPTY     = 13; // String which is not empty and not only whitespace
+	const TYPE_BASE64       = 14; // Base-64 encoded string
+	const TYPE_BASE16       = 15; // Base-16 (hexadecimal) encoded string
 
-	const REGEX_RFC5322 = '/(?:[a-z0-9!#$%&\'*+\/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&\'*+\/=?^_`{|}~-]+)*|"(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21\x23-\x5b\x5d-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])*")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\[(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?|[a-z0-9-]*[a-z0-9]:(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21-\x5a\x53-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])+)\])/';
+	const REGEX_RFC5322 = '/^(?:[a-z0-9!#$%&\'*+\/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&\'*+\/=?^_`{|}~-]+)*|"(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21\x23-\x5b\x5d-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])*")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\[(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?|[a-z0-9-]*[a-z0-9]:(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21-\x5a\x53-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])+)\])$/';
 
-	const REGEX_UUID = '/[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}/';
+	const REGEX_UUID = '/^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$/';
+
+	const REGEX_BASE64 = '/^(?:[A-Za-z0-9+\/]{4})*(?:[A-Za-z0-9+\/]{2}==|[A-Za-z0-9+\/]{3}=)?$/';
+	const REGEX_BASE16 = '/^[a-fA-F0-9]*$/';
 
 	private $type = self::TYPE_CUSTOM;
 	private $cv = null;
@@ -78,6 +83,12 @@ class SimpleValidator implements IValidator {
 				return preg_match(self::REGEX_UUID, $input) === 1;
 			case self::TYPE_NONEMPTY:
 				return is_string($input) && strlen(trim($input)) > 0;
+			case self::TYPE_BASE64:
+				if (!is_string($input)) return false;
+				return preg_match(self::REGEX_BASE64, $input) === 1;
+			case self::TYPE_BASE16:
+				if (!is_string($input)) return false;
+				return preg_match(self::REGEX_BASE16, $input) === 1;
 			default:
 				return false;
 		}
