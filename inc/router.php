@@ -333,6 +333,13 @@ class Router {
 		return '';
 	}
 
+	public static function getScheme() {
+		if (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] == 'on' || !empty($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] == 443) {
+			return 'https';
+		}
+		return 'http';
+	}
+
 	public static function getHost(bool $validate_strict = false) {
 		$host = null;
 		if (!empty($_SERVER['HTTP_HOST'])) {
