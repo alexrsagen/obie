@@ -269,9 +269,6 @@ class Util {
 	}
 
 	public static function shutdownHandler() {
-		// Ensure router deferred functions are always ran before shutdown
-		Router::runDeferred();
-
 		// Handle fatal errors
 		if (Config::getGlobal()->get('errors', 'handle')) {
 			$error = error_get_last();
