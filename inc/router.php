@@ -400,6 +400,7 @@ class Router {
 	public static function redirectOut(string $location, int $code = self::HTTP_FOUND) {
 		if (self::$response_sent) return;
 		static::setResponseHeader('Location', str_replace(array(';', "\r", "\n"), '', $location));
+		static::setResponseCode($code);
 		static::sendResponse();
 	}
 
