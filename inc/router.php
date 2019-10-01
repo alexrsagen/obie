@@ -411,6 +411,17 @@ class Router {
 		self::$response_code = $response_code;
 	}
 
+	public static function getResponseCode() {
+		return self::$response_code;
+	}
+
+	public static function getResponseCodeText() {
+		if (array_key_exists(self::$response_code, self::HTTP_STATUSTEXT)) {
+			return self::HTTP_STATUSTEXT[self::$response_code];
+		}
+		return '';
+	}
+
 	public static function getResponseHeader(string $name = null) {
 		if ($name === null) return self::$headers;
 		if (!array_key_exists($name, self::$headers)) return null;
