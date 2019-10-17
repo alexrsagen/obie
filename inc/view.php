@@ -93,8 +93,8 @@ class View {
 		return $this->html;
 	}
 
-	public function include(string $name) {
-		$include = new self($name, $this->vars, $this->blocks);
+	public function include(string $name, array $vars = []) {
+		$include = new self($name, array_merge_recursive($this->vars, $vars), $this->blocks);
 		return $include->getHTML();
 	}
 }
