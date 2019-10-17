@@ -234,28 +234,30 @@ class Router {
 		if ($data === null) {
 			$data = [];
 			$request_method = static::getMethod();
-			$content_type = static::getRequestHeader('Content-Type');
-			switch ($content_type) {
-				case 'multipart/form-data':
-				case 'application/x-www-form-urlencoded':
-					switch ($request_method) {
-						case 'PUT':
-							parse_str(file_get_contents('php://input'), $data);
-							break;
-						case 'POST':
-							$data = $_POST;
-							break;
-						default:
-							$data = null;
-							break;
-					}
-					break;
-				case 'application/json':
-					$data = json_decode(file_get_contents('php://input'), true);
-					break;
-				default:
-					$data = null;
-					break;
+			$content_type = static::parseRequestHeader('Content-Type');
+			if (count($content_type) > 0) {
+				switch ($content_type[0]) {
+					case 'multipart/form-data':
+					case 'application/x-www-form-urlencoded':
+						switch ($request_method) {
+							case 'PUT':
+								parse_str(file_get_contents('php://input'), $data);
+								break;
+							case 'POST':
+								$data = $_POST;
+								break;
+							default:
+								$data = null;
+								break;
+						}
+						break;
+					case 'application/json':
+						$data = json_decode(file_get_contents('php://input'), true);
+						break;
+					default:
+						$data = null;
+						break;
+				}
 			}
 		}
 		if ($key === null) return $data;
