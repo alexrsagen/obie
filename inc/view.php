@@ -96,8 +96,8 @@ class View {
 
 	public function include(string $name, array $vars = []) {
 		if (!empty($vars)) {
-			$existing_vars = $this->vars->get();
-			$include_vars = new VarCollection(array_merge_recursive($existing_vars, $vars));
+			$new_vars = array_merge_recursive($this->vars->get(), $vars);
+			$include_vars = new VarCollection($new_vars);
 		} else {
 			$include_vars = $this->vars;
 		}
