@@ -94,7 +94,12 @@ class View {
 	}
 
 	public function include(string $name, array $vars = []) {
-		$include = new self($name, array_merge_recursive($this->vars, $vars), $this->blocks);
+		if (!empty($vars)) {
+			$include_vars = new VarCollection(array_merge_recursive($this->storage, $vars));
+		} else {
+			$include_vars = $this->vars;
+		}
+		$include = new self($name, $include_vars, $this->blocks);
 		return $include->getHTML();
 	}
 }
