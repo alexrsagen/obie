@@ -89,7 +89,10 @@ class VarCollection implements \ArrayAccess, \IteratorAggregate, \Countable, \Se
 			if (!isset($cur[$key])) {
 				return null;
 			}
-			$cur = &$cur[$key];
+			$prev = &$cur;
+			unset($cur);
+			$cur = &$prev[$key];
+			unset($prev);
 		}
 		return $cur;
 	}
@@ -110,7 +113,10 @@ class VarCollection implements \ArrayAccess, \IteratorAggregate, \Countable, \Se
 				if (!isset($cur[$key])) {
 					$cur[$key] = $this->assoc ? [] : new self();
 				}
-				$cur = &$cur[$key];
+				$prev = &$cur;
+				unset($cur);
+				$cur = &$prev[$key];
+				unset($prev);
 			}
 		}
 		return null;
@@ -125,7 +131,10 @@ class VarCollection implements \ArrayAccess, \IteratorAggregate, \Countable, \Se
 			if ($i === count($v)-1) {
 				unset($cur[$key]);
 			} else {
-				$cur = &$cur[$key];
+				$prev = &$cur;
+				unset($cur);
+				$cur = &$prev[$key];
+				unset($prev);
 			}
 		}
 		return null;
@@ -137,7 +146,10 @@ class VarCollection implements \ArrayAccess, \IteratorAggregate, \Countable, \Se
 			if ((!is_array($cur) && !is_a($cur, '\ZeroX\VarCollection')) || !isset($cur[$key])) {
 				return false;
 			}
-			$cur = &$cur[$key];
+			$prev = &$cur;
+			unset($cur);
+			$cur = &$prev[$key];
+			unset($prev);
 		}
 		return true;
 	}
