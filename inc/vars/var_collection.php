@@ -85,12 +85,15 @@ class VarCollection implements \ArrayAccess, \IteratorAggregate, \Countable, \Se
 
 	public function get(...$v) {
 		$cur = &$this->storage;
-		foreach ($v as $key) {
-			if (!isset($cur[$key])) {
-				return null;
-			}
+		foreach ($v as $i => $key) {
 			$prev = &$cur;
 			unset($cur);
+			if (is_a($prev, '\ZeroX\Vars\VarCollection')) {
+				return $prev->get(...array_slice($v, $i));
+			}
+			if (!isset($prev[$key])) {
+				return null;
+			}
 			$cur = &$prev[$key];
 			unset($prev);
 		}
@@ -107,14 +110,17 @@ class VarCollection implements \ArrayAccess, \IteratorAggregate, \Countable, \Se
 				$cur[$key] = $v[$i+1];
 				return null;
 			} else {
-				if (!is_array($cur) && !is_a($cur, '\ZeroX\VarCollection')) {
+				if (!is_array($cur) && !is_a($cur, '\ZeroX\Vars\VarCollection')) {
 					throw new \InvalidArgumentException('Full path from keys could not be accessed');
-				}
-				if (!isset($cur[$key])) {
-					$cur[$key] = $this->assoc ? [] : new self();
 				}
 				$prev = &$cur;
 				unset($cur);
+				if (is_a($prev, '\ZeroX\Vars\VarCollection')) {
+					return $prev->set(...array_slice($v, $i));
+				}
+				if (!isset($prev[$key])) {
+					$prev[$key] = $this->assoc ? [] : new self();
+				}
 				$cur = &$prev[$key];
 				unset($prev);
 			}
@@ -125,14 +131,23 @@ class VarCollection implements \ArrayAccess, \IteratorAggregate, \Countable, \Se
 	public function unset(...$v) {
 		$cur = &$this->storage;
 		foreach ($v as $i => $key) {
-			if ((!is_array($cur) && !is_a($cur, '\ZeroX\VarCollection')) || !isset($cur[$key])) {
+			if ((!is_array($cur) && !is_a($cur, '\ZeroX\Vars\VarCollection'))) {
 				return null;
 			}
 			if ($i === count($v)-1) {
+				if (!isset($cur[$key])) {
+					return null;
+				}
 				unset($cur[$key]);
 			} else {
 				$prev = &$cur;
 				unset($cur);
+				if (is_a($prev, '\ZeroX\Vars\VarCollection')) {
+					return $prev->unset(...array_slice($v, $i));
+				}
+				if (!isset($prev[$key])) {
+					return null;
+				}
 				$cur = &$prev[$key];
 				unset($prev);
 			}
@@ -142,12 +157,18 @@ class VarCollection implements \ArrayAccess, \IteratorAggregate, \Countable, \Se
 
 	public function isset(...$v) {
 		$cur = &$this->storage;
-		foreach ($v as $key) {
-			if ((!is_array($cur) && !is_a($cur, '\ZeroX\VarCollection')) || !isset($cur[$key])) {
+		foreach ($v as $i => $key) {
+			if (!is_array($cur) && !is_a($cur, '\ZeroX\Vars\VarCollection')) {
 				return false;
 			}
 			$prev = &$cur;
 			unset($cur);
+			if (is_a($prev, '\ZeroX\Vars\VarCollection')) {
+				return $prev->isset(...array_slice($v, $i));
+			}
+			if (!isset($prev[$key])) {
+				return false;
+			}
 			$cur = &$prev[$key];
 			unset($prev);
 		}
