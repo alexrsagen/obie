@@ -80,26 +80,42 @@ class TinyHtmlMinifier {
 	function minify($html) {
 		$html = $this->removeComments($html);
 		$rest = $html;
-		while(!empty($rest)) {
-			$parts = explode('<', $rest, 2);
-			$this->walk($parts[0]);
-			$rest = (isset($parts[1])) ? $parts[1] : '';
-		}
+		while ($this->walk($rest)) {}
 		return $this->output;
 	}
 
 	// Walk trough html
-	function walk(&$part) {
-		$tag_parts = explode('>', $part);
-		$tag_content = $tag_parts[0];
+	function walk(&$rest) {
+		$parts             = explode('<', $rest, 2);
+		$tag_parts         = explode('>', $parts[0], 2);
+		$tag_content       = $tag_parts[0];
+		$tag_content_fixed = false;
 
+		HANDLE_TAG_CONTENT:
 		if (!empty($tag_content)) {
-			$name = $this->findName($tag_content);
-			$element = $this->toElement($tag_content, $part, $name);
-			$type = $this->toType($element);
+			$name    = $this->findName($tag_content);
+			$element = $this->toElement($tag_content, $parts[0], $name);
+			$type    = $this->toType($element);
 
+			// Find and set document head
 			if ($name === 'head') {
 				$this->head = ($type === 'open') ? true : false;
+			}
+
+			// Perform additional processing for "raw text elements"
+			// which may contain tag open (<) and tag close (>) characters
+			if (($name === 'script' || $name === 'style') && $type === 'open' && !$tag_content_fixed) {
+				while (count($parts) > 1 && strlen($parts[1]) > 0 && $parts[1][0] !== '/') {
+					$extra = explode('<', $parts[1], 2);
+					$parts = [$parts[0] . '<' . $extra[0], count($extra) > 1 ? $extra[1] : ''];
+					unset($extra);
+					$tag_content_fixed = true;
+				}
+				if ($tag_content_fixed) {
+					$tag_parts   = explode('>', $parts[0], 2);
+					$tag_content = $tag_parts[0];
+					goto HANDLE_TAG_CONTENT;
+				}
 			}
 
 			$this->build[] = [
@@ -122,6 +138,9 @@ class TinyHtmlMinifier {
 
 			$this->buildHtml();
 		}
+
+		$rest = count($parts) > 1 ? $parts[1] : '';
+		return count($parts) > 1;
 	}
 
 	// Remove comments
