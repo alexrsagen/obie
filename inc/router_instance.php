@@ -30,7 +30,7 @@ class RouterInstance {
 	public function runDeferred() {
 		if ($this->ran_deferred) return;
 		$vc = $this->vars->getContainer();
-		foreach ($this->deferred as $handler) {
+		foreach (array_reverse($this->deferred) as $handler) {
 			$handler->bindTo($vc, $vc)();
 		}
 	}
