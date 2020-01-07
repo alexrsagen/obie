@@ -5,6 +5,7 @@ if (!defined('IN_ZEROX')) {
 
 class ModelCollection implements \ArrayAccess, \IteratorAggregate, \Countable, \Serializable {
 	private $models;
+	private $error;
 
 	public function __construct(array $models = []) {
 		$this->models = $models;
@@ -86,7 +87,9 @@ class ModelCollection implements \ArrayAccess, \IteratorAggregate, \Countable, \
 
 	public function load(bool $force_reload = false) {
 		foreach ($this->models as $model) {
+			$this->error = null;
 			if (!$model->load($force_reload)) {
+				$this->error = $model->getLastError();
 				return false;
 			}
 		}
@@ -95,7 +98,9 @@ class ModelCollection implements \ArrayAccess, \IteratorAggregate, \Countable, \
 
 	public function save() {
 		foreach ($this->models as $model) {
+			$this->error = null;
 			if (!$model->save()) {
+				$this->error = $model->getLastError();
 				return false;
 			}
 		}
@@ -104,7 +109,9 @@ class ModelCollection implements \ArrayAccess, \IteratorAggregate, \Countable, \
 
 	public function create() {
 		foreach ($this->models as $model) {
+			$this->error = null;
 			if (!$model->create()) {
+				$this->error = $model->getLastError();
 				return false;
 			}
 		}
@@ -113,7 +120,9 @@ class ModelCollection implements \ArrayAccess, \IteratorAggregate, \Countable, \
 
 	public function update() {
 		foreach ($this->models as $model) {
+			$this->error = null;
 			if (!$model->update()) {
+				$this->error = $model->getLastError();
 				return false;
 			}
 		}
@@ -122,11 +131,17 @@ class ModelCollection implements \ArrayAccess, \IteratorAggregate, \Countable, \
 
 	public function delete() {
 		foreach ($this->models as $model) {
+			$this->error = null;
 			if (!$model->delete()) {
+				$this->error = $model->getLastError();
 				return false;
 			}
 		}
 		return true;
+	}
+
+	public function getLastError() {
+		return $this->error;
 	}
 
 	public function __call(string $name, array $arguments) {
@@ -138,7 +153,11 @@ class ModelCollection implements \ArrayAccess, \IteratorAggregate, \Countable, \
 			$cur_retval = $model->{$name}(...$arguments);
 			if (is_bool($cur_retval)) {
 				$retval_is_bool = true;
-				return false;
+				$this->error = null;
+				if (!$cur_retval) {
+					$this->error = $model->getLastError();
+					return false;
+				}
 			} elseif ($cur_retval instanceof static) {
 				$retval_is_collection = true;
 				if ($retval_collection === null) {
