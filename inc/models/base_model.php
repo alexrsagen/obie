@@ -614,7 +614,9 @@ class BaseModel {
 			settype($value, static::$columns[$key]);
 			$this->_data[$key] = $value;
 		}
+		if (!in_array($key, $this->_changed_columns)) {
 		$this->_changed_columns[] = $key;
+	}
 	}
 
 	public function __call(string $name, array $arguments) {
