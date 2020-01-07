@@ -12,6 +12,7 @@ class BaseModel {
 		'date'
 	];
 
+	private $_error             = null;
 	private $_new               = true;
 	private $_data              = [];
 	private $_changed_columns   = [];
@@ -274,7 +275,13 @@ class BaseModel {
 
 		// Build and execute statement
 		$stmt = static::buildStatement(static::buildSelect(ModelHelpers::getEscapedList(static::getAllColumns(), static::getSource()), $options), $options);
-		try { $stmt->execute(); } catch (\PDOException $e) { return false; }
+		static::$find_error = null;
+		try {
+			$stmt->execute();
+		} catch (\PDOException $e) {
+			static::$find_error = $e;
+			return false;
+		}
 		$result = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 		if (count($result) === 0) return false;
 
@@ -308,7 +315,13 @@ class BaseModel {
 
 		// Build and execute statement
 		$stmt = static::buildStatement(static::buildSelect(ModelHelpers::getEscapedList(static::getAllColumns(), static::getSource()), $options), $options);
-		try { $stmt->execute(); } catch (\PDOException $e) { return false; }
+		static::$find_error = null;
+		try {
+			$stmt->execute();
+		} catch (\PDOException $e) {
+			static::$find_error = $e;
+			return false;
+		}
 		$result = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 		if (count($result) === 0) return false;
 
@@ -343,6 +356,10 @@ class BaseModel {
 		return $count;
 	}
 
+	public static function getLastFindError() {
+		return static::$find_error;
+	}
+
 	// Database interaction methods
 
 	public function load() {
@@ -365,7 +382,13 @@ class BaseModel {
 
 		// Build and execute statement
 		$stmt = static::buildStatement(static::buildSelect(ModelHelpers::getEscapedList(static::getAllColumns(), static::getSource()), $options), $options);
-		try { $stmt->execute(); } catch (\PDOException $e) { return false; }
+		$this->_error = null;
+		try {
+			$stmt->execute();
+		} catch (\PDOException $e) {
+			$this->_error = $e;
+			return false;
+		}
 		$result = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 		if (count($result) === 0) return false;
 
@@ -439,7 +462,13 @@ class BaseModel {
 			}
 			$stmt->bindValue($i + 1, $val, $type);
 		}
-		try { $retval = $stmt->execute(); } catch (\PDOException $e) { return false; }
+		$this->_error = null;
+		try {
+			$retval = $stmt->execute();
+		} catch (\PDOException $e) {
+			$this->_error = $e;
+			return false;
+		}
 		$id = static::getDatabase()->lastInsertId();
 
 		if ($retval) {
@@ -506,7 +535,13 @@ class BaseModel {
 			}
 			$stmt->bindValue(++$i, $val, $type);
 		}
-		try { $retval = $stmt->execute(); } catch (\PDOException $e) { return false; }
+		$this->_error = null;
+		try {
+			$retval = $stmt->execute();
+		} catch (\PDOException $e) {
+			$this->_error = $e;
+			return false;
+		}
 
 		if ($retval) {
 			// Run post-update hooks
@@ -548,7 +583,13 @@ class BaseModel {
 			}
 			$stmt->bindValue($i + 1, $val, $type);
 		}
-		try { $retval = $stmt->execute(); } catch (\PDOException $e) { return false; }
+		$this->_error = null;
+		try {
+			$retval = $stmt->execute();
+		} catch (\PDOException $e) {
+			$this->_error = $e;
+			return false;
+		}
 
 		if ($retval) {
 			// Run post-delete hooks
@@ -569,6 +610,10 @@ class BaseModel {
 		$this->_new = false;
 		$this->_changed_columns = [];
 		return $this;
+	}
+
+	public function getLastError() {
+		return $this->_error;
 	}
 
 	// Data methods
@@ -615,8 +660,8 @@ class BaseModel {
 			$this->_data[$key] = $value;
 		}
 		if (!in_array($key, $this->_changed_columns)) {
-		$this->_changed_columns[] = $key;
-	}
+			$this->_changed_columns[] = $key;
+		}
 	}
 
 	public function __call(string $name, array $arguments) {
