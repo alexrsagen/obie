@@ -34,7 +34,14 @@ class Session {
 		ini_set('session.save_handler', Config::getGlobal()->get('sessions', 'save_handler'));
 		ini_set('session.save_path', Config::getGlobal()->get('sessions', 'save_path'));
 		ini_set('session.gc_maxlifetime', (int)Config::getGlobal()->get('sessions', 'lifetime'));
-		session_set_cookie_params((int)Config::getGlobal()->get('sessions', 'lifetime'), '/', substr(Config::getGlobal()->get('url'), strpos(Config::getGlobal()->get('url'), '://') + 3), strpos(Config::getGlobal()->get('url'), 'https://') === 0, true);
+		session_set_cookie_params([
+			'lifetime' => (int)Config::getGlobal()->get('sessions', 'lifetime'),
+			'path'     => '/',
+			'domain'   => substr(Config::getGlobal()->get('url'), strpos(Config::getGlobal()->get('url'), '://') + 3),
+			'secure'   => strpos(Config::getGlobal()->get('url'), 'https://') === 0,
+			'httponly' => true,
+			'samesite' => Config::getGlobal()->get('sessions', 'samesite') ?? 'Lax'
+		]);
 		session_name(Config::getGlobal()->get('sessions', 'name'));
 
 		if (session_status() === PHP_SESSION_NONE) {
