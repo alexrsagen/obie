@@ -221,6 +221,32 @@ class BaseModel {
 			}
 			$query .= (string)$options['limit'];
 		}
+		if (array_key_exists('for', $options) && is_array($options['for'])) {
+			foreach (['update', 'share'] as $for_type) {
+				if (array_key_exists($for_type, $options['for'])) {
+					if (is_string($options['for'][$for_type])) {
+						$options['for'][$for_type] = [$options['for'][$for_type]];
+					}
+					if (!is_array($options['for'][$for_type]) && !is_bool($options['for'][$for_type])) {
+						throw new \InvalidArgumentException(ucfirst($for_type) . ' must be an indexed array of table names or a boolean');
+					}
+					if (is_bool($options['for'][$for_type]) || is_array($options['for'][$for_type]) && count($options['for'][$for_type]) > 0) {
+						$query .= ' FOR ' . strtoupper($for_type);
+						if (is_array($options['for'][$for_type]) && count($options['for'][$for_type]) > 0) {
+							$query .= ' OF `' . implode('`,`') . '`';
+						}
+						if (array_key_exists('nowait', $options['for'])) {
+							if (!is_bool($options['for']['nowait'])) {
+								throw new \InvalidArgumentException('Nowait must be a boolean');
+							}
+							if ($options['for']['nowait']) {
+								$query .= ' NOWAIT';
+							}
+						}
+					}
+				}
+			}
+		}
 
 		return $query;
 	}
