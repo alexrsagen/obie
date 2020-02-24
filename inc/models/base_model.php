@@ -230,16 +230,20 @@ class BaseModel {
 						throw new \InvalidArgumentException(ucfirst($for_type) . ' must be an indexed array of table names or a boolean');
 					}
 					if (is_bool($options['for'][$for_type]) && $options['for'][$for_type] || is_array($options['for'][$for_type]) && count($options['for'][$for_type]) > 0) {
-						$query .= ' FOR ' . strtoupper($for_type);
-						if (is_array($options['for'][$for_type]) && count($options['for'][$for_type]) > 0) {
-							$query .= ' OF `' . implode('`,`') . '`';
-						}
-						if (array_key_exists('nowait', $options['for'])) {
-							if (!is_bool($options['for']['nowait'])) {
-								throw new \InvalidArgumentException('Nowait must be a boolean');
+						if (is_bool($options['for'][$for_type]) && $for_type === 'share') {
+							$query .= ' LOCK IN SHARE MODE';
+						} else {
+							$query .= ' FOR ' . strtoupper($for_type);
+							if (is_array($options['for'][$for_type]) && count($options['for'][$for_type]) > 0) {
+								$query .= ' OF `' . implode('`,`') . '`';
 							}
-							if ($options['for']['nowait']) {
-								$query .= ' NOWAIT';
+							if (array_key_exists('nowait', $options['for'])) {
+								if (!is_bool($options['for']['nowait'])) {
+									throw new \InvalidArgumentException('Nowait must be a boolean');
+								}
+								if ($options['for']['nowait']) {
+									$query .= ' NOWAIT';
+								}
 							}
 						}
 					}
