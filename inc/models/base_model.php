@@ -230,7 +230,7 @@ class BaseModel {
 					if (!is_array($options['for'][$for_type]) && !is_bool($options['for'][$for_type])) {
 						throw new \InvalidArgumentException(ucfirst($for_type) . ' must be an indexed array of table names or a boolean');
 					}
-					if (is_bool($options['for'][$for_type]) || is_array($options['for'][$for_type]) && count($options['for'][$for_type]) > 0) {
+					if (is_bool($options['for'][$for_type]) && $options['for'][$for_type] || is_array($options['for'][$for_type]) && count($options['for'][$for_type]) > 0) {
 						$query .= ' FOR ' . strtoupper($for_type);
 						if (is_array($options['for'][$for_type]) && count($options['for'][$for_type]) > 0) {
 							$query .= ' OF `' . implode('`,`') . '`';
