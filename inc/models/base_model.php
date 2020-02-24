@@ -162,20 +162,19 @@ class BaseModel {
 			if (!is_array($options['conditions'])) {
 				throw new \InvalidArgumentException('Conditions must be a string or array of strings');
 			}
-			if (count($options['conditions']) > 0 && strlen($options['conditions'][0]) > 0) {
-				$query .= ' WHERE (';
-				$is_first = true;
+			if (count($options['conditions']) > 0) {
+				$non_empty_conditions = [];
 				foreach ($options['conditions'] as $condition) {
 					if (!is_string($condition)) {
 						throw new \InvalidArgumentException('Conditions must be a string or array of strings');
 					}
-					if (!$is_first) {
-						$query .= ' AND ';
+					if (strlen($condition) > 0) {
+						$non_empty_conditions[] = $condition;
 					}
-					$query .= '(' . $condition . ')';
-					$is_first = false;
 				}
-				$query .= ')';
+				if (count($non_empty_conditions) > 0) {
+					$query .= ' WHERE ' . (count($non_empty_conditions) > 1 ? '(' : '') . '(' . implode(') AND (', $non_empty_conditions) . ')' . (count($non_empty_conditions) > 1 ? ')' : '');
+				}
 			}
 		}
 		foreach (['group', 'order'] as $expr) {
