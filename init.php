@@ -19,6 +19,8 @@ require __DIR__ . DIRECTORY_SEPARATOR . 'autoload.php';
 if (!defined('ZEROX_IS_VENDORED')) {
 	if (array_key_exists('ZEROX_IS_VENDORED', $_ENV)) {
 		define('ZEROX_IS_VENDORED', $_ENV['ZEROX_IS_VENDORED']);
+	} elseif (array_key_exists('ZEROX_IS_VENDORED', $_SERVER)) {
+		define('ZEROX_IS_VENDORED', $_SERVER['ZEROX_IS_VENDORED']);
 	} else {
 		define('ZEROX_IS_VENDORED', basename(dirname(ZEROX_BASE_DIR)) === 'alexrsagen');
 	}
@@ -35,6 +37,8 @@ if (!ZEROX_IS_VENDORED) {
 if (!defined('ZEROX_APP_DIR')) {
 	if (array_key_exists('ZEROX_APP_DIR', $_ENV)) {
 		define('ZEROX_APP_DIR', $_ENV['ZEROX_APP_DIR']);
+	} elseif (array_key_exists('ZEROX_APP_DIR', $_SERVER)) {
+		define('ZEROX_APP_DIR', $_SERVER['ZEROX_APP_DIR']);
 	} elseif (ZEROX_IS_VENDORED) {
 		define('ZEROX_APP_DIR', dirname(dirname(dirname(ZEROX_BASE_DIR))));
 	} else {
@@ -60,6 +64,8 @@ Router::setResponseHeader('Date', gmdate('D, d M Y H:i:s T', time()));
 if (!defined('ZEROX_CONFIG_PATH')) {
 	if (array_key_exists('ZEROX_CONFIG_PATH', $_ENV)) {
 		define('ZEROX_CONFIG_PATH', $_ENV['ZEROX_CONFIG_PATH']);
+	} elseif (array_key_exists('ZEROX_CONFIG_PATH', $_SERVER)) {
+		define('ZEROX_CONFIG_PATH', $_SERVER['ZEROX_CONFIG_PATH']);
 	} else {
 		define('ZEROX_CONFIG_PATH', ZEROX_APP_DIR . DIRECTORY_SEPARATOR . 'config.json');
 	}
@@ -103,6 +109,8 @@ if ($config->get('sessions', 'enable')) {
 if (!defined('ZEROX_VIEWS_DIR')) {
 	if (array_key_exists('ZEROX_VIEWS_DIR', $_ENV)) {
 		define('ZEROX_VIEWS_DIR', $_ENV['ZEROX_VIEWS_DIR']);
+	} elseif (array_key_exists('ZEROX_VIEWS_DIR', $_SERVER)) {
+		define('ZEROX_VIEWS_DIR', $_SERVER['ZEROX_VIEWS_DIR']);
 	} elseif ($config->isset('paths', 'views_dir')) {
 		define('ZEROX_VIEWS_DIR', $config->get('paths', 'views_dir'));
 	} else {
@@ -119,6 +127,8 @@ View::$default_vars = [
 if (!defined('ZEROX_TMP_DIR')) {
 	if (array_key_exists('ZEROX_TMP_DIR', $_ENV)) {
 		define('ZEROX_TMP_DIR', $_ENV['ZEROX_TMP_DIR']);
+	} elseif (array_key_exists('ZEROX_TMP_DIR', $_SERVER)) {
+		define('ZEROX_TMP_DIR', $_SERVER['ZEROX_TMP_DIR']);
 	} elseif ($config->isset('paths', 'tmp_dir')) {
 		define('ZEROX_TMP_DIR', $config->get('paths', 'tmp_dir'));
 	} else {
