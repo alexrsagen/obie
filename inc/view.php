@@ -42,10 +42,10 @@ class View {
 	private $blocks = [];
 	private $parent = null;
 
-	public function __construct(string $name, $vars = null, array $blocks = []) {
+	public function __construct(string $name, $vars = null, array &$blocks = []) {
 		$this->name = $name;
 		$this->_init_vars($vars);
-		$this->blocks = $blocks;
+		$this->blocks = &$blocks;
 		foreach (static::$default_vars as $k => $v) {
 			$k = explode('.', $k);
 			if (!$this->isset(...$k)) {
