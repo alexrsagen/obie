@@ -15,7 +15,7 @@ class Util {
 		return $ip;
 	}
 
-	public static function randomString(int $length, string $charset = self::BASE62_ALPHABET) {
+	public static function randomString(int $length, string $charset = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789') {
 		$random_string = '';
 		for ($i = 0; $i < $length; $i++) {
 			$random_string .= $charset[random_int(0, strlen($charset) - 1)];
@@ -102,57 +102,6 @@ class Util {
 		return 'on ' . date('j M Y', $time);
 	}
 
-	// XXX: Changing these constants is not a good idea
-	const BASE64URL_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
-	const BASE64_ALPHABET    = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-	const BASE62_ALPHABET    = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-	const BASE36_ALPHABET    = "abcdefghijklmnopqrstuvwxyz0123456789";
-	const BASE16_ALPHABET    = "0123456789abcdef";
-
-	public static function baseEncode(string $alphabet, int $input) {
-		$input_gmp = gmp_init($input);
-		$base_gmp = gmp_init(strlen($alphabet));
-		$zero_gmp = gmp_init(0);
-		$output = "";
-
-		do {
-			$offset = gmp_intval(gmp_mod($input_gmp, $base_gmp));
-			$output = $alphabet[$offset] . $output;
-			$input_gmp = gmp_div($input_gmp, $base_gmp);
-		} while (gmp_cmp($input_gmp, $zero_gmp) > 0);
-
-		return $output;
-	}
-
-	public static function baseDecode(string $alphabet, string $input) {
-		$base_gmp = gmp_init(strlen($alphabet));
-		$output_gmp = gmp_init(0);
-		$len = strlen($input);
-
-		if ($len > 11) {
-			throw new \Exception("Too long input string");
-		}
-
-		for ($i = 0; $i < $len; $i++) {
-			$offset = strpos($alphabet, $input[$i]);
-			if ($offset === false) {
-				throw new \Exception("Invalid input string");
-			}
-			$offset_gmp = gmp_init($offset);
-			$output_gmp = gmp_add($output_gmp, gmp_mul($offset_gmp, gmp_pow($base_gmp, $len - $i - 1)));
-		}
-
-		return gmp_intval($output_gmp);
-	}
-
-	public static function urlSafeBase64Encode(string $input) {
-		return str_replace(array('/', '+', '='), array('_', '-', ''), base64_encode($input));
-	}
-
-	public static function urlSafeBase64Decode(string $input) {
-		return base64_decode(str_replace(array('_', '-'), array('/', '+'), $input));
-	}
-
 	public static function sendMail($recipients, string $subject, string $body, bool $is_html = false) {
 		if (is_string($recipients)) {
 			$recipients = [$recipients];
@@ -194,28 +143,28 @@ class Util {
 	}
 
 	public static function genVirtualID(bool $short = false) {
-		$upload_id_part_time = (string)round(microtime(true) * 1000);
-		$upload_id_part_svid = (string)static::$server_virtual_id;
-		$upload_id_part_prng = random_bytes(32);
+		$id_part_time = (string)round(microtime(true) * 1000);
+		$id_part_svid = (string)static::$server_virtual_id;
+		$id_part_prng = random_bytes(32);
 
-		$upload_id_hash_ctx = hash_init('sha256');
-		hash_update($upload_id_hash_ctx, $upload_id_part_time);
-		hash_update($upload_id_hash_ctx, $upload_id_part_svid);
-		hash_update($upload_id_hash_ctx, $upload_id_part_prng);
-		$upload_id_hex = hash_final($upload_id_hash_ctx, false);
+		$id_hash_ctx = hash_init('sha256');
+		hash_update($id_hash_ctx, $id_part_time);
+		hash_update($id_hash_ctx, $id_part_svid);
+		hash_update($id_hash_ctx, $id_part_prng);
+		$id_hex = hash_final($id_hash_ctx, false);
 
-		$upload_id_l_gmp = gmp_init(substr($upload_id_hex, 0, 16), 16);
-		$upload_id_r_gmp = gmp_init(substr($upload_id_hex, 16, 16), 16);
-		$upload_id_gmp = gmp_xor($upload_id_l_gmp, $upload_id_r_gmp);
+		$id_l_gmp = gmp_init(substr($id_hex, 0, 16), 16);
+		$id_r_gmp = gmp_init(substr($id_hex, 16, 16), 16);
+		$id_gmp = gmp_xor($id_l_gmp, $id_r_gmp);
 
 		if ($short) {
-			$upload_id_hex = gmp_strval($upload_id_gmp, 16);
-			$upload_id_l_gmp = gmp_init(substr($upload_id_hex, 0, 8), 16);
-			$upload_id_r_gmp = gmp_init(substr($upload_id_hex, 8, 8), 16);
-			$upload_id_gmp = gmp_xor($upload_id_l_gmp, $upload_id_r_gmp);
+			$id_hex = gmp_strval($id_gmp, 16);
+			$id_l_gmp = gmp_init(substr($id_hex, 0, 8), 16);
+			$id_r_gmp = gmp_init(substr($id_hex, 8, 8), 16);
+			$id_gmp = gmp_xor($id_l_gmp, $id_r_gmp);
 		}
 
-		return gmp_intval($upload_id_gmp);
+		return gmp_intval($id_gmp);
 	}
 
 	public static function errorHandler($errno, $errstr, $errfile, $errline) {
