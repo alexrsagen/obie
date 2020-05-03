@@ -15,9 +15,10 @@ class FormValidator implements IValidator {
 			if (!is_array($opt) ||
 				((!array_key_exists('validator', $opt) || !is_callable([$opt['validator'], 'validate'])) &&
 				(!array_key_exists('regex', $opt) || !is_string($opt['regex'])) &&
-				(!array_key_exists('type', $opt) || !is_int($opt['type']))
-				)) {
-				throw new \Exception('Fields must be an array of name => ["message" => ?mixed, "validator" => ?IValidator, "regex" => ?string, "type" => ?int]');
+				(!array_key_exists('type', $opt) || !is_int($opt['type'])) &&
+				(!array_key_exists('optional', $opt) || !is_bool($opt['optional']))
+			)) {
+				throw new \Exception('Fields must be an array of "name" => ["message" => ?mixed, "validator" => ?IValidator, "regex" => ?string, "type" => ?int, "optional" => ?bool]');
 			}
 		}
 		$this->fields = $fields;
@@ -39,17 +40,19 @@ class FormValidator implements IValidator {
 				$v = new RegexValidator($opt['regex']);
 			} elseif (array_key_exists('type', $opt)) {
 				$v = new SimpleValidator($opt['type']);
+			} else {
+				$v = null;
 			}
 			$field_required = !array_key_exists('optional', $opt) || !$opt['optional'];
 			$field_exists   = array_key_exists($name, $input) && $input[$name] !== null;
 			if ($field_required && !$field_exists ||
-				$field_exists && !$v->validate($input[$name])) {
+				$field_exists && $v !== null && !$v->validate($input[$name])) {
 				$retval = false;
 				if (array_key_exists('message', $opt) && !empty($opt['message'])) {
 					$this->messages[] = $opt['message'];
-				} elseif (is_callable([$v, 'getMessages'])) {
-					$this->messages += $v->getMessages();
-				} elseif (is_callable([$v, 'getMessage'])) {
+				} elseif ($v !== null && is_callable([$v, 'getMessages'])) {
+					$this->messages = array_merge($this->messages, $v->getMessages());
+				} elseif ($v !== null && is_callable([$v, 'getMessage'])) {
 					$this->messages[] = $v->getMessage();
 				}
 				$this->fields_fail[] = $name;
