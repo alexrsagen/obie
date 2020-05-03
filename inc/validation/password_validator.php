@@ -11,7 +11,7 @@ class PasswordValidator implements IValidator {
 		$email_parts = explode('@', $email);
 		if (count($email_parts) === 2) {
 			$this->email_parts = preg_split('/[^a-z0-9]/', strtolower($email_parts[0]));
-			$this->email_parts += preg_split('/[^a-z0-9]/', strtolower(substr($email_parts[1], 0, strpos($email_parts[1], '.'))));
+			$this->email_parts = array_merge($this->email_parts, preg_split('/[^a-z0-9]/', strtolower(substr($email_parts[1], 0, strpos($email_parts[1], '.')))));
 		}
 	}
 
@@ -109,7 +109,7 @@ class PasswordValidator implements IValidator {
 		return $this->message;
 	}
 
-	private static function entropy(string $input) {
+	protected static function entropy(string $input) {
 		$h = 0;
 		$size = strlen($input);
 		foreach (count_chars($input, 1) as $v) {
