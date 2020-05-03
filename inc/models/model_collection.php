@@ -4,8 +4,8 @@ if (!defined('IN_ZEROX')) {
 }
 
 class ModelCollection implements \ArrayAccess, \IteratorAggregate, \Countable, \Serializable {
-	private $models;
-	private $error;
+	protected $models;
+	protected $error;
 
 	public function __construct(array $models = []) {
 		$this->models = $models;

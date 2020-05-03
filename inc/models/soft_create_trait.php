@@ -4,7 +4,7 @@ if (!defined('IN_ZEROX')) {
 }
 
 trait SoftCreateTrait {
-	private $_set_created_at = true;
+	protected $_set_created_at = true;
 
 	public function beforeCreateSetCreatedAt() {
 		if ($this->_set_created_at) {

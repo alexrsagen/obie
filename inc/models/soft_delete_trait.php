@@ -4,7 +4,7 @@ if (!defined('IN_ZEROX')) {
 }
 
 trait SoftDeleteTrait {
-	private $_set_deleted_at = true;
+	protected $_set_deleted_at = true;
 
 	public function beforeDeleteSetDeletedAt() {
 		if ($this->_set_deleted_at) {

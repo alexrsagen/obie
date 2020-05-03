@@ -28,8 +28,8 @@ class SimpleValidator implements IValidator {
 	const REGEX_BASE64 = '/^(?:[A-Za-z0-9+\/]{4})*(?:[A-Za-z0-9+\/]{2}==|[A-Za-z0-9+\/]{3}=)?$/';
 	const REGEX_BASE16 = '/^[a-fA-F0-9]*$/';
 
-	private $type = self::TYPE_CUSTOM;
-	private $cv = null;
+	protected $type = self::TYPE_CUSTOM;
+	protected $cv = null;
 
 	public function __construct(int $type, IValidator $cv = null) {
 		$this->type = $type;

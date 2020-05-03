@@ -11,9 +11,9 @@ class RouterInstance {
 
 	public $vars;
 
-	private $routes       = [];
-	private $deferred     = [];
-	private $ran_deferred = false;
+	protected $routes       = [];
+	protected $deferred     = [];
+	protected $ran_deferred = false;
 
 	public function __construct(VarCollection $vars = null) {
 		if ($vars === null) {

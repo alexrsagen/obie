@@ -37,10 +37,10 @@ class View {
 		return $tpl->getHTML();
 	}
 
-	private $name;
-	private $html = '';
-	private $blocks = [];
-	private $parent = null;
+	protected $name;
+	protected $html = '';
+	protected $blocks = [];
+	protected $parent = null;
 
 	public function __construct(string $name, $vars = null, array &$blocks = []) {
 		$this->name = $name;

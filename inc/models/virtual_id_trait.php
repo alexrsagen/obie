@@ -5,7 +5,7 @@ if (!defined('IN_ZEROX')) {
 }
 
 trait VirtualIdTrait {
-	private static $_use_short_virtual_id = false;
+	protected static $_use_short_virtual_id = false;
 
 	public static function useShortVirtualID(bool $use_short_virtual_id) {
 		static::$_use_short_virtual_id = $use_short_virtual_id;

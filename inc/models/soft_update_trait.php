@@ -4,7 +4,7 @@ if (!defined('IN_ZEROX')) {
 }
 
 trait SoftUpdateTrait {
-	private $_set_updated_at = true;
+	protected $_set_updated_at = true;
 
 	public function beforeUpdateSetUpdatedAt() {
 		if ($this->_set_updated_at) {

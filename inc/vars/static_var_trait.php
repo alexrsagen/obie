@@ -6,7 +6,7 @@ if (!defined('IN_ZEROX')) {
 trait StaticVarTrait {
 	public static $vars = null;
 
-	private static function _init_vars(&$storage = null, bool $assoc = false) {
+	protected static function _init_vars(&$storage = null, bool $assoc = false) {
 		if (self::$vars === null) {
 			if (is_array($storage)) {
 				self::$vars = new VarCollection($storage, $assoc);

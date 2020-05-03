@@ -26,7 +26,13 @@
 		"dsn": "mysql:host=127.0.0.1;dbname=uploads_database",
 		"username": "uploads_database_username",
 		"password": "uploads_database_password",
-		"options": {}
+		"options": {},
+		"read_only": {
+			"dsn": "mysql:host=127.0.0.1;dbname=uploads_database",
+			"username": "uploads_database_username",
+			"password": "uploads_database_password",
+			"options": {}
+		}
 	},
 	"mail": {
 		"enable": true,

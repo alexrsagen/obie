@@ -4,7 +4,7 @@ if (!defined('IN_ZEROX')) {
 }
 
 class RegexValidator implements IValidator {
-	private $regex;
+	protected $regex;
 
 	public function __construct(string $regex) {
 		$this->regex = $regex;

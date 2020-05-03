@@ -179,11 +179,11 @@ class Router {
 
 	// Mapping of static methods of Router to RouterInstance methods
 
-	private static $global_instance  = null;
-	private static $current_instance = null;
-	private static $instances        = [];
+	protected static $global_instance  = null;
+	protected static $current_instance = null;
+	protected static $instances        = [];
 
-	private static function init() {
+	protected static function init() {
 		if (self::$global_instance === null) {
 			self::$global_instance = new RouterInstance(new VarCollection());
 			self::$instances[] = self::$global_instance;
@@ -215,9 +215,9 @@ class Router {
 
 	public  static $strict            = true;
 	public  static $html_suffix       = '';
-	private static $headers           = [];
-	private static $response_code     = self::HTTP_OK;
-	private static $response_sent     = false;
+	protected static $headers           = [];
+	protected static $response_code     = self::HTTP_OK;
+	protected static $response_sent     = false;
 
 	public static function stripTrailingSlash() {
 		$path = static::getPath();

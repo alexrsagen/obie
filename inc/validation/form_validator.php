@@ -4,10 +4,10 @@ if (!defined('IN_ZEROX')) {
 }
 
 class FormValidator implements IValidator {
-	private $messages = [];
-	private $fields_fail = [];
-	private $fields_success = [];
-	private $fields;
+	protected $messages = [];
+	protected $fields_fail = [];
+	protected $fields_success = [];
+	protected $fields;
 	public $stop_on_first_error;
 
 	public function __construct(array $fields, bool $stop_on_first_error = true) {

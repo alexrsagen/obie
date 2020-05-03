@@ -80,12 +80,12 @@ Router::getInstance()->vars->set('config', $config);
 // Redirect if wrong host header
 if (php_sapi_name() !== 'cli') {
 	if ($config->get('host_redirect')) {
-	$desired_host = substr($config->get('url'), strpos($config->get('url'), '://') + 3);
-	if (Router::getHost() !== $desired_host) {
+		$desired_host = substr($config->get('url'), strpos($config->get('url'), '://') + 3);
+		if (Router::getHost() !== $desired_host) {
 			Router::redirect($_SERVER['REQUEST_URI']);
-		return;
+			return;
+		}
 	}
-}
 	if ($config->get('scheme_redirect')) {
 		$desired_scheme = substr($config->get('url'), 0, strpos($config->get('url'), '://'));
 		if (Router::getScheme() !== $desired_scheme) {
@@ -178,6 +178,23 @@ if ($config->get('db', 'enable')) {
 	}
 
 	Models\BaseModel::setDefaultDatabase($db);
+
+	if ($config->get('db', 'read_only')) {
+		try {
+			$ro_db = new \PDO(
+				$config->get('db', 'read_only', 'dsn'),
+				$config->get('db', 'read_only', 'username'),
+				$config->get('db', 'read_only', 'password'),
+				$config->get('db', 'read_only', 'options')
+			);
+			$ro_db->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
+		} catch (\PDOException $e) {
+			Router::sendResponse('Unable to connect to read-only database.', Router::CONTENT_TYPE_TEXT);
+			return;
+		}
+
+		Models\BaseModel::setDefaultReadOnlyDatabase($ro_db);
+	}
 }
 
 // Set up error handler

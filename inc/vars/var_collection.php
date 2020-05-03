@@ -4,8 +4,8 @@ if (!defined('IN_ZEROX')) {
 }
 
 class VarCollection implements \ArrayAccess, \IteratorAggregate, \Countable, \Serializable {
-	private $storage;
-	private $assoc;
+	protected $storage;
+	protected $assoc;
 
 	// Magic methods
 

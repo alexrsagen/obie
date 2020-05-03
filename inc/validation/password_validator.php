@@ -4,8 +4,8 @@ if (!defined('IN_ZEROX')) {
 }
 
 class PasswordValidator implements IValidator {
-	private $email_parts = [];
-	private $message = null;
+	protected $email_parts = [];
+	protected $message = null;
 
 	public function __construct(string $email) {
 		$email_parts = explode('@', $email);

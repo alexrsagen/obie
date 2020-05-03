@@ -17,7 +17,7 @@ class Session {
 		self::_start();
 	}
 
-	private static function _start() {
+	protected static function _start() {
 		session_start();
 		self::_init_vars($_SESSION, true);
 	}

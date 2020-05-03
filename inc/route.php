@@ -13,14 +13,14 @@ class Route {
 	const EINVALID_METHOD   = -1;
 	const EINVALID_PATH     = -2;
 
-	private $patterns = [];
-	private $methods = [];
-	private $handlers = [];
-	private $handler_args = [];
-	private $route = '';
-	private $content_type = Router::CONTENT_TYPE_HTML;
-	private $charset = Router::CHARSET_UTF8;
-	private $minify = true;
+	protected $patterns = [];
+	protected $methods = [];
+	protected $handlers = [];
+	protected $handler_args = [];
+	protected $route = '';
+	protected $content_type = Router::CONTENT_TYPE_HTML;
+	protected $charset = Router::CHARSET_UTF8;
+	protected $minify = true;
 
 	public function __construct(array $methods, string $route, \Closure ...$handlers) {
 		$this->_init_vars();
@@ -105,19 +105,19 @@ class Route {
 		return $this->apply(...$this->handlers);
 	}
 
-	private function setContentType(string $content_type = Router::CONTENT_TYPE_HTML) {
+	protected function setContentType(string $content_type = Router::CONTENT_TYPE_HTML) {
 		$this->content_type = $content_type;
 	}
 
-	private function setCharset(string $charset = Router::CHARSET_UTF8) {
+	protected function setCharset(string $charset = Router::CHARSET_UTF8) {
 		$this->charset = $charset;
 	}
 
-	private function setMinify(bool $minify = true) {
+	protected function setMinify(bool $minify = true) {
 		$this->minify = $minify;
 	}
 
-	private function apply(\Closure ...$handlers) {
+	protected function apply(\Closure ...$handlers) {
 		foreach ($handlers as $i => $handler) {
 			$response = $handler->bindTo($this, $this)(...$this->handler_args);
 			if ($response !== null) {

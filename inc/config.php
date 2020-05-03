@@ -7,7 +7,7 @@ if (!defined('IN_ZEROX')) {
 class Config {
     use VarTrait;
 
-    private static $global_config = null;
+    protected static $global_config = null;
 
     public function __construct($data = null) {
         $this->_init_vars($data);

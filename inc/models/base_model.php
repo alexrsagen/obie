@@ -12,12 +12,13 @@ class BaseModel {
 		'date'
 	];
 
-	private $_error             = null;
-	private $_new               = true;
-	private $_data              = [];
-	private $_changed_columns   = [];
-	private $_relation_cache    = [];
-	private static $_default_db = null;
+	protected $_error                = null;
+	protected $_new                  = true;
+	protected $_data                 = [];
+	protected $_modified_columns     = [];
+	protected $_relation_cache       = [];
+	protected static $_default_db    = null;
+	protected static $_default_ro_db = null;
 
 	// Model definition methods
 
@@ -52,13 +53,13 @@ class BaseModel {
 		}
 	}
 
-	private static function initPrimaryKeys() {
+	protected static function initPrimaryKeys() {
 		if (count(static::$pk) === 0) {
 			$class_name = get_called_class();
 			$columns = static::getAllColumns();
 
 			static::$pk = [];
-			$stmt = static::getDatabase()->prepare('SHOW KEYS FROM ' . static::getEscapedSource() . ' WHERE `Key_name` = \'PRIMARY\'');
+			$stmt = static::getReadOnlyDatabase()->prepare('SHOW KEYS FROM ' . static::getEscapedSource() . ' WHERE `Key_name` = \'PRIMARY\'');
 			$stmt->execute();
 			foreach ($stmt->fetchAll() as $row) {
 				// Ensure that primary key exists as a public variable of this model
@@ -80,7 +81,7 @@ class BaseModel {
 		return array_keys(static::$columns);
 	}
 
-	private static function initSource() {
+	protected static function initSource() {
 		if (static::$source === null) {
 			static::$source_singular = ModelHelpers::getSingularFromClassNS(get_called_class());
 			static::$source = ModelHelpers::getPlural(static::$source_singular);
@@ -117,17 +118,61 @@ class BaseModel {
 	}
 
 	public static function setDefaultDatabase(\PDO $db) {
-		self::$_default_db = $db;
+		if (property_exists(get_called_class(), '_default_db')) {
+			static::$_default_db = $db;
+		} else {
+			self::$_default_db = $db;
+		}
 	}
 
 	public static function getDefaultDatabase() {
+		if (property_exists(get_called_class(), '_default_db')) {
+			return static::$_default_db;
+		}
 		return self::$_default_db;
+	}
+
+	public static function setReadOnlyDatabase(\PDO $db) {
+		static::$ro_db = $db;
+	}
+
+	public static function getReadOnlyDatabase() {
+		if (static::$ro_db === null) {
+			return self::getDefaultReadOnlyDatabase();
+		}
+		return static::$ro_db;
+	}
+
+	public static function setDefaultReadOnlyDatabase(\PDO $db) {
+		if (property_exists(get_called_class(), '_default_ro_db')) {
+			static::$_default_ro_db = $db;
+		} else {
+			self::$_default_ro_db = $db;
+		}
+	}
+
+	public static function getDefaultReadOnlyDatabase() {
+		if (property_exists(get_called_class(), '_default_ro_db') && static::$_default_ro_db !== null) {
+			return static::$_default_ro_db;
+		} elseif (self::$_default_ro_db !== null) {
+			return self::$_default_ro_db;
+		}
+		return self::getDefaultDatabase();
 	}
 
 	// Statement building methods
 
-	private static function buildSelect(string $what, array $options = []) {
-		$query = 'SELECT ' . $what . ' FROM ' . static::getEscapedSource();
+	protected static function buildSelect(array $options = []) {
+		if (!array_key_exists('what', $options)) {
+			$options['what'] = static::getAllColumns();
+		}
+		if (is_array($options['what'])) {
+			$options['what'] = ModelHelpers::getEscapedList($options['what'], static::getSource());
+		}
+		if (!is_string($options['what'])) {
+			throw new \InvalidArgumentException('What must be a string or array of strings');
+		}
+		$query = 'SELECT ' . $options['what'] . ' FROM ' . static::getEscapedSource();
 		if (array_key_exists('join', $options)) {
 			if (is_string($options['join'])) {
 				$options['join'] = [$options['join']];
@@ -179,31 +224,34 @@ class BaseModel {
 		}
 		foreach (['group', 'order'] as $expr) {
 			if (array_key_exists($expr, $options)) {
-				if (!is_array($options[$expr])) {
-					throw new \InvalidArgumentException(ucfirst($expr) . ' must be an associative array of (col_name | position) => ("ASC" | "DESC")');
-				}
 				$query .= strtoupper($expr) . ' BY ';
-				$is_first = true;
-				foreach ($options[$expr] as $key => $type) {
-					if (!is_string($key) && !is_int($key)) {
-						throw new \InvalidArgumentException(ucfirst($expr) . ' must be an associative array of (col_name | position) => ("ASC" | "DESC")');
+				if (is_array($options[$expr])) {
+					$is_first = true;
+					foreach ($options[$expr] as $key => $type) {
+						if (!is_string($key) && !is_int($key)) {
+							throw new \InvalidArgumentException(ucfirst($expr) . ' must be an associative array of (col_name | position) => ("ASC" | "DESC")');
+						}
+						if (!is_string($type)) {
+							throw new \InvalidArgumentException(ucfirst($expr) . ' must be an associative array of (col_name | position) => ("ASC" | "DESC")');
+						}
+						$type = strtoupper($type);
+						if ($type !== 'ASC' && $type !== 'DESC') {
+							throw new \InvalidArgumentException(ucfirst($expr) . ' must be an associative array of (col_name | position) => ("ASC" | "DESC")');
+						}
+						if (!$is_first) {
+							$query .= ',';
+						}
+						if (is_int($key)) {
+							$query .= (string)$key . ' ' . $type;
+						} else {
+							$query .= static::getEscapedSource() . '.`' . $key . '` ' . $type;
+						}
+						$is_first = false;
 					}
-					if (!is_string($type)) {
-						throw new \InvalidArgumentException(ucfirst($expr) . ' must be an associative array of (col_name | position) => ("ASC" | "DESC")');
-					}
-					$type = strtoupper($type);
-					if ($type !== 'ASC' && $type !== 'DESC') {
-						throw new \InvalidArgumentException(ucfirst($expr) . ' must be an associative array of (col_name | position) => ("ASC" | "DESC")');
-					}
-					if (!$is_first) {
-						$query .= ',';
-					}
-					if (is_int($key)) {
-						$query .= (string)$key . ' ' . $type;
-					} else {
-						$query .= static::getEscapedSource() . '.`' . $key . '` ' . $type;
-					}
-					$is_first = false;
+				} elseif (is_string($options[$expr])) {
+					$query .= $options[$expr];
+				} else {
+					throw new \InvalidArgumentException(ucfirst($expr) . ' must be an associative array of (col_name | position) => ("ASC" | "DESC")');
 				}
 			}
 		}
@@ -254,8 +302,9 @@ class BaseModel {
 		return $query;
 	}
 
-	private static function buildStatement(string $query, array $options) {
-		$stmt = static::getDatabase()->prepare($query);
+	protected static function buildStatement(string $query, array $options) {
+		$db   = array_key_exists('read_only', $options) && $options['read_only'] ? static::getReadOnlyDatabase() : static::getDatabase();
+		$stmt = $db->prepare($query);
 		if (array_key_exists('bind', $options)) {
 			if (!is_array($options['bind'])) {
 				throw new \InvalidArgumentException('Bind must be an indexed array');
@@ -275,7 +324,7 @@ class BaseModel {
 				if ($val instanceof \DateTime) {
 					$val = $val->format('Y-m-d H:i:s');
 				}
-				if ($is_seq) {
+				if ($is_seq || is_int($key)) {
 					$stmt->bindValue($key + 1, $val, $type);
 				} else {
 					$stmt->bindValue($key, $val, $type);
@@ -302,8 +351,11 @@ class BaseModel {
 		$options['limit'] = 1;
 		unset($options['offset']);
 
+		// Enforce read only option
+		$options['read_only'] = true;
+
 		// Build and execute statement
-		$stmt = static::buildStatement(static::buildSelect(ModelHelpers::getEscapedList(static::getAllColumns(), static::getSource()), $options), $options);
+		$stmt = static::buildStatement(static::buildSelect($options), $options);
 		static::$find_error = null;
 		try {
 			$stmt->execute();
@@ -342,8 +394,11 @@ class BaseModel {
 			throw new \InvalidArgumentException('Options must be an array of options or a string of conditions');
 		}
 
+		// Enforce read only option
+		$options['read_only'] = true;
+
 		// Build and execute statement
-		$stmt = static::buildStatement(static::buildSelect(ModelHelpers::getEscapedList(static::getAllColumns(), static::getSource()), $options), $options);
+		$stmt = static::buildStatement(static::buildSelect($options), $options);
 		static::$find_error = null;
 		try {
 			$stmt->execute();
@@ -377,8 +432,14 @@ class BaseModel {
 	}
 
 	public static function count(array $options = []) {
+		// Enforce read only option
+		$options['read_only'] = true;
+
+		// Enforce what option
+		$options['what'] = 'COUNT(' . ModelHelpers::getEscapedList(static::getPrimaryKeys(), static::getSource()) . ') AS `rowcount`';
+
 		// Build and execute statement which gets row count efficiently with given options
-		$stmt = static::buildStatement(static::buildSelect('COUNT(' . ModelHelpers::getEscapedList(static::getPrimaryKeys(), static::getSource()) . ') AS `rowcount`', $options), $options);
+		$stmt = static::buildStatement(static::buildSelect($options), $options);
 		$stmt->execute();
 		$count = $stmt->fetch(\PDO::FETCH_ASSOC)['rowcount'];
 		if (is_string($count)) $count = (int)$count;
@@ -403,14 +464,15 @@ class BaseModel {
 		$pk_list = static::getPrimaryKeys();
 		$options = [
 			'conditions' => ModelHelpers::getEscapedWhere($pk_list),
-			'bind' => []
+			'bind'       => [],
+			'read_only'  => true
 		];
 		foreach ($pk_list as $key) {
 			$options['bind'][] = $this->{$key};
 		}
 
 		// Build and execute statement
-		$stmt = static::buildStatement(static::buildSelect(ModelHelpers::getEscapedList(static::getAllColumns(), static::getSource()), $options), $options);
+		$stmt = static::buildStatement(static::buildSelect($options), $options);
 		$this->_error = null;
 		try {
 			$stmt->execute();
@@ -473,8 +535,8 @@ class BaseModel {
 		}
 
 		// Update database
-		$stmt = static::getDatabase()->prepare('INSERT INTO ' . static::getEscapedSource() . ' SET ' . ModelHelpers::getEscapedSet($this->_changed_columns));
-		foreach ($this->_changed_columns as $i => $key) {
+		$stmt = static::getDatabase()->prepare('INSERT INTO ' . static::getEscapedSource() . ' SET ' . ModelHelpers::getEscapedSet($this->_modified_columns));
+		foreach ($this->_modified_columns as $i => $key) {
 			$val = $this->{$key};
 			if (is_int($val)) {
 				$type = \PDO::PARAM_INT;
@@ -528,9 +590,9 @@ class BaseModel {
 
 		// Update database
 		$pk_list = static::getPrimaryKeys();
-		$stmt = static::getDatabase()->prepare('UPDATE ' . static::getEscapedSource() . ' SET ' . ModelHelpers::getEscapedSet($this->_changed_columns) . ' WHERE ' . ModelHelpers::getEscapedWhere($pk_list) . ' LIMIT 1');
+		$stmt = static::getDatabase()->prepare('UPDATE ' . static::getEscapedSource() . ' SET ' . ModelHelpers::getEscapedSet($this->_modified_columns) . ' WHERE ' . ModelHelpers::getEscapedWhere($pk_list) . ' LIMIT 1');
 		$i = 0;
-		foreach ($this->_changed_columns as $key) {
+		foreach ($this->_modified_columns as $key) {
 			$val = $this->{$key};
 			if (is_int($val)) {
 				$type = \PDO::PARAM_INT;
@@ -637,7 +699,7 @@ class BaseModel {
 
 	public function forceCleanState() {
 		$this->_new = false;
-		$this->_changed_columns = [];
+		$this->_modified_columns = [];
 		return $this;
 	}
 
@@ -646,6 +708,14 @@ class BaseModel {
 	}
 
 	// Data methods
+
+	public function modified() {
+		return !empty($this->_modified_columns);
+	}
+
+	public function modifiedColumns() {
+		return $this->_modified_columns;
+	}
 
 	public function toArray() {
 		return $this->_data;
@@ -688,8 +758,8 @@ class BaseModel {
 			settype($value, static::$columns[$key]);
 			$this->_data[$key] = $value;
 		}
-		if (!in_array($key, $this->_changed_columns)) {
-			$this->_changed_columns[] = $key;
+		if (!in_array($key, $this->_modified_columns)) {
+			$this->_modified_columns[] = $key;
 		}
 	}
 

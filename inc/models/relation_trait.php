@@ -37,12 +37,12 @@ trait RelationTrait {
 							$options['conditions']
 						];
 					} else {
-						$relation_options['conditions'] += $options['conditions'];
+						$relation_options['conditions'] = array_merge($relation_options['conditions'], $options['conditions']);
 					}
 				}
 				$options['conditions'] = $relation_options['conditions'];
 				if (array_key_exists('bind', $options)) {
-					$relation_options['bind'] += $options['bind'];
+					$relation_options['bind'] = array_merge($relation_options['bind'], $options['bind']);
 				}
 				$options['bind'] = $relation_options['bind'];
 				if ($relation['type'] === RelationModel::TYPE_HAS_ONE || $relation['type'] === RelationModel::TYPE_BELONGS_TO_ONE) {
@@ -70,7 +70,7 @@ trait RelationTrait {
 							$options['conditions']
 						];
 					} else {
-						$relation_options['conditions'] += $options['conditions'];
+						$relation_options['conditions'] = array_merge($relation_options['conditions'], $options['conditions']);
 					}
 				}
 				$options['conditions'] = $relation_options['conditions'];
@@ -81,12 +81,12 @@ trait RelationTrait {
 							$options['join']
 						];
 					} else {
-						$relation_options['join'] += $options['join'];
+						$relation_options['join'] = array_merge($relation_options['join'], $options['join']);
 					}
 				}
 				$options['join'] = $relation_options['join'];
 				if (array_key_exists('bind', $options)) {
-					$relation_options['bind'] += $options['bind'];
+					$relation_options['bind'] = array_merge($relation_options['bind'], $options['bind']);
 				}
 				$options['bind'] = $relation_options['bind'];
 				return $target::find($options);

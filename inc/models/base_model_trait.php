@@ -9,5 +9,6 @@ trait BaseModelTrait {
 	protected static $columns         = [];
 	protected static $pk              = [];
 	protected static $db              = null;
+	protected static $ro_db           = null;
 	protected static $find_error      = null;
 }
