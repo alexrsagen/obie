@@ -78,11 +78,20 @@ $config = Config::fromJSON(file_get_contents(ZEROX_CONFIG_PATH));
 Router::getInstance()->vars->set('config', $config);
 
 // Redirect if wrong host header
-if (php_sapi_name() !== 'cli' && $config->get('host_redirect')) {
+if (php_sapi_name() !== 'cli') {
+	if ($config->get('host_redirect')) {
 	$desired_host = substr($config->get('url'), strpos($config->get('url'), '://') + 3);
 	if (Router::getHost() !== $desired_host) {
-		Router::redirect('/');
+			Router::redirect($_SERVER['REQUEST_URI']);
 		return;
+	}
+}
+	if ($config->get('scheme_redirect')) {
+		$desired_scheme = substr($config->get('url'), 0, strpos($config->get('url'), '://'));
+		if (Router::getScheme() !== $desired_scheme) {
+			Router::redirect($_SERVER['REQUEST_URI']);
+			return;
+		}
 	}
 }
 

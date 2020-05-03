@@ -1,6 +1,7 @@
 {
 	"url": "https://example.com",
 	"host_redirect": true,
+	"scheme_redirect": true,
 	"site_name": "Example Website",
 	"lang": "en_US",
 	"paths": {
