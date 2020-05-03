@@ -56,6 +56,10 @@ class ModelHelpers {
 		return strtolower(preg_replace('/(?<!^)[A-Z]/', '_$0', $name));
 	}
 
+	public static function getCamelCase(string $name) {
+		return str_replace(' ', '', ucwords(str_replace('_', ' ', $name)));
+	}
+
 	public static function getSingularFromClassNS(string $class_name) {
 		$class_name_ns_pos = strrpos($class_name, '\\');
 		if ($class_name_ns_pos !== false) {
