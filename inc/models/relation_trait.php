@@ -16,39 +16,50 @@ trait RelationTrait {
 		if (!array_key_exists($relation_name, static::$relations)) {
 			return false;
 		}
+
 		$relation = static::$relations[$relation_name];
 		$target = $relation['target_model'];
+
 		switch ($relation['type']) {
 			case RelationModel::TYPE_BELONGS_TO_ONE:
 			case RelationModel::TYPE_BELONGS_TO_MANY:
 			case RelationModel::TYPE_HAS_ONE:
 			case RelationModel::TYPE_HAS_MANY:
 				$relation_options = [
-					'conditions' => ModelHelpers::getEscapedWhere($relation['target_fields']),
+					'conditions' => [ModelHelpers::getEscapedWhere($relation['target_fields'])],
 					'bind' => []
 				];
+
+				if (array_key_exists('conditions', $options)) {
+					if (is_string($options['conditions'])) {
+						$options['conditions'] = [$options['conditions']];
+					}
+					$relation_options['conditions'] = array_merge($relation_options['conditions'], $options['conditions']);
+				}
+				if (array_key_exists('conditions', $relation['default_options'])) {
+					if (is_string($relation['default_options']['conditions'])) {
+						$relation['default_options']['conditions'] = [$relation['default_options']['conditions']];
+					}
+					$relation_options['conditions'] = array_merge($relation_options['conditions'], $relation['default_options']['conditions']);
+				}
+				$options['conditions'] = $relation_options['conditions'];
+
 				foreach ($relation['source_fields'] as $key) {
 					$relation_options['bind'][] = $this->{$key};
 				}
-				if (array_key_exists('conditions', $options)) {
-					if (is_string($options['conditions'])) {
-						$relation_options['conditions'] = [
-							$relation_options['conditions'],
-							$options['conditions']
-						];
-					} else {
-						$relation_options['conditions'] = array_merge($relation_options['conditions'], $options['conditions']);
-					}
-				}
-				$options['conditions'] = $relation_options['conditions'];
 				if (array_key_exists('bind', $options)) {
 					$relation_options['bind'] = array_merge($relation_options['bind'], $options['bind']);
 				}
+				if (array_key_exists('bind', $relation['default_options'])) {
+					$relation_options['bind'] = array_merge($relation_options['bind'], $relation['default_options']['bind']);
+				}
 				$options['bind'] = $relation_options['bind'];
+
 				if ($relation['type'] === RelationModel::TYPE_HAS_ONE || $relation['type'] === RelationModel::TYPE_BELONGS_TO_ONE) {
 					return $target::findFirst($options);
 				}
 				return $target::find($options);
+
 			case RelationModel::TYPE_BELONGS_TO_MANY_TO_MANY:
 			case RelationModel::TYPE_HAS_MANY_TO_MANY:
 				$intermediate = $relation['intermediate_model'];
@@ -60,35 +71,32 @@ trait RelationTrait {
 							$relation['target_fields'], $target::getSource()),
 					'bind' => []
 				];
+
+				if (array_key_exists('conditions', $options)) {
+					if (is_string($options['conditions'])) {
+						$options['conditions'] = [$options['conditions']];
+					}
+					$relation_options['conditions'] = array_merge($relation_options['conditions'], $options['conditions']);
+				}
+				if (array_key_exists('conditions', $relation['default_options'])) {
+					if (is_string($relation['default_options']['conditions'])) {
+						$relation['default_options']['conditions'] = [$relation['default_options']['conditions']];
+					}
+					$relation_options['conditions'] = array_merge($relation_options['conditions'], $relation['default_options']['conditions']);
+				}
+				$options['conditions'] = $relation_options['conditions'];
+
 				foreach ($relation['source_fields'] as $key) {
 					$relation_options['bind'][] = $this->{$key};
 				}
-				if (array_key_exists('conditions', $options)) {
-					if (is_string($options['conditions'])) {
-						$relation_options['conditions'] = [
-							$relation_options['conditions'],
-							$options['conditions']
-						];
-					} else {
-						$relation_options['conditions'] = array_merge($relation_options['conditions'], $options['conditions']);
-					}
-				}
-				$options['conditions'] = $relation_options['conditions'];
-				if (array_key_exists('join', $options)) {
-					if (is_string($options['join'])) {
-						$relation_options['join'] = [
-							$relation_options['join'],
-							$options['join']
-						];
-					} else {
-						$relation_options['join'] = array_merge($relation_options['join'], $options['join']);
-					}
-				}
-				$options['join'] = $relation_options['join'];
 				if (array_key_exists('bind', $options)) {
 					$relation_options['bind'] = array_merge($relation_options['bind'], $options['bind']);
 				}
+				if (array_key_exists('bind', $relation['default_options'])) {
+					$relation_options['bind'] = array_merge($relation_options['bind'], $relation['default_options']['bind']);
+				}
 				$options['bind'] = $relation_options['bind'];
+
 				return $target::find($options);
 		}
 		return false;
@@ -139,7 +147,13 @@ trait RelationTrait {
 		return false;
 	}
 
-	public static function belongsTo($source_fields, $target_model, $target_fields, string $relation_name = null) {
+	public static function belongsTo(
+		$source_fields,
+		$target_model,
+		$target_fields,
+		string $relation_name = null,
+		array $default_options = []
+	) {
 		if (is_string($source_fields)) {
 			$source_fields = [$source_fields];
 		}
@@ -159,11 +173,18 @@ trait RelationTrait {
 			'type' => RelationModel::TYPE_BELONGS_TO_ONE,
 			'source_fields' => $source_fields,
 			'target_model' => $target_model,
-			'target_fields' => $target_fields
+			'target_fields' => $target_fields,
+			'default_options' => $default_options
 		];
 	}
 
-	public static function belongsToMany($source_fields, $target_model, $target_fields, string $relation_name = null) {
+	public static function belongsToMany(
+		$source_fields,
+		$target_model,
+		$target_fields,
+		string $relation_name = null,
+		array $default_options = []
+	) {
 		if (is_string($source_fields)) {
 			$source_fields = [$source_fields];
 		}
@@ -183,7 +204,8 @@ trait RelationTrait {
 			'type' => RelationModel::TYPE_BELONGS_TO_MANY,
 			'source_fields' => $source_fields,
 			'target_model' => $target_model,
-			'target_fields' => $target_fields
+			'target_fields' => $target_fields,
+			'default_options' => $default_options
 		];
 	}
 
@@ -194,7 +216,8 @@ trait RelationTrait {
 		$intermediate_target_fields,
 		$target_model,
 		$target_fields,
-		string $relation_name = null
+		string $relation_name = null,
+		array $default_options = []
 	) {
 		if (is_string($source_fields)) {
 			$source_fields = [$source_fields];
@@ -230,11 +253,18 @@ trait RelationTrait {
 			'intermediate_source_fields' => $intermediate_source_fields,
 			'intermediate_target_fields' => $intermediate_target_fields,
 			'target_model' => $target_model,
-			'target_fields' => $target_fields
+			'target_fields' => $target_fields,
+			'default_options' => $default_options
 		];
 	}
 
-	public static function hasOne($source_fields, $target_model, $target_fields, string $relation_name = null) {
+	public static function hasOne(
+		$source_fields,
+		$target_model,
+		$target_fields,
+		string $relation_name = null,
+		array $default_options = []
+	) {
 		if (is_string($source_fields)) {
 			$source_fields = [$source_fields];
 		}
@@ -254,11 +284,18 @@ trait RelationTrait {
 			'type' => RelationModel::TYPE_HAS_ONE,
 			'source_fields' => $source_fields,
 			'target_model' => $target_model,
-			'target_fields' => $target_fields
+			'target_fields' => $target_fields,
+			'default_options' => $default_options
 		];
 	}
 
-	public static function hasMany($source_fields, $target_model, $target_fields, string $relation_name = null) {
+	public static function hasMany(
+		$source_fields,
+		$target_model,
+		$target_fields,
+		string $relation_name = null,
+		array $default_options = []
+	) {
 		if (is_string($source_fields)) {
 			$source_fields = [$source_fields];
 		}
@@ -278,7 +315,8 @@ trait RelationTrait {
 			'type' => RelationModel::TYPE_HAS_MANY,
 			'source_fields' => $source_fields,
 			'target_model' => $target_model,
-			'target_fields' => $target_fields
+			'target_fields' => $target_fields,
+			'default_options' => $default_options
 		];
 	}
 
@@ -289,7 +327,8 @@ trait RelationTrait {
 		$intermediate_target_fields,
 		$target_model,
 		$target_fields,
-		string $relation_name = null
+		string $relation_name = null,
+		array $default_options = []
 	) {
 		if (is_string($source_fields)) {
 			$source_fields = [$source_fields];
@@ -325,7 +364,8 @@ trait RelationTrait {
 			'intermediate_source_fields' => $intermediate_source_fields,
 			'intermediate_target_fields' => $intermediate_target_fields,
 			'target_model' => $target_model,
-			'target_fields' => $target_fields
+			'target_fields' => $target_fields,
+			'default_options' => $default_options
 		];
 	}
 }
