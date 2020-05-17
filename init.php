@@ -107,7 +107,7 @@ Router::setResponseHeader('Content-Security-Policy', "img-src data: 'self' " .
 	implode(' ', $config->get('server', 'csp_sources', 'style')) . "");
 
 // Set up sessions
-if ($config->get('sessions', 'enable')) {
+if (php_sapi_name() !== 'cli' && $config->get('sessions', 'enable')) {
 	Session::start();
 	Router::defer(function() {
 		Session::end();
@@ -198,7 +198,7 @@ if ($config->get('db', 'enable')) {
 }
 
 // Set up error handler
-if ($config->get('errors', 'handle')) {
+if (php_sapi_name() !== 'cli' && $config->get('errors', 'handle')) {
 	set_error_handler('\ZeroX\Util::errorHandler');
 }
 
