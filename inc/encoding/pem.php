@@ -1,4 +1,4 @@
-<?php namespace ZeroX\Security;
+<?php namespace ZeroX\Encoding;
 if (!defined('IN_ZEROX')) {
 	return;
 }
@@ -10,11 +10,12 @@ class Pem {
 	const BOUNDARY_SUFFIX      = '-----';
 	const LABEL_PUBLICKEY      = 'PUBLIC KEY';
 	const LABEL_PRIVATEKEY     = 'PRIVATE KEY';
+	const LABEL_CERTIFICATE    = 'CERTIFICATE';
 
 	public static function encode(string $data, string $label = self::LABEL_PUBLICKEY) {
-		return static::getPreBoundary($label) .
-			"\n" . implode("\n", str_split(base64_encode($data), 64)) .
-			"\n" . static::getPostBoundary($label);
+		return static::getPreBoundary($label) . "\r\n" .
+			chunk_split(base64_encode($data), 64) .
+			static::getPostBoundary($label);
 	}
 
 	public static function decode(string $data) {
