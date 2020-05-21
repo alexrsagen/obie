@@ -1,5 +1,6 @@
 <?php namespace ZeroX\Security;
 use ZeroX\Encoding\Pem;
+use ZeroX\Encoding\Json;
 use ZeroX\Encoding\Base64Url;
 use ZeroX\Security\Ecdsa;
 if (!defined('IN_ZEROX')) {
@@ -110,18 +111,12 @@ class U2f {
 
 		// get client data from result
 		$client_data_raw = Base64Url::decode($sign_response['clientData']);
-		try {
-			$client_data = json_decode($client_data_raw, true);
-		} catch (\Exception $e) {
-			return [
-				'success' => false,
-				'error' => 'invalid_data'
-			];
-		}
+		$client_data = Json::decode($client_data_raw);
 
 		// validate clientData
 		// https://fidoalliance.org/specs/fido-u2f-v1.2-ps-20170411/fido-u2f-raw-message-formats-v1.2-ps-20170411.html#idl-def-ClientData
 		if (
+			!is_array($client_data) ||
 			!array_key_exists('typ', $client_data) ||
 			!array_key_exists('challenge', $client_data) ||
 			!array_key_exists('origin', $client_data)
@@ -234,18 +229,12 @@ class U2f {
 
 		// get client data from result
 		$client_data_raw = Base64Url::decode($reg_response['clientData']);
-		try {
-			$client_data = json_decode($client_data_raw, true);
-		} catch (\Exception $e) {
-			return [
-				'success' => false,
-				'error' => 'invalid_data'
-			];
-		}
+		$client_data = Json::decode($client_data_raw);
 
 		// validate clientData
 		// https://fidoalliance.org/specs/fido-u2f-v1.2-ps-20170411/fido-u2f-raw-message-formats-v1.2-ps-20170411.html#idl-def-ClientData
 		if (
+			!is_array($client_data) ||
 			!array_key_exists('typ', $client_data) ||
 			!array_key_exists('challenge', $client_data) ||
 			!array_key_exists('origin', $client_data)

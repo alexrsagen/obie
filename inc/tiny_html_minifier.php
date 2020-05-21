@@ -1,4 +1,5 @@
 <?php namespace ZeroX;
+use ZeroX\Encoding\Json;
 if (!defined('IN_ZEROX')) {
 	return;
 }
@@ -218,7 +219,7 @@ class TinyHtmlMinifier {
 		}
 
 		if ($this->isSchema($name, $element) && !empty($this->options['collapse_json_ld'])) {
-			return json_encode(json_decode($content));
+			return Json::encode(Json::decode($content));
 		} elseif ($name === 'script') {
 			return Minify::JS($content);
 		} elseif ($name === 'style') {

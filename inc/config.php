@@ -1,5 +1,6 @@
 <?php namespace ZeroX;
 use ZeroX\Vars\VarTrait;
+use ZeroX\Encoding\Json;
 if (!defined('IN_ZEROX')) {
 	return;
 }
@@ -18,7 +19,7 @@ class Config {
     }
 
     public static function fromJSON(string $json) {
-        return new self(json_decode($json, true));
+        return new self(Json::decode($json));
     }
 
     public static function setGlobal(Config $config) {

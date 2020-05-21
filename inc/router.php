@@ -1,5 +1,6 @@
 <?php namespace ZeroX;
 use ZeroX\Vars\VarCollection;
+use ZeroX\Encoding\Json;
 if (!defined('IN_ZEROX')) {
 	return;
 }
@@ -252,7 +253,7 @@ class Router {
 						}
 						break;
 					case 'application/json':
-						$data = json_decode(file_get_contents('php://input'), true);
+						$data = Json::decode(file_get_contents('php://input'));
 						break;
 					default:
 						$data = null;
@@ -363,14 +364,7 @@ class Router {
 		// Prepare response
 		if ($response !== null) {
 			if ($content_type === self::CONTENT_TYPE_JSON) {
-				$json_options = JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE;
-				if (!$minify) {
-					$json_options |= JSON_PRETTY_PRINT;
-				}
-				$response = json_encode($response, $json_options);
-				if ($response === false) {
-					throw new \Exception(sprintf('Failed to encode JSON: %s', json_last_error_msg()));
-				}
+				$response = Json::encode($response, $minify ? 0 : JSON_PRETTY_PRINT);
 			}
 			if ($minify && $content_type === self::CONTENT_TYPE_HTML) {
 				$response = Minify::HTML($response);
