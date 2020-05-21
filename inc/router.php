@@ -318,6 +318,22 @@ class Router {
 		return strtoupper($_SERVER['REQUEST_METHOD']);
 	}
 
+	public static function getRemoteAddress(bool $pack = false, bool $allow_x_forwarded_for = true) {
+		$ip = $_SERVER['REMOTE_ADDR'];
+		if ($allow_x_forwarded_for && array_key_exists('HTTP_X_FORWARDED_FOR', $_SERVER)) {
+			$ip = $_SERVER['HTTP_X_FORWARDED_FOR'];
+		}
+		// fix IPv6-mapped IPv4 address
+		if (substr($ip, 0, 7) === '::ffff:') {
+			return $pack ? inet_pton($ip) : inet_ntop(inet_pton($ip));
+		}
+		return $pack ? inet_pton($ip) : $ip;
+	}
+
+	public static function getRemotePort(): int {
+		return (int)$_SERVER['REMOTE_PORT'];
+	}
+
 	public static function getPath() {
 		$path = $_SERVER['REQUEST_URI'];
 		$qs_pos = strpos($path, '?');

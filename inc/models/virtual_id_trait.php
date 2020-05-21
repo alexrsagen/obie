@@ -1,5 +1,6 @@
 <?php namespace ZeroX\Models;
-use ZeroX\Util;
+use ZeroX\Random;
+use ZeroX\Encoding\ArbitraryBase;
 if (!defined('IN_ZEROX')) {
 	return;
 }
@@ -18,7 +19,7 @@ trait VirtualIdTrait {
 
 		$i = 0;
 		do {
-			$this->virtual_id = Util::genVirtualID(static::$_use_short_virtual_id);
+			$this->virtual_id = Random::intHash(static::$_use_short_virtual_id);
 			$stmt = static::getDatabase()->prepare('SELECT COUNT(`virtual_id`) AS `rowcount` FROM ' . $this->getEscapedSource() . ' WHERE `virtual_id` = ?');
 			$stmt->bindValue(1, $this->virtual_id, \PDO::PARAM_INT);
 			$stmt->execute();
@@ -33,10 +34,10 @@ trait VirtualIdTrait {
 	}
 
 	public function getVirtualIDBase62() {
-		return Util::baseEncode(Util::BASE62_ALPHABET, $this->virtual_id);
+		return ArbitraryBase::encode(ArbitraryBase::ALPHABET_BASE62, $this->virtual_id);
 	}
 
 	public function getVirtualIDBase36() {
-		return Util::baseEncode(Util::BASE36_ALPHABET, $this->virtual_id);
+		return ArbitraryBase::encode(ArbitraryBase::ALPHABET_BASE36LOWER, $this->virtual_id);
 	}
 }

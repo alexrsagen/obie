@@ -8,7 +8,7 @@ class Session {
 	use StaticVarTrait;
 
 	public static function generateNewID() {
-		session_id(Util::randomString(64, 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789,-'));
+		session_id(Random::string(64, 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789,-'));
 	}
 
 	public static function new() {
