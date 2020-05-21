@@ -156,7 +156,7 @@ class Ecdsa {
 	 *
 	 * @param string $data - Raw data which is used for the signature
 	 * @param string $signature - Raw signature data
-	 * @param string $public_key - ECDSA public key, in PEM or raw DER form
+	 * @param string $public_key - ECDSA public key, in PEM or DER form
 	 * @param $alg - OpenSSL algorithm constant
 	 * @return bool
 	 */

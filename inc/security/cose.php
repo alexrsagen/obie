@@ -138,7 +138,7 @@ class Cose {
 	 *
 	 * @param string $data - Data to verify the signature of
 	 * @param string $signature - Raw cryptographic signature of data (not encoded)
-	 * @param string $public_key - Public key to verify signature with
+	 * @param string $public_key - Public key to verify signature with, in PEM or DER form
 	 * @param int $alg - COSE algorithm constant
 	 */
 	public static function verify(string $data, string $signature, string $public_key, int $alg) {
