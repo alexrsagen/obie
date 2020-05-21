@@ -132,6 +132,20 @@ View::$default_vars = [
 	'site_name' => $config->get('site_name')
 ];
 
+// Set up logger
+if (!defined('ZEROX_LOGS_DIR')) {
+	if (array_key_exists('ZEROX_LOGS_DIR', $_ENV)) {
+		define('ZEROX_LOGS_DIR', $_ENV['ZEROX_LOGS_DIR']);
+	} elseif (array_key_exists('ZEROX_LOGS_DIR', $_SERVER)) {
+		define('ZEROX_LOGS_DIR', $_SERVER['ZEROX_LOGS_DIR']);
+	} elseif ($config->isset('paths', 'logs_dir')) {
+		define('ZEROX_LOGS_DIR', $config->get('paths', 'logs_dir'));
+	} else {
+		define('ZEROX_LOGS_DIR', ZEROX_APP_DIR . DIRECTORY_SEPARATOR . 'logs');
+	}
+}
+Logger::$logs_dir = ZEROX_LOGS_DIR;
+
 // Set temp folder
 if (!defined('ZEROX_TMP_DIR')) {
 	if (array_key_exists('ZEROX_TMP_DIR', $_ENV)) {

@@ -5,7 +5,8 @@
 	"site_name": "Example Website",
 	"lang": "en_US",
 	"paths": {
-		"views_dir": "/path/to/0xms/app/views"
+		"views_dir": "/path/to/0xms/app/views",
+		"logs_dir": "/path/to/0xms/app/logs"
 	},
 	"errors": {
 		"mail": false,
