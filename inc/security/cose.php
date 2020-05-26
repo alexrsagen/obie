@@ -1,5 +1,5 @@
 <?php namespace ZeroX\Security;
-use ZeroX\Util;
+use ZeroX\Encoding\Pem;
 if (!defined('IN_ZEROX')) {
 	return;
 }
@@ -52,14 +52,7 @@ class Cose {
 	const EC_ED25519 = 6; // Ed25519 for use w/ EdDSA only
 	const EC_ED448 = 7; // Ed448 for use w/ EdDSA only
 
-	/**
-	 * Converts a an EC public key from RFC 8152 COSE Key Object format
-	 * to ITU X.690 DER format.
-	 *
-	 * @param array $key - COSE Key Object
-	 * @return string DER key or empty string if failed
-	 */
-	public static function ecPubKeyToDER(array $key, bool $include_asn_header = true): string {
+	public static function ecPubkeyToRaw(array $key, bool $compress = true): string {
 		if (!array_key_exists(3, $key)) return ''; // curve
 		if (!array_key_exists(-2, $key)) return ''; // x coord
 		if (!array_key_exists(-3, $key)) return ''; // y coord
@@ -70,14 +63,22 @@ class Cose {
 		// Get y coordinate
 		$y = $key[-3];
 
-		// Assemble raw ECDSA public key, format = compression prefix + X + Y
-		$key_raw = Ecdsa::PREFIX_UNCOMPRESSED . $x . $y;
+		// Assemble raw ECDSA public key, format = compression prefix + X( + Y)
+		return $compress ? Ecdsa::getCompressedPrefixForY($y) . $x : Ecdsa::PREFIX_UNCOMPRESSED . $x . $y;
+	}
 
-		// Return early if ASN.1 header not requested
-		if (!$include_asn_header) return $key_raw;
+	/**
+	 * Converts a an EC public key from RFC 8152 COSE Key Object format
+	 * to ITU X.690 DER format.
+	 *
+	 * @param array $key - COSE Key Object
+	 * @return string DER key or empty string if failed
+	 */
+	public static function ecPubkeyToDER(array $key, bool $compress = true): string {
+		$key_raw = static::ecPubkeyToRaw($key, $compress);
+		if ($key_raw === '') return '';
 
 		// Get curve
-		$curve = null;
 		switch ($key[3]) {
 			case 'ES256':
 			case self::ALG_ES256:
@@ -96,23 +97,28 @@ class Cose {
 		}
 
 		// Get public key header based on curve
-		$hdr = '';
 		switch ($curve) {
 			case self::EC_P256:
-				$hdr = Ecdsa::ASN1HEADER_SECP256R1;
+				$hdr = $compress ? Ecdsa::ASN1HEADER_SECP256R1_COMPRESSED : Ecdsa::ASN1HEADER_SECP256R1_UNCOMPRESSED;
 				break;
 			case self::EC_P384:
-				$hdr = Ecdsa::ASN1HEADER_SECP384R1;
+				$hdr = $compress ? Ecdsa::ASN1HEADER_SECP384R1_COMPRESSED : Ecdsa::ASN1HEADER_SECP384R1_UNCOMPRESSED;
 				break;
 			case self::EC_P521:
-				$hdr = Ecdsa::ASN1HEADER_SECP521R1;
+				$hdr = $compress ? Ecdsa::ASN1HEADER_SECP521R1_COMPRESSED : Ecdsa::ASN1HEADER_SECP521R1_UNCOMPRESSED;
 				break;
 			default:
 				return '';
 		}
 
-		// DER form = ASN.1 header + sign byte + raw key (see above)
+		// DER form = ASN.1 header + sign byte + raw key
 		return $hdr . "\0" . $key_raw;
+	}
+
+	public static function ecPubkeyToPEM(array $key, bool $compress = true): string {
+		$key_der = static::ecPubkeyToDER($key, $compress);
+		if ($key_der === '') return '';
+		return Pem::encode($key_der, Pem::LABEL_PUBLICKEY);
 	}
 
 	/**
