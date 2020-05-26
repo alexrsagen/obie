@@ -129,24 +129,20 @@ class WebauthnAttestationObjectValidator implements IValidator {
 			$this->message = 'authData.signCount is missing or not an int';
 			return false;
 		}
-		if (!array_key_exists('attestedCredentialData', $input['authData']) || !is_array($input['authData']['attestedCredentialData'])) {
-			$this->message = 'authData.attestedCredentialData is missing or not an array';
+		if (!array_key_exists('aaguid', $input['authData']) || !is_string($input['authData']['aaguid'])) {
+			$this->message = 'authData.aaguid is missing or not a string';
 			return false;
 		}
-		if (!array_key_exists('aaguid', $input['authData']['attestedCredentialData']) || !is_string($input['authData']['attestedCredentialData']['aaguid'])) {
-			$this->message = 'authData.attestedCredentialData.aaguid is missing or not a string';
+		if (!array_key_exists('credentialIdLength', $input['authData']) || !is_int($input['authData']['credentialIdLength'])) {
+			$this->message = 'authData.credentialIdLength is missing or not an int';
 			return false;
 		}
-		if (!array_key_exists('credentialIdLength', $input['authData']['attestedCredentialData']) || !is_int($input['authData']['attestedCredentialData']['credentialIdLength'])) {
-			$this->message = 'authData.attestedCredentialData.credentialIdLength is missing or not an int';
+		if (!array_key_exists('credentialId', $input['authData']) || !is_string($input['authData']['credentialId'])) {
+			$this->message = 'authData.credentialId is missing or not a string';
 			return false;
 		}
-		if (!array_key_exists('credentialId', $input['authData']['attestedCredentialData']) || !is_string($input['authData']['attestedCredentialData']['credentialId'])) {
-			$this->message = 'authData.attestedCredentialData.credentialId is missing or not a string';
-			return false;
-		}
-		if (!array_key_exists('credentialPublicKey', $input['authData']['attestedCredentialData']) || !is_string($input['authData']['attestedCredentialData']['credentialPublicKey'])) {
-			$this->message = 'authData.attestedCredentialData.credentialPublicKey is missing or not a string';
+		if (!array_key_exists('credentialPublicKey', $input['authData']) || !is_string($input['authData']['credentialPublicKey'])) {
+			$this->message = 'authData.credentialPublicKey is missing or not a string';
 			return false;
 		}
 		return true;
