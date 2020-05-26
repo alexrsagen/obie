@@ -31,9 +31,9 @@ class FidoMds extends Client {
 			$aaguid = Uuid::encode($aaguid);
 		}
 
-		$res = static::request(Client::METHOD_GET, 'https://mds2.fidoalliance.org/metadata/' . urlencode($aaguid), [
+		$res = static::request(Client::METHOD_GET, 'https://mds2.fidoalliance.org/metadata/' . urlencode($aaguid) . '/', [
 			'token' => $this->token
-		], null, ['Accept: application/json']);
+		], null);
 
 		// Log errors
 		if ($res->hasErrors()) {
