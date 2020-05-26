@@ -4,13 +4,25 @@ if (!defined('IN_ZEROX')) {
 }
 
 class Pem {
-	const REGEX                = '/^-{5}BEGIN (?<label>[\x21-\x2C\x2E-\x7E](?:[- ]?[\x21-\x2C\x2E-\x7E])*)-{5}[ \t]*(?:\r\n|\r|\n)[ \t\r\n]*(?<data>(?:[A-Za-z0-9+\/]+[ \t]*(?:\r\n|\r|\n))*[A-Za-z0-9+\/]*(?:=[ \t]*(?:\r\n|\r|\n)=|={0,2}))[ \t]*(?:\r\n|\r|\n)-{5}END \k<label>-{5}[ \t]*(?:\r\n|\r|\n)?$/';
+	const REGEX = '/^-{5}BEGIN (?<label>[\x21-\x2C\x2E-\x7E](?:[- ]?[\x21-\x2C\x2E-\x7E])*)-{5}[ \t]*(?:\r\n|\r|\n)[ \t\r\n]*(?<data>(?:[A-Za-z0-9+\/]+[ \t]*(?:\r\n|\r|\n))*[A-Za-z0-9+\/]*(?:=[ \t]*(?:\r\n|\r|\n)=|={0,2}))[ \t]*(?:\r\n|\r|\n)-{5}END \k<label>-{5}[ \t]*(?:\r\n|\r|\n)?$/';
+
 	const BOUNDARY_PREFIX_PRE  = '-----BEGIN ';
 	const BOUNDARY_PREFIX_POST = '-----END ';
 	const BOUNDARY_SUFFIX      = '-----';
+
 	const LABEL_PUBLICKEY      = 'PUBLIC KEY';
+	const LABEL_RSA_PUBLICKEY  = 'RSA PUBLIC KEY';
+	const LABEL_PGP_PUBLICKEY  = 'PGP PUBLIC KEY BLOCK';
 	const LABEL_PRIVATEKEY     = 'PRIVATE KEY';
+	const LABEL_RSA_PRIVATEKEY = 'RSA PRIVATE KEY';
+	const LABEL_DSA_PRIVATEKEY = 'DSA PRIVATE KEY';
+	const LABEL_EC_PRIVATEKEY  = 'EC PRIVATE KEY';
+	const LABEL_PGP_PRIVATEKEY = 'PGP PRIVATE KEY BLOCK';
 	const LABEL_CERTIFICATE    = 'CERTIFICATE';
+	const LABEL_CSR            = 'CERTIFICATE REQUEST';
+	const LABEL_NEW_CSR        = 'NEW CERTIFICATE REQUEST';
+	const LABEL_PKCS7          = 'PKCS7';
+	const LABEL_X509_CRL       = 'X509 CRL';
 
 	public static function encode(string $data, string $label = self::LABEL_PUBLICKEY) {
 		return static::getPreBoundary($label) . "\r\n" .
