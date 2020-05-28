@@ -374,9 +374,6 @@ class Webauthn {
 						// 6. verify signature
 						$signature_valid = Ecdsa::verify($signature_base, $att_obj['attStmt']['sig'], $cert_pubkey, OPENSSL_ALGO_SHA256);
 						if (!$signature_valid) {
-							Log::debug('data: ' . bin2hex($signature_base));
-							Log::debug('signature: ' . bin2hex($att_obj['attStmt']['sig']));
-							Log::debug('pubkey: ' . $cert_pubkey);
 							Log::info(sprintf('Webauthn/verify: Signature %s over data %s could not be verified with public key %s using ECDSA-SHA256', bin2hex($att_obj['attStmt']['sig']), bin2hex($signature_base), bin2hex(Pem::decode($cert_pubkey))));
 							return false;
 						}
@@ -395,8 +392,18 @@ class Webauthn {
 				return false;
 			}
 		} else {
-			// TODO: §7.2 step 20
-			// - verify signature over authData
+			// verify signature over authData - §7.2 step 20
+
+			// get signature base
+			$signature_base  = $att_obj['authDataRaw']; // authData
+			$signature_base .= $client_data_hash;       // clientDataHash
+
+			// verify signature
+			$signature_valid = Cose::verify($signature_base, $att_obj['attStmt']['sig'], $public_key, array_key_exists('alg', $att_obj['attStmt']) ? $att_obj['attStmt']['alg'] : Cose::ALG_ES256);
+			if (!$signature_valid) {
+				Log::info(sprintf('Webauthn/verify: Signature %s over data %s could not be verified with public key %s using ECDSA-SHA256', bin2hex($att_obj['attStmt']['sig']), bin2hex($signature_base), bin2hex(Pem::decode($cert_pubkey))));
+				return false;
+			}
 
 			// §7.2 step 21
 			// - if either authenticator sign count or known sign count are
@@ -409,5 +416,7 @@ class Webauthn {
 				}
 			}
 		}
+
+		return true;
 	}
 }
