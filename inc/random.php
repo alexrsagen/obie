@@ -1,8 +1,5 @@
 <?php namespace ZeroX;
 use ZeroX\Encoding\Uuid;
-if (!defined('IN_ZEROX')) {
-	return;
-}
 
 class Random {
 	public static function int(int $min, int $max): int {

@@ -3,9 +3,6 @@ use ZeroX\Config;
 use ZeroX\Encoding\Json;
 use Monolog\Handler\StreamHandler;
 use Monolog\Formatter\LineFormatter;
-if (!defined('IN_ZEROX')) {
-	return;
-}
 
 class Logger extends \Monolog\Logger {
 	public static $logs_dir = '';

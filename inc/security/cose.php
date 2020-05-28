@@ -1,8 +1,5 @@
 <?php namespace ZeroX\Security;
 use ZeroX\Encoding\Pem;
-if (!defined('IN_ZEROX')) {
-	return;
-}
 
 class Cose {
 	const KTY_RESERVED = 0; // This value is reserved

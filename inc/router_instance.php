@@ -1,8 +1,5 @@
 <?php namespace ZeroX;
 use ZeroX\Vars\VarCollection;
-if (!defined('IN_ZEROX')) {
-	return;
-}
 
 class RouterInstance {
 	const OK              = 1;

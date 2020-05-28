@@ -1,7 +1,4 @@
 <?php namespace ZeroX\Vars;
-if (!defined('IN_ZEROX')) {
-	return;
-}
 
 trait StaticVarTrait {
 	public static $vars = null;

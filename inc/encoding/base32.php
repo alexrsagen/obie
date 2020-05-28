@@ -1,7 +1,4 @@
 <?php namespace ZeroX\Encoding;
-if (!defined('IN_ZEROX')) {
-	return;
-}
 
 class Base32 {
 	const ALPHABET     = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';

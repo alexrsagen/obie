@@ -1,8 +1,5 @@
 <?php namespace ZeroX;
 use ZeroX\Vars\StaticVarTrait;
-if (!defined('IN_ZEROX')) {
-	return;
-}
 
 class Session {
 	use StaticVarTrait;

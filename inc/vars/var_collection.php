@@ -1,7 +1,4 @@
 <?php namespace ZeroX\Vars;
-if (!defined('IN_ZEROX')) {
-	return;
-}
 
 class VarCollection implements \ArrayAccess, \IteratorAggregate, \Countable, \Serializable {
 	protected $storage;

@@ -1,7 +1,4 @@
 <?php namespace ZeroX\Validation;
-if (!defined('IN_ZEROX')) {
-	return;
-}
 
 class FormValidator implements IValidator {
 	protected $messages = [];

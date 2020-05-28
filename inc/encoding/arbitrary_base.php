@@ -1,7 +1,4 @@
 <?php namespace ZeroX\Encoding;
-if (!defined('IN_ZEROX')) {
-	return;
-}
 
 class ArbitraryBase {
 	// XXX: Changing these constants is not a good idea

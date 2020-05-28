@@ -1,7 +1,4 @@
 <?php namespace ZeroX\Models;
-if (!defined('IN_ZEROX')) {
-	return;
-}
 
 trait SoftCreateTrait {
 	protected $_set_created_at = true;

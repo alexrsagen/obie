@@ -1,9 +1,6 @@
 <?php namespace ZeroX\Models;
 use ZeroX\Random;
 use ZeroX\Encoding\ArbitraryBase;
-if (!defined('IN_ZEROX')) {
-	return;
-}
 
 trait VirtualIdTrait {
 	protected static $_use_short_virtual_id = false;

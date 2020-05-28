@@ -7,9 +7,6 @@ use ZeroX\Encoding\Json;
 use ZeroX\Encoding\Base64Url;
 use ZeroX\Validation\WebauthnClientDataValidator;
 use ZeroX\Validation\WebauthnAttestationObjectValidator;
-if (!defined('IN_ZEROX')) {
-	return;
-}
 
 class Webauthn {
 	// https://www.w3.org/TR/webauthn-2/#enumdef-attestationconveyancepreference

@@ -1,7 +1,4 @@
 <?php namespace ZeroX\Encoding;
-if (!defined('IN_ZEROX')) {
-	return;
-}
 
 class Pem {
 	const REGEX = '/^-{5}BEGIN (?<label>[\x21-\x2C\x2E-\x7E](?:[- ]?[\x21-\x2C\x2E-\x7E])*)-{5}[ \t]*(?:\r\n|\r|\n)[ \t\r\n]*(?<data>(?:[A-Za-z0-9+\/]+[ \t]*(?:\r\n|\r|\n))*[A-Za-z0-9+\/]*(?:=[ \t]*(?:\r\n|\r|\n)=|={0,2}))[ \t]*(?:\r\n|\r|\n)-{5}END \k<label>-{5}[ \t]*(?:\r\n|\r|\n)?$/';

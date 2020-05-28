@@ -1,7 +1,4 @@
 <?php namespace ZeroX\Encoding;
-if (!defined('IN_ZEROX')) {
-	return;
-}
 
 class Uuid {
 	const PREFIX_URN = 'urn:uuid:';

@@ -1,8 +1,5 @@
 <?php namespace ZeroX;
 use MatthiasMullie\Minify as MMM;
-if (!defined('IN_ZEROX')) {
-	return;
-}
 
 class Minify {
 	public static function HTML(string $input, array $options = []) {

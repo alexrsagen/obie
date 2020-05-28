@@ -1,7 +1,4 @@
 <?php namespace ZeroX\Validation;
-if (!defined('IN_ZEROX')) {
-	return;
-}
 
 class SimpleValidator implements IValidator {
 	const TYPE_CUSTOM       =  0; // Implementation of IValidator

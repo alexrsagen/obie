@@ -3,9 +3,6 @@ use ZeroX\Encoding\Pem;
 use ZeroX\Encoding\Json;
 use ZeroX\Encoding\Base64Url;
 use ZeroX\Security\Ecdsa;
-if (!defined('IN_ZEROX')) {
-	return;
-}
 
 class U2f {
 	// https://fidoalliance.org/specs/fido-u2f-v1.2-ps-20170411/fido-u2f-javascript-api-v1.2-ps-20170411.html#idl-def-SignResponse

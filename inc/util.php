@@ -1,7 +1,4 @@
 <?php namespace ZeroX;
-if (!defined('IN_ZEROX')) {
-	return;
-}
 
 class Util {
 	public static function formatBytes(int $bytes): string {

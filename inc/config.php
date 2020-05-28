@@ -1,9 +1,6 @@
 <?php namespace ZeroX;
 use ZeroX\Vars\VarTrait;
 use ZeroX\Encoding\Json;
-if (!defined('IN_ZEROX')) {
-	return;
-}
 
 class Config {
     use VarTrait;

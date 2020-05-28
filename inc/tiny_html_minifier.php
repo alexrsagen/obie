@@ -1,8 +1,5 @@
 <?php namespace ZeroX;
 use ZeroX\Encoding\Json;
-if (!defined('IN_ZEROX')) {
-	return;
-}
 
 // Obtained from: https://github.com/jenstornell/tiny-html-minifier/blob/master/tiny-html-minifier.php
 //

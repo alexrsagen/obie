@@ -3,9 +3,6 @@ use \ZeroX\Http\Client;
 use \ZeroX\Encoding\Uuid;
 use \ZeroX\Encoding\Json;
 use \ZeroX\Validation\SimpleValidator;
-if (!defined('IN_ZEROX')) {
-	return;
-}
 
 /**
  * FIDO Metadata Service client

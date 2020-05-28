@@ -1,7 +1,4 @@
 <?php namespace ZeroX\Models;
-if (!defined('IN_ZEROX')) {
-	return;
-}
 
 class ModelHelpers {
 	public static function getSingular(string $name) {

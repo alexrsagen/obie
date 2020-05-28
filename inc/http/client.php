@@ -1,9 +1,6 @@
 <?php namespace ZeroX\Http;
 use ZeroX\Log;
 use ZeroX\Encoding\Json;
-if (!defined('IN_ZEROX')) {
-	return;
-}
 
 class Client {
 	// Request methods

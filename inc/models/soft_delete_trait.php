@@ -1,7 +1,4 @@
 <?php namespace ZeroX\Models;
-if (!defined('IN_ZEROX')) {
-	return;
-}
 
 trait SoftDeleteTrait {
 	protected $_set_deleted_at = true;

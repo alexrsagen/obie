@@ -1,7 +1,4 @@
 <?php namespace ZeroX\Models;
-if (!defined('IN_ZEROX')) {
-	return;
-}
 
 trait BaseModelTrait {
 	protected static $source          = null;

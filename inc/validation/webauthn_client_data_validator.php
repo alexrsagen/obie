@@ -1,8 +1,5 @@
 <?php namespace ZeroX\Validation;
 use ZeroX\Validation\IValidator;
-if (!defined('IN_ZEROX')) {
-	return;
-}
 
 class WebauthnClientDataValidator implements IValidator {
 	private $message = '';

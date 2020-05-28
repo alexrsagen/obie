@@ -1,7 +1,4 @@
 <?php namespace ZeroX;
-if (!defined('IN_ZEROX')) {
-	return;
-}
 
 class Mime {
 	const TYPES = [

@@ -1,7 +1,4 @@
 <?php namespace ZeroX\Models;
-if (!defined('IN_ZEROX')) {
-	return;
-}
 
 class ModelCollection implements \ArrayAccess, \IteratorAggregate, \Countable, \Serializable {
 	protected $models;

@@ -1,9 +1,6 @@
 <?php namespace ZeroX;
 use ZeroX\Vars\VarTrait;
 use ZeroX\Vars\VarCollection;
-if (!defined('IN_ZEROX')) {
-	return;
-}
 
 class View {
 	use VarTrait;

@@ -1,8 +1,5 @@
 <?php namespace ZeroX;
 use ZeroX\Vars\VarTrait;
-if (!defined('IN_ZEROX')) {
-	return;
-}
 
 class Route {
 	use VarTrait;
