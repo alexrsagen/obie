@@ -451,10 +451,8 @@ class BaseModel {
 
 	public function load() {
 		// Run pre-load hooks
-		foreach (get_class_methods($this) as $name) {
-			if (substr($name, 0, 10) === 'beforeLoad') {
-				if ($this->{$name}()) return true;
-			}
+		foreach ($this->getHooks('beforeLoad') as $name) {
+			if ($this->{$name}()) return true;
 		}
 
 		// Build query options
@@ -485,10 +483,8 @@ class BaseModel {
 		}
 
 		// Run post-load hooks
-		foreach (get_class_methods($this) as $name) {
-			if (substr($name, 0, 9) === 'afterLoad') {
-				$this->{$name}();
-			}
+		foreach ($this->getHooks('afterLoad') as $name) {
+			$this->{$name}();
 		}
 
 		$this->forceCleanState();
@@ -497,10 +493,8 @@ class BaseModel {
 
 	public function save() {
 		// Run pre-save hooks
-		foreach (get_class_methods($this) as $name) {
-			if (substr($name, 0, 10) === 'beforeSave') {
-				if ($this->{$name}()) return true;
-			}
+		foreach ($this->getHooks('beforeSave') as $name) {
+			if ($this->{$name}()) return true;
 		}
 
 		if ($this->_new) {
@@ -513,10 +507,8 @@ class BaseModel {
 
 		if ($retval) {
 			// Run post-save hooks
-			foreach (get_class_methods($this) as $name) {
-				if (substr($name, 0, 9) === 'afterSave') {
-					$this->{$name}();
-				}
+			foreach ($this->getHooks('afterSave') as $name) {
+				$this->{$name}();
 			}
 		}
 
@@ -525,10 +517,8 @@ class BaseModel {
 
 	public function create() {
 		// Run pre-create hooks
-		foreach (get_class_methods($this) as $name) {
-			if (substr($name, 0, 12) === 'beforeCreate') {
-				if ($this->{$name}()) return true;
-			}
+		foreach ($this->getHooks('beforeCreate') as $name) {
+			if ($this->{$name}()) return true;
 		}
 
 		// Update database
@@ -565,10 +555,8 @@ class BaseModel {
 			}
 
 			// Run post-create hooks
-			foreach (get_class_methods($this) as $name) {
-				if (substr($name, 0, 11) === 'afterCreate') {
-					$this->{$name}();
-				}
+			foreach ($this->getHooks('afterCreate') as $name) {
+				$this->{$name}();
 			}
 
 			$this->forceCleanState();
@@ -579,10 +567,8 @@ class BaseModel {
 
 	public function update() {
 		// Run pre-update hooks
-		foreach (get_class_methods($this) as $name) {
-			if (substr($name, 0, 12) === 'beforeUpdate') {
-				if ($this->{$name}()) return true;
-			}
+		foreach ($this->getHooks('beforeUpdate') as $name) {
+			if ($this->{$name}()) return true;
 		}
 
 		// Update database
@@ -633,10 +619,8 @@ class BaseModel {
 
 		if ($retval) {
 			// Run post-update hooks
-			foreach (get_class_methods($this) as $name) {
-				if (substr($name, 0, 11) === 'afterUpdate') {
-					$this->{$name}();
-				}
+			foreach ($this->getHooks('afterUpdate') as $name) {
+				$this->{$name}();
 			}
 
 			$this->forceCleanState();
@@ -646,10 +630,8 @@ class BaseModel {
 	}
 
 	public function delete() {
-		foreach (get_class_methods($this) as $name) {
-			if (substr($name, 0, 12) === 'beforeDelete') {
-				if ($this->{$name}()) return true;
-			}
+		foreach ($this->getHooks('beforeDelete') as $name) {
+			if ($this->{$name}()) return true;
 		}
 
 		$pk_list = static::getPrimaryKeys();
@@ -681,10 +663,8 @@ class BaseModel {
 
 		if ($retval) {
 			// Run post-delete hooks
-			foreach (get_class_methods($this) as $name) {
-				if (substr($name, 0, 11) === 'afterDelete') {
-					$this->{$name}();
-				}
+			foreach ($this->getHooks('afterDelete') as $name) {
+				$this->{$name}();
 			}
 
 			$this->forceCleanState();
@@ -706,6 +686,16 @@ class BaseModel {
 
 	// Data methods
 
+	protected function getHooks(string $hook_prefix) {
+		$hooks = [];
+		foreach (get_class_methods($this) as $name) {
+			if (substr($name, 0, strlen($hook_prefix)) === $hook_prefix) {
+				$hooks[] = $name;
+			}
+		}
+		return $hooks;
+	}
+
 	public function modified() {
 		return !empty($this->_modified_columns);
 	}
@@ -720,15 +710,23 @@ class BaseModel {
 
 	public function __get(string $key) {
 		if (array_key_exists($key, static::$columns)) {
-			if (array_key_exists($key, $this->_data)) {
-				return $this->_data[$key];
+			if (!array_key_exists($key, $this->_data)) return null;
+			$value = $this->_data[$key];
+			foreach ($this->getHooks('beforeGet') as $name) {
+				// hook arguments: key, value, is_relation, type
+				$value = $this->{$name}($key, $value, false, static::$columns[$key]);
 			}
-			return null;
+			return $value;
 		} elseif (isset(static::$relations) && array_key_exists($key, static::$relations)) {
 			if (!array_key_exists($key, $this->_relation_cache)) {
 				$this->_relation_cache[$key] = $this->getRelated($key);
 			}
-			return $this->_relation_cache[$key];
+			$value = $this->_relation_cache[$key];
+			foreach ($this->getHooks('beforeGet') as $name) {
+				// hook arguments: key, value, is_relation, type (always null in case of relation)
+				$value = $this->{$name}($key, $value, true, null);
+			}
+			return $value;
 		}
 		$class_name = get_called_class();
 		throw new \Exception("Column $key is not defined in model $class_name");
@@ -738,6 +736,9 @@ class BaseModel {
 		if (!array_key_exists($key, static::$columns)) {
 			$class_name = get_called_class();
 			throw new \Exception("Column $key is not defined in model $class_name");
+		}
+		foreach ($this->getHooks('beforeSet') as $name) {
+			$value = $this->{$name}($key, $value, static::$columns[$key]);
 		}
 		if ($value === null) {
 			$this->_data[$key] = null;
@@ -757,6 +758,9 @@ class BaseModel {
 		}
 		if (!in_array($key, $this->_modified_columns)) {
 			$this->_modified_columns[] = $key;
+		}
+		foreach ($this->getHooks('afterSet') as $name) {
+			$this->{$name}($key, $value, static::$columns[$key]);
 		}
 	}
 
