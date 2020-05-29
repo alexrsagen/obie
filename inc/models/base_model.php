@@ -463,7 +463,7 @@ class BaseModel {
 			'read_only'  => true
 		];
 		foreach ($pk_list as $key) {
-			$options['bind'][] = $this->{$key};
+			$options['bind'][] = $this->get($key, false);
 		}
 
 		// Build and execute statement
@@ -479,7 +479,7 @@ class BaseModel {
 		if (count($result) === 0) return false;
 
 		foreach ($result[0] as $key => $val) {
-			$this->{$key} = $val;
+			$this->set($key, $val, false);
 		}
 
 		// Run post-load hooks
@@ -524,7 +524,7 @@ class BaseModel {
 		// Update database
 		$stmt = static::getDatabase()->prepare('INSERT INTO ' . static::getEscapedSource() . ' SET ' . ModelHelpers::getEscapedSet($this->_modified_columns));
 		foreach ($this->_modified_columns as $i => $key) {
-			$val = $this->{$key};
+			$val = $this->get($key, false);
 			if (is_int($val)) {
 				$type = \PDO::PARAM_INT;
 			} elseif (is_bool($val)) {
@@ -576,7 +576,7 @@ class BaseModel {
 		$stmt = static::getDatabase()->prepare('UPDATE ' . static::getEscapedSource() . ' SET ' . ModelHelpers::getEscapedSet($this->_modified_columns) . ' WHERE ' . ModelHelpers::getEscapedWhere($pk_list) . ' LIMIT 1');
 		$i = 0;
 		foreach ($this->_modified_columns as $key) {
-			$val = $this->{$key};
+			$val = $this->get($key, false);
 			if (is_int($val)) {
 				$type = \PDO::PARAM_INT;
 			} elseif (is_bool($val)) {
@@ -593,7 +593,7 @@ class BaseModel {
 			$stmt->bindValue(++$i, $val, $type);
 		}
 		foreach ($pk_list as $key) {
-			$val = $this->{$key};
+			$val = $this->get($key, false);
 			if (is_int($val)) {
 				$type = \PDO::PARAM_INT;
 			} elseif (is_bool($val)) {
@@ -637,7 +637,7 @@ class BaseModel {
 		$pk_list = static::getPrimaryKeys();
 		$stmt = static::getDatabase()->prepare('DELETE FROM ' . static::getEscapedSource() . ' WHERE ' . ModelHelpers::getEscapedWhere($pk_list) . ' LIMIT 1');
 		foreach ($pk_list as $i => $key) {
-			$val = $this->{$key};
+			$val = $this->get($key, false);
 			if (is_int($val)) {
 				$type = \PDO::PARAM_INT;
 			} elseif (is_bool($val)) {
@@ -708,13 +708,15 @@ class BaseModel {
 		return $this->_data;
 	}
 
-	public function __get(string $key) {
+	public function get(string $key, bool $hooks = true) {
 		if (array_key_exists($key, static::$columns)) {
 			if (!array_key_exists($key, $this->_data)) return null;
 			$value = $this->_data[$key];
-			foreach ($this->getHooks('beforeGet') as $name) {
-				// hook arguments: key, value, is_relation, type
-				$value = $this->{$name}($key, $value, false, static::$columns[$key]);
+			if ($hooks) {
+				foreach ($this->getHooks('beforeGet') as $name) {
+					// hook arguments: key, value, is_relation, type
+					$value = $this->{$name}($key, $value, false, static::$columns[$key]);
+				}
 			}
 			return $value;
 		} elseif (isset(static::$relations) && array_key_exists($key, static::$relations)) {
@@ -722,9 +724,11 @@ class BaseModel {
 				$this->_relation_cache[$key] = $this->getRelated($key);
 			}
 			$value = $this->_relation_cache[$key];
-			foreach ($this->getHooks('beforeGet') as $name) {
-				// hook arguments: key, value, is_relation, type (always null in case of relation)
-				$value = $this->{$name}($key, $value, true, null);
+			if ($hooks) {
+				foreach ($this->getHooks('beforeGet') as $name) {
+					// hook arguments: key, value, is_relation, type (always null in case of relation)
+					$value = $this->{$name}($key, $value, true, null);
+				}
 			}
 			return $value;
 		}
@@ -732,7 +736,11 @@ class BaseModel {
 		throw new \Exception("Column $key is not defined in model $class_name");
 	}
 
-	public function __set(string $key, $value) {
+	public function __get(string $key) {
+		return $this->get($key);
+	}
+
+	public function set(string $key, $value, bool $hooks = true) {
 		if (!array_key_exists($key, static::$columns)) {
 			$class_name = get_called_class();
 			throw new \Exception("Column $key is not defined in model $class_name");
@@ -762,6 +770,11 @@ class BaseModel {
 		foreach ($this->getHooks('afterSet') as $name) {
 			$this->{$name}($key, $value, static::$columns[$key]);
 		}
+		return $this;
+	}
+
+	public function __set(string $key, $value) {
+		$this->set($key, $value);
 	}
 
 	public function __call(string $name, array $arguments) {
