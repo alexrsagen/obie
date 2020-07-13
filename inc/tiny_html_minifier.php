@@ -143,7 +143,11 @@ class TinyHtmlMinifier {
 
 	// Remove comments
 	function removeComments($content = '') {
-		return preg_replace('/<!--(.|\s)*?-->/', '', $content);
+		if (!empty($this->options['keep_empty_comments'])) {
+			return preg_replace('/(?!<!-- -->)<!--(?:.|\s)*?-->/', '', $content);
+		} else {
+			return preg_replace('/<!--(.|\s)*?-->/', '', $content);
+		}
 	}
 
 	// Check if string contains string

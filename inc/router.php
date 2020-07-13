@@ -211,8 +211,9 @@ class Router {
 
 	// Global utility methods
 
-	public  static $strict            = true;
-	public  static $html_suffix       = '';
+	public static $strict               = true;
+	public static $html_suffix          = '';
+	public static $html_minify_options  = [];
 	protected static $headers           = [];
 	protected static $response_code     = self::HTTP_OK;
 	protected static $response_sent     = false;
@@ -380,7 +381,7 @@ class Router {
 				$response = Json::encode($response, $minify ? 0 : JSON_PRETTY_PRINT);
 			}
 			if ($minify && $content_type === self::CONTENT_TYPE_HTML) {
-				$response = Minify::HTML($response);
+				$response = Minify::HTML($response, static::$html_minify_options);
 			}
 			if ($content_type === self::CONTENT_TYPE_HTML) {
 				$response .= self::$html_suffix;
