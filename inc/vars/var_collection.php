@@ -1,6 +1,6 @@
 <?php namespace ZeroX\Vars;
 
-class VarCollection implements \ArrayAccess, \IteratorAggregate, \Countable, \Serializable {
+class VarCollection implements \ArrayAccess, \IteratorAggregate, \Countable, \Serializable, \JsonSerializable {
 	protected $storage;
 	protected $assoc;
 
@@ -67,6 +67,10 @@ class VarCollection implements \ArrayAccess, \IteratorAggregate, \Countable, \Se
 
 	public function serialize() {
 		return serialize($this->storage);
+	}
+
+	public function jsonSerialize() {
+		return $this->storage;
 	}
 
 	public function unserialize($serialized) {
