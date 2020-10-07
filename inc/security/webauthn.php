@@ -202,7 +202,6 @@ class Webauthn {
 			return false;
 		}
 		if (!(new WebauthnAuthDataValidator())->validate($auth_data)) {
-			var_dump($auth_data); exit;
 			Log::info('Webauthn/verify: Authenticator data validation failed');
 			return false;
 		}
