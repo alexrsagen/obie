@@ -1,6 +1,9 @@
 <?php namespace ZeroX\Http;
 use ZeroX\Log;
 use ZeroX\Encoding\Json;
+use ZeroX\Encoding\Querystring;
+use ZeroX\Encoding\Multipart;
+use ZeroX\Encoding\Multipart\FormData;
 
 class Client {
 	// Request methods
@@ -46,7 +49,7 @@ class Client {
 		// Strip query string from request URL and add to query array
 		$req_url_qs_pos = strpos($req_url, '?');
 		if ($req_url_qs_pos !== false) {
-			parse_str(substr($req_url, $req_url_qs_pos + 1), $req_url_qs);
+			$req_url_qs = Querystring::decode(substr($req_url, $req_url_qs_pos + 1));
 			$req_url = substr($req_url, 0, $req_url_qs_pos);
 			$req_query = array_merge($req_url_qs, $req_query);
 		}
@@ -84,8 +87,15 @@ class Client {
 
 						case 'application/x-www-form-urlencoded':
 						case 'urlencoded':
-							$body          = http_build_query($req_data);
+							$body          = Querystring::encode($req_data);
 							$req_headers[] = 'Content-Type: application/x-www-form-urlencoded; charset=utf-8';
+							break;
+
+						case 'multipart/form-data':
+						case 'multipart':
+							$boundary = Multipart::generateBoundary();
+							$body = FormData::encode($req_data, [], $boundary);
+							$req_headers[] = 'Content-Type: multipart/form-data; boundary=' . $boundary;
 							break;
 
 						case 'raw':
@@ -155,12 +165,9 @@ class Client {
 		$res_data_decoded = null;
 		if (array_key_exists('content-type', $res_headers)) {
 			if (substr($res_headers['content-type'], 0, 16) === 'application/json') {
-				$res_data_decoded = json_decode($res_data, true);
-				if ($res_data_decoded === false || $res_data_decoded === null) {
-					$decode_error = json_last_error_msg();
-					if ($decode_error !== "No error" && $decode_error !== false) {
-						$errors[] = sprintf('JSON decode error: %s', $decode_error);
-					}
+				$res_data_decoded = Json::decode($res_data);
+				if ($res_data_decoded === null) {
+					$errors[] = 'JSON decode error';
 				}
 			} elseif (substr($res_headers['content-type'], 0, 15) === 'application/xml' || substr($res_headers['content-type'], 0, 8) === 'text/xml') {
 				$libxml_prev_use_internal_errors = libxml_use_internal_errors(true);

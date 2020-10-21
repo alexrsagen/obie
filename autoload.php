@@ -27,19 +27,30 @@ spl_autoload_register(function(string $name) {
 		// Get current path
 		$cur_path = $base_path . implode(DIRECTORY_SEPARATOR, array_slice($ns_parts, 1, $i));
 
-		// Ensure that current path exists
 		if ($i === count($ns_parts) - 1) {
-			$cur_path .= '.php';
-		}
-		$cur_path = realpath($cur_path);
-		if ($cur_path === false || strncmp($cur_path, $base_path, strlen($base_path)) !== 0) {
-			return;
-		}
-		if (!file_exists($cur_path) || ($i === count($ns_parts) - 1 ? !is_file($cur_path) : !is_dir($cur_path))) {
-			return;
-		}
-		if ($i === count($ns_parts) - 1) {
-			require $cur_path;
+			// Attempt to load 'class_name.php'
+			$cur_file = realpath($cur_path . '.php');
+			if (
+				$cur_file !== false &&
+				strncmp($cur_file, $base_path, strlen($base_path)) === 0 &&
+				file_exists($cur_file) &&
+				is_file($cur_file)
+			) {
+				require $cur_file;
+			}
+
+			// Attempt to load 'class_name/index.php'
+			$cur_file = realpath($cur_path . DIRECTORY_SEPARATOR . 'index.php');
+			if (
+				$cur_file !== false &&
+				strncmp($cur_file, $base_path, strlen($base_path)) === 0 &&
+				file_exists($cur_file) &&
+				is_file($cur_file)
+			) {
+				require $cur_file;
+			}
+		} else {
+			if (!file_exists($cur_path) || !is_dir($cur_path)) return;
 		}
 	}
 });

@@ -956,4 +956,9 @@ class Mime {
 
 		return 'file';
 	}
+
+	public static function getTypeFromFilename(string $filename): ?string {
+		$fileext = pathinfo($filename, PATHINFO_EXTENSION);
+		return array_key_exists($fileext, static::TYPES) ? static::TYPES[$fileext] : null;
+	}
 }

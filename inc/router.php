@@ -1,6 +1,7 @@
 <?php namespace ZeroX;
 use ZeroX\Vars\VarCollection;
 use ZeroX\Encoding\Json;
+use ZeroX\Encoding\Querystring;
 
 class Router {
 	// Constants
@@ -228,34 +229,27 @@ class Router {
 		return false;
 	}
 
-	public static function getPost(string $key = null) {
+	public static function getPost(?string $key = null) {
 		static $data = null;
 		if ($data === null) {
 			$data = [];
 			$request_method = static::getMethod();
 			$content_type = static::parseRequestHeader('Content-Type');
 			if (count($content_type) > 0) {
-				switch ($content_type[0]) {
+				switch ($request_method) {
+				case 'POST': case 'PUT':
+					switch ($content_type[0]) {
 					case 'multipart/form-data':
+						$data = Multipart::decodeFormData(file_get_contents('php://input'));
+						break;
 					case 'application/x-www-form-urlencoded':
-						switch ($request_method) {
-							case 'PUT':
-								parse_str(file_get_contents('php://input'), $data);
-								break;
-							case 'POST':
-								$data = $_POST;
-								break;
-							default:
-								$data = null;
-								break;
-						}
+						$data = Querystring::decode(file_get_contents('php://input'));
 						break;
 					case 'application/json':
 						$data = Json::decode(file_get_contents('php://input'));
 						break;
-					default:
-						$data = null;
-						break;
+					}
+					break;
 				}
 			}
 		}
@@ -272,10 +266,14 @@ class Router {
 		return false;
 	}
 
-	public static function getQuery(string $key = null) {
-		if ($key === null) return $_GET;
-		if (!is_array($_GET) || !array_key_exists($key, $_GET)) return null;
-		return $_GET[$key];
+	public static function getQuery(?string $key = null) {
+		static $data = null;
+		if ($data === null) {
+			$data = Querystring::decode(static::getQueryString());
+		}
+		if ($key === null) return $data;
+		if (!is_array($data) || !array_key_exists($key, $data)) return null;
+		return $data[$key];
 	}
 
 	public static function getQueryBool(string $key) {
@@ -286,7 +284,7 @@ class Router {
 		return false;
 	}
 
-	public static function getRequestHeader(string $key = null) {
+	public static function getRequestHeader(?string $key = null) {
 		if ($key !== null) {
 			$key = 'HTTP_' . strtoupper(str_replace('-', '_', $key));
 			if (!array_key_exists($key, $_SERVER)) {
@@ -343,7 +341,7 @@ class Router {
 
 	public static function getQueryString() {
 		$request_uri = $_SERVER['REQUEST_URI'];
-		$qs_pos = strpos($request_uri, '?');
+		$qs_pos = strrpos($request_uri, '?');
 		if ($qs_pos !== false) {
 			return substr($request_uri, $qs_pos);
 		}
@@ -440,7 +438,7 @@ class Router {
 		return '';
 	}
 
-	public static function getResponseHeader(string $name = null) {
+	public static function getResponseHeader(?string $name = null) {
 		if ($name === null) return self::$headers;
 		if (!array_key_exists($name, self::$headers)) return null;
 		return self::$headers[$name];
