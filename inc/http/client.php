@@ -1,9 +1,9 @@
 <?php namespace ZeroX\Http;
-use ZeroX\Log;
-use ZeroX\Encoding\Json;
-use ZeroX\Encoding\Querystring;
-use ZeroX\Encoding\Multipart;
-use ZeroX\Encoding\Multipart\FormData;
+use \ZeroX\Log;
+use \ZeroX\Encoding\Json;
+use \ZeroX\Encoding\Querystring;
+use \ZeroX\Encoding\Multipart;
+use \ZeroX\Encoding\Multipart\FormData;
 
 class Client {
 	// Request methods

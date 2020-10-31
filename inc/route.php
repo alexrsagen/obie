@@ -1,5 +1,5 @@
 <?php namespace ZeroX;
-use ZeroX\Vars\VarTrait;
+use \ZeroX\Vars\VarTrait;
 
 class Route {
 	use VarTrait;

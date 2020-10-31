@@ -1,6 +1,6 @@
 <?php namespace ZeroX;
-use ZeroX\Vars\VarTrait;
-use ZeroX\Vars\VarCollection;
+use \ZeroX\Vars\VarTrait;
+use \ZeroX\Vars\VarCollection;
 
 class View {
 	use VarTrait;

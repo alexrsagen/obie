@@ -1,5 +1,5 @@
 <?php namespace ZeroX;
-use MatthiasMullie\Minify as MMM;
+use \MatthiasMullie\Minify as MMM;
 
 class Minify {
 	public static function HTML(string $input, array $options = []) {

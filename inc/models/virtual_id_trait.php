@@ -1,6 +1,6 @@
 <?php namespace ZeroX\Models;
-use ZeroX\Random;
-use ZeroX\Encoding\ArbitraryBase;
+use \ZeroX\Random;
+use \ZeroX\Encoding\ArbitraryBase;
 
 trait VirtualIdTrait {
 	protected static $_use_short_virtual_id = false;

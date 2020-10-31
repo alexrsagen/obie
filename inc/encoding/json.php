@@ -1,5 +1,5 @@
 <?php namespace ZeroX\Encoding;
-use ZeroX\Log;
+use \ZeroX\Log;
 
 class Json {
 	public static function encode($input, int $options = 0): string {

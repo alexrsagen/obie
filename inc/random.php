@@ -1,5 +1,5 @@
 <?php namespace ZeroX;
-use ZeroX\Encoding\Uuid;
+use \ZeroX\Encoding\Uuid;
 
 class Random {
 	public static function int(int $min, int $max): int {

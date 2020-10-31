@@ -1,5 +1,5 @@
 <?php namespace MyZeroXApp;
-use ZeroX\Router;
+use \ZeroX\Router;
 
 Router::get('/', function() {
 	$this->setContentType(Router::CONTENT_TYPE_TEXT);

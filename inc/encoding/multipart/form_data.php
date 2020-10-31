@@ -1,7 +1,7 @@
 <?php namespace ZeroX\Encoding\Multipart;
-use ZeroX\Encoding\Multipart;
-use ZeroX\Encoding\Multipart\Segment;
-use ZeroX\Mime;
+use \ZeroX\Encoding\Multipart;
+use \ZeroX\Encoding\Multipart\Segment;
+use \ZeroX\Mime;
 
 class FormData {
 	public static function decode(string $raw, string $boundary = ''): array {

@@ -1,5 +1,5 @@
 <?php namespace ZeroX\Http;
-use ZeroX\Encoding\Json;
+use \ZeroX\Encoding\Json;
 
 class Response {
 	const HTTP_CLASS_NO_RESPONSE   = 0;

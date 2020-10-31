@@ -1,5 +1,5 @@
 <?php namespace ZeroX\Encoding;
-use ZeroX\Encoding\Multipart\Segment;
+use \ZeroX\Encoding\Multipart\Segment;
 
 class Multipart {
 	const ENC_ALTERNATIVE = 'multipart/alternative';

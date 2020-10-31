@@ -1,5 +1,4 @@
 <?php namespace ZeroX\Encoding;
-use ZeroX\Util;
 
 class Base64Url {
 	public static function encode(string $input) {

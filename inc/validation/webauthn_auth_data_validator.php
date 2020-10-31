@@ -1,5 +1,5 @@
 <?php namespace ZeroX\Validation;
-use ZeroX\Validation\IValidator;
+use \ZeroX\Validation\IValidator;
 
 class WebauthnAuthDataValidator implements IValidator {
 	private $message = '';

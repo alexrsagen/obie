@@ -1,7 +1,7 @@
 <?php namespace ZeroX;
-use ZeroX\Vars\VarCollection;
-use ZeroX\Encoding\Json;
-use ZeroX\Encoding\Querystring;
+use \ZeroX\Vars\VarCollection;
+use \ZeroX\Encoding\Json;
+use \ZeroX\Encoding\Querystring;
 
 class Router {
 	// Constants
@@ -420,7 +420,7 @@ class Router {
 	}
 
 	public static function redirect(string $location, int $code = self::HTTP_FOUND) {
-		static::redirectOut(rtrim(Config::getGlobal()->get('url'), '/') . '/' . ltrim($location, '/'), $code);
+		static::redirectOut(rtrim(App::getConfig()->get('url'), '/') . '/' . ltrim($location, '/'), $code);
 	}
 
 	public static function setResponseCode(int $response_code) {

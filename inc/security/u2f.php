@@ -1,8 +1,8 @@
 <?php namespace ZeroX\Security;
-use ZeroX\Encoding\Pem;
-use ZeroX\Encoding\Json;
-use ZeroX\Encoding\Base64Url;
-use ZeroX\Security\Ecdsa;
+use \ZeroX\Encoding\Pem;
+use \ZeroX\Encoding\Json;
+use \ZeroX\Encoding\Base64Url;
+use \ZeroX\Security\Ecdsa;
 
 class U2f {
 	// https://fidoalliance.org/specs/fido-u2f-v1.2-ps-20170411/fido-u2f-javascript-api-v1.2-ps-20170411.html#idl-def-SignResponse

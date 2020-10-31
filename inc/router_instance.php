@@ -1,5 +1,5 @@
 <?php namespace ZeroX;
-use ZeroX\Vars\VarCollection;
+use \ZeroX\Vars\VarCollection;
 
 class RouterInstance {
 	const OK              = 1;

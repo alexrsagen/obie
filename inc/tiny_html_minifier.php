@@ -1,5 +1,5 @@
 <?php namespace ZeroX;
-use ZeroX\Encoding\Json;
+use \ZeroX\Encoding\Json;
 
 // Obtained from: https://github.com/jenstornell/tiny-html-minifier/blob/master/tiny-html-minifier.php
 //

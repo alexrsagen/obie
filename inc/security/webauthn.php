@@ -1,13 +1,13 @@
 <?php namespace ZeroX\Security;
-use ZeroX\Log;
-use ZeroX\ApiClients\FidoMds;
-use ZeroX\Encoding\Pem;
-use ZeroX\Encoding\Cbor;
-use ZeroX\Encoding\Json;
-use ZeroX\Encoding\Base64Url;
-use ZeroX\Validation\WebauthnAuthDataValidator;
-use ZeroX\Validation\WebauthnClientDataValidator;
-use ZeroX\Validation\WebauthnAttestationObjectValidator;
+use \ZeroX\Log;
+use \ZeroX\ApiClients\FidoMds;
+use \ZeroX\Encoding\Pem;
+use \ZeroX\Encoding\Cbor;
+use \ZeroX\Encoding\Json;
+use \ZeroX\Encoding\Base64Url;
+use \ZeroX\Validation\WebauthnAuthDataValidator;
+use \ZeroX\Validation\WebauthnClientDataValidator;
+use \ZeroX\Validation\WebauthnAttestationObjectValidator;
 
 class Webauthn {
 	// https://www.w3.org/TR/webauthn-2/#enumdef-attestationconveyancepreference

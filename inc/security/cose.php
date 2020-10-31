@@ -1,5 +1,5 @@
 <?php namespace ZeroX\Security;
-use ZeroX\Encoding\Pem;
+use \ZeroX\Encoding\Pem;
 
 class Cose {
 	const KTY_RESERVED = 0; // This value is reserved

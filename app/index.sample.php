@@ -1,6 +1,6 @@
 <?php namespace MyZeroXApp;
-use ZeroX\Router,
-	ZeroX\RouterInstance;
+use \ZeroX\Router;
+use \ZeroX\RouterInstance;
 
 // Set up app class autoloading
 spl_autoload_register(function(string $name) {

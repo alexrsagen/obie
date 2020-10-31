@@ -1,6 +1,6 @@
 <?php namespace ZeroX;
-use ZeroX\Vars\VarTrait;
-use ZeroX\Encoding\Json;
+use \ZeroX\Vars\VarTrait;
+use \ZeroX\Encoding\Json;
 
 class Config {
     use VarTrait;

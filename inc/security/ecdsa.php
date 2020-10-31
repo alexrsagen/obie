@@ -1,6 +1,5 @@
 <?php namespace ZeroX\Security;
-use ZeroX\Util;
-use ZeroX\Encoding\Pem;
+use \ZeroX\Encoding\Pem;
 
 class Ecdsa {
 	const PREFIX_EVEN = "\x02";
