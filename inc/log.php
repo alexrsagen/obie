@@ -1,5 +1,4 @@
 <?php namespace ZeroX;
-use \ZeroX\Config;
 
 class Log {
 	const DEFAULT_LOG_NAME = 'app';

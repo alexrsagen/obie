@@ -24,22 +24,22 @@ class Session {
 			throw new \Exception('Sessions are disabled in PHP configuration');
 		}
 
-		if (Config::getGlobal()->get('sessions', 'save_handler') === 'redis' && !extension_loaded('redis')) {
+		if (App::getConfig()->get('sessions', 'save_handler') === 'redis' && !extension_loaded('redis')) {
 			throw new \Exception('Redis module is not loaded');
 		}
 
-		ini_set('session.save_handler', Config::getGlobal()->get('sessions', 'save_handler'));
-		ini_set('session.save_path', Config::getGlobal()->get('sessions', 'save_path'));
-		ini_set('session.gc_maxlifetime', (int)Config::getGlobal()->get('sessions', 'lifetime'));
+		ini_set('session.save_handler', App::getConfig()->get('sessions', 'save_handler'));
+		ini_set('session.save_path', App::getConfig()->get('sessions', 'save_path'));
+		ini_set('session.gc_maxlifetime', (int)App::getConfig()->get('sessions', 'lifetime'));
 		session_set_cookie_params([
-			'lifetime' => (int)Config::getGlobal()->get('sessions', 'lifetime'),
+			'lifetime' => (int)App::getConfig()->get('sessions', 'lifetime'),
 			'path'     => '/',
-			'domain'   => substr(Config::getGlobal()->get('url'), strpos(Config::getGlobal()->get('url'), '://') + 3),
-			'secure'   => strpos(Config::getGlobal()->get('url'), 'https://') === 0,
+			'domain'   => substr(App::getConfig()->get('url'), strpos(App::getConfig()->get('url'), '://') + 3),
+			'secure'   => strpos(App::getConfig()->get('url'), 'https://') === 0,
 			'httponly' => true,
-			'samesite' => Config::getGlobal()->get('sessions', 'samesite') ?? 'Lax'
+			'samesite' => App::getConfig()->get('sessions', 'samesite') ?? 'Lax'
 		]);
-		session_name(Config::getGlobal()->get('sessions', 'name'));
+		session_name(App::getConfig()->get('sessions', 'name'));
 
 		if (session_status() === PHP_SESSION_NONE) {
 			if (!isset($_COOKIE[session_name()])) {
@@ -53,14 +53,14 @@ class Session {
 				} else {
 					$data = self::get();
 					unset($data['_real']);
-					if (!hash_equals(hash_hmac('sha256', serialize($data), Config::getGlobal()->get('sessions', 'secret')), self::get('_real'))) {
+					if (!hash_equals(hash_hmac('sha256', serialize($data), App::getConfig()->get('sessions', 'secret')), self::get('_real'))) {
 						self::new();
 					}
 				}
 			}
 			if (self::isset('_lastactive')) {
 				$last_active = self::get('_lastactive');
-				if ($last_active !== null && time() - $last_active > (int)Config::getGlobal()->get('sessions', 'lifetime')) {
+				if ($last_active !== null && time() - $last_active > (int)App::getConfig()->get('sessions', 'lifetime')) {
 					self::new();
 				}
 			}
@@ -98,7 +98,7 @@ class Session {
 		self::set('_lastactive', time());
 		$data = self::get();
 		unset($data['_real']);
-		self::set('_real', hash_hmac('sha256', serialize($data), Config::getGlobal()->get('sessions', 'secret')));
+		self::set('_real', hash_hmac('sha256', serialize($data), App::getConfig()->get('sessions', 'secret')));
 		session_write_close();
 	}
 }

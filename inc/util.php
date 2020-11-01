@@ -74,7 +74,7 @@ class Util {
 		if (!is_array($recipients)) {
 			throw new \TypeError('Recipients must be string or array');
 		}
-		if (!Config::getGlobal()->get('mail', 'enable')) {
+		if (!App::getConfig()->get('mail', 'enable')) {
 			throw new \Exception('Mail is not enabled in the server configuration');
 		}
 
@@ -83,14 +83,14 @@ class Util {
 			$content_type = 'text/html';
 		}
 
-		$transport = new \Swift_SmtpTransport(Config::getGlobal()->get('mail', 'host'), Config::getGlobal()->get('mail', 'port'), Config::getGlobal()->get('mail', 'security'));
-		$transport->setUsername(Config::getGlobal()->get('mail', 'username'));
-		$transport->setPassword(Config::getGlobal()->get('mail', 'password'));
+		$transport = new \Swift_SmtpTransport(App::getConfig()->get('mail', 'host'), App::getConfig()->get('mail', 'port'), App::getConfig()->get('mail', 'security'));
+		$transport->setUsername(App::getConfig()->get('mail', 'username'));
+		$transport->setPassword(App::getConfig()->get('mail', 'password'));
 
 		$mailer = new \Swift_Mailer($transport);
 
 		$message = new \Swift_Message($subject);
-		$message->setFrom([Config::getGlobal()->get('mail', 'from_email') => Config::getGlobal()->get('mail', 'from_name')]);
+		$message->setFrom([App::getConfig()->get('mail', 'from_email') => App::getConfig()->get('mail', 'from_name')]);
 		$message->setTo($recipients);
 		$message->setBody($body, $content_type);
 
@@ -98,66 +98,6 @@ class Util {
 			return $mailer->send($message);
 		} catch (\Exception $e) {
 			return false;
-		}
-	}
-
-	public static function errorHandler($errno, $errstr, $errfile, $errline) {
-		switch ($errno){
-			case E_ERROR: // 1
-				$typestr = 'E_ERROR'; break;
-			case E_WARNING: // 2
-				$typestr = 'E_WARNING'; break;
-			case E_PARSE: // 4
-				$typestr = 'E_PARSE'; break;
-			case E_NOTICE: // 8
-				$typestr = 'E_NOTICE'; break;
-			case E_CORE_ERROR: // 16
-				$typestr = 'E_CORE_ERROR'; break;
-			case E_CORE_WARNING: // 32
-				$typestr = 'E_CORE_WARNING'; break;
-			case E_COMPILE_ERROR: // 64
-				$typestr = 'E_COMPILE_ERROR'; break;
-			case E_CORE_WARNING: // 128
-				$typestr = 'E_COMPILE_WARNING'; break;
-			case E_USER_ERROR: // 256
-				$typestr = 'E_USER_ERROR'; break;
-			case E_USER_WARNING: // 512
-				$typestr = 'E_USER_WARNING'; break;
-			case E_USER_NOTICE: // 1024
-				$typestr = 'E_USER_NOTICE'; break;
-			case E_STRICT: // 2048
-				$typestr = 'E_STRICT'; break;
-			case E_RECOVERABLE_ERROR: // 4096
-				$typestr = 'E_RECOVERABLE_ERROR'; break;
-			case E_DEPRECATED: // 8192
-				$typestr = 'E_DEPRECATED'; break;
-			case E_USER_DEPRECATED: // 16384
-				$typestr = 'E_USER_DEPRECATED'; break;
-		}
-
-		$error_plain = $typestr . ': ' . $errstr . ' in ' . $errfile . ' on line ' . $errline;
-		$error_html = "<p>A fatal error occurred at " . date(DATE_ATOM) . ".</p><p><b>" . $typestr . ": </b>" . $errstr . " in <b>" . $errfile . "</b> on line <b>" . $errline . "</b></p>";
-		error_log($error_plain);
-
-		if (Config::getGlobal()->get('errors', 'mail')) {
-			static::sendMail(Config::getGlobal()->get('errors', 'mail_address'), 'Internal server error on ' . Config::getGlobal()->get('site_name'), $error_html, true);
-		}
-
-		if (Config::getGlobal()->get('errors', 'dump')) {
-			Router::sendResponse($error_html);
-		} else {
-			Router::sendResponse('Something went wrong while processing the request.', Router::CONTENT_TYPE_TEXT);
-		}
-		exit;
-	}
-
-	public static function shutdownHandler() {
-		// Handle fatal errors
-		if (Config::getGlobal()->get('errors', 'handle')) {
-			$error = error_get_last();
-			if ($error && ($error['type'] & (E_ERROR | E_USER_ERROR | E_PARSE | E_CORE_ERROR | E_COMPILE_ERROR | E_RECOVERABLE_ERROR))){
-				Util::errorHandler($error['type'], $error['message'], $error['file'], $error['line']);
-			}
 		}
 	}
 }

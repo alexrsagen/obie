@@ -1,8 +1,7 @@
 <?php namespace ZeroX;
-use ZeroX\Config;
-use ZeroX\Encoding\Json;
-use Monolog\Handler\StreamHandler;
-use Monolog\Formatter\LineFormatter;
+use \ZeroX\Encoding\Json;
+use \Monolog\Handler\StreamHandler;
+use \Monolog\Formatter\LineFormatter;
 
 class Logger extends \Monolog\Logger {
 	public static $logs_dir = '';
@@ -31,7 +30,9 @@ class Logger extends \Monolog\Logger {
 	}
 
 	protected function getLogLevel(): int {
-		return static::toMonologLevel(Config::getGlobal()->get('log_level'));
+		$config = App::getConfig();
+		if (!$config) return \Monolog\Logger::DEBUG;
+		return static::toMonologLevel($config->get('log_level'));
 	}
 
 	protected function populateContext(array $context): array {
