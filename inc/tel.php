@@ -1,12 +1,13 @@
 <?php namespace ZeroX;
 
 class Tel {
-	const FMT_NUM = 'num';
-	const FMT_LOC = 'loc';
-	const FMT_INT = 'int';
-	const FMT_NAT = 'nat';
-	const FMT_EPP = 'epp';
-	const FMT_TEL = 'tel';
+	const FMT_NUM = 'num'; // Just the number, no prefix or calling code
+	const FMT_LOC = 'loc'; // Local format without international prefix or calling code
+	const FMT_NAT = 'nat'; // Local format with international prefix, space, calling code
+	const FMT_RAW = 'raw'; // E.164 without international prefix
+	const FMT_INT = 'int'; // E.164 with international prefix, calling code
+	const FMT_EPP = 'epp'; // E.164 with international prefix, dot, calling code
+	const FMT_TEL = 'tel'; // RFC3966
 
 	protected $fmt = '';
 	protected $int = '';
@@ -15,7 +16,7 @@ class Tel {
 	protected $ext = '';
 	protected $params = [];
 
-	public function getFmt(): string {
+	public function getFormat(): string {
 		return $this->fmt;
 	}
 	public function getInternationalPrefix(): string {
@@ -99,7 +100,7 @@ class Tel {
 		return $this;
 	}
 
-	public static function parse(string $number, ?string $fallback_cc = null): self {
+	public static function parse(string $number, ?string $fallback_cc = null, bool $raw_guess_cc = false): self {
 		$res = new static;
 		if (strlen($number) === 0) return $res;
 		$offset = 0;
@@ -125,9 +126,9 @@ class Tel {
 			}
 		}
 
-		// if an international dialing prefix was detected,
-		// this indicates the presence of a calling code.
-		if (strlen($res->int) !== 0) {
+		// find calling code if international dialing prefix was detected,
+		// or guessing calling code was enabled (in the case of FMT_RAW)
+		if (strlen($res->int) !== 0 || $raw_guess_cc) {
 			// build calling code list from largest to smallest
 			// split into different lengths
 			static $cc_list = null;
@@ -161,6 +162,9 @@ class Tel {
 				case '.':
 					$res->fmt = self::FMT_EPP;
 					$offset++;
+					break;
+				default:
+					$res->fmt = strlen($res->int) !== 0 ? self::FMT_INT : self::FMT_RAW;
 					break;
 				}
 			}
@@ -249,7 +253,9 @@ class Tel {
 		// add international dialing prefix and calling code, if a calling code
 		// is specified and local formatting is not specified
 		if (strlen($this->cc) !== 0 && $fmt !== self::FMT_LOC && $fmt !== self::FMT_NUM) {
-			$res .= strlen($this->int) === 0 ? '+' : $this->int;
+			if ($fmt !== self::FMT_RAW) {
+				$res .= strlen($this->int) === 0 ? '+' : $this->int;
+			}
 			$res .= $this->cc;
 			if ($fmt === self::FMT_NAT) {
 				$res .= ' ';
@@ -260,6 +266,7 @@ class Tel {
 
 		// add phone number
 		if (array_key_exists($this->cc, self::METADATA) && ($fmt === self::FMT_LOC || $fmt === self::FMT_NAT)) {
+			// local formatting
 			// find matching format
 			$format = null;
 			foreach (self::METADATA[$this->cc]['formats'] as $v) {
@@ -281,6 +288,7 @@ class Tel {
 				$res .= $this->num;
 			}
 		} else {
+			// international formatting
 			$res .= $this->num;
 		}
 
