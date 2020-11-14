@@ -82,6 +82,10 @@ class BaseModel {
 		return array_key_exists($name, static::$columns);
 	}
 
+	public static function columnsExist(string ...$names): bool {
+		return empty(array_diff($names, static::getAllColumns()));
+	}
+
 	protected static function initSource() {
 		if (static::$source === null) {
 			static::$source_singular = ModelHelpers::getSingularFromClassNS(get_called_class());
