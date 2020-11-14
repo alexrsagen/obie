@@ -463,4 +463,8 @@ class Router {
 			unset(self::$headers[$name]);
 		}
 	}
+
+	public static function vars(): VarCollection {
+		return self::getInstance()->vars;
+	}
 }
