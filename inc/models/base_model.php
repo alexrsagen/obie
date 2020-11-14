@@ -74,8 +74,12 @@ class BaseModel {
 		return static::$pk;
 	}
 
-	public static function getAllColumns() {
+	public static function getAllColumns(): array {
 		return array_keys(static::$columns);
+	}
+
+	public static function columnExists(string $name): bool {
+		return array_key_exists($name, static::$columns);
 	}
 
 	protected static function initSource() {
