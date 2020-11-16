@@ -12,6 +12,7 @@ class BaseModel {
 	protected $_error                = null;
 	protected $_new                  = true;
 	protected $_data                 = [];
+	protected $_original_data        = [];
 	protected $_modified_columns     = [];
 	protected $_relation_cache       = [];
 	protected static $_default_db    = null;
@@ -690,6 +691,7 @@ class BaseModel {
 
 	public function forceCleanState() {
 		$this->_new = false;
+		$this->_original_data  = [];
 		$this->_modified_columns = [];
 		return $this;
 	}
@@ -716,6 +718,17 @@ class BaseModel {
 
 	public function modifiedColumns() {
 		return $this->_modified_columns;
+	}
+
+	public function originalData(?string $key = null) {
+		if (!array_key_exists($key, static::$columns)) {
+			$class_name = get_called_class();
+			throw new \Exception("Column $key is not defined in model $class_name");
+		}
+		if ($key !== null) {
+			return array_key_exists($key, $this->_original_data) ? $this->_original_data[$key] : $this->_data[$key];
+		}
+		return array_merge($this->_data, $this->_original_data);
 	}
 
 	public function toArray() {
@@ -762,6 +775,7 @@ class BaseModel {
 		foreach ($this->getHooks('beforeSet') as $name) {
 			$value = $this->{$name}($key, $value, static::$columns[$key]);
 		}
+		$original_data = $this->get($key, false);
 		if ($value === null) {
 			$this->_data[$key] = null;
 		} elseif (static::$columns[$key] === 'date') {
@@ -779,6 +793,7 @@ class BaseModel {
 			$this->_data[$key] = $value;
 		}
 		if (!in_array($key, $this->_modified_columns)) {
+			$this->_original_data[$key] = $original_data;
 			$this->_modified_columns[] = $key;
 		}
 		foreach ($this->getHooks('afterSet') as $name) {
