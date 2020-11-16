@@ -341,6 +341,12 @@ class BaseModel {
 
 	// Initializers
 
+	function __construct(array $data = []) {
+		foreach ($data as $key => $val) {
+			$this->set($key, $val, false);
+		}
+	}
+
 	public static function findFirst($options = null) {
 		if (is_string($options)) {
 			$options = ['conditions' => $options];
