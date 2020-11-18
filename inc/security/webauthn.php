@@ -466,7 +466,7 @@ class Webauthn {
 					$cert_pubkey = $key_details['key'];
 
 					// 4. get public key
-					$public_key_raw = Cose::ecPubKeyToDER($att_obj['authData']['credentialPublicKeyCOSE'], false);
+					$public_key_raw = Cose::ecPubkeyToRaw($att_obj['authData']['credentialPublicKeyCOSE'], false);
 					if ($public_key_raw === '') {
 						Log::info('Webauthn/verify: credentialPublicKey in authData is invalid');
 						return false;
