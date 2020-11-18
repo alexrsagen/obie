@@ -3,7 +3,7 @@
 trait RelationTrait {
 	protected static $relations = [];
 
-	public function getRelated(string $relation_name, $options = []) {
+	public function getRelated(string $relation_name, array $options = [], bool $count = false) {
 		if (is_string($options)) {
 			$options = ['conditions' => $options];
 		}
@@ -17,85 +17,69 @@ trait RelationTrait {
 		$relation = static::$relations[$relation_name];
 		$target = $relation['target_model'];
 
+		$relation_options = [
+			'conditions' => [],
+			'bind'       => []
+		];
+
 		switch ($relation['type']) {
-			case RelationModel::TYPE_BELONGS_TO_ONE:
-			case RelationModel::TYPE_BELONGS_TO_MANY:
-			case RelationModel::TYPE_HAS_ONE:
-			case RelationModel::TYPE_HAS_MANY:
-				$relation_options = [
-					'conditions' => [ModelHelpers::getEscapedWhere($relation['target_fields'])],
-					'bind' => []
-				];
+		case RelationModel::TYPE_BELONGS_TO_ONE:
+		case RelationModel::TYPE_BELONGS_TO_MANY:
+		case RelationModel::TYPE_HAS_ONE:
+		case RelationModel::TYPE_HAS_MANY:
+			$relation_options['conditions'][] = ModelHelpers::getEscapedWhere($relation['target_fields']);
+			break;
 
-				if (array_key_exists('conditions', $options)) {
-					if (is_string($options['conditions'])) {
-						$options['conditions'] = [$options['conditions']];
-					}
-					$relation_options['conditions'] = array_merge($relation_options['conditions'], $options['conditions']);
-				}
-				if (array_key_exists('conditions', $relation['default_options'])) {
-					if (is_string($relation['default_options']['conditions'])) {
-						$relation['default_options']['conditions'] = [$relation['default_options']['conditions']];
-					}
-					$relation_options['conditions'] = array_merge($relation_options['conditions'], $relation['default_options']['conditions']);
-				}
-				$options['conditions'] = $relation_options['conditions'];
-
-				foreach ($relation['source_fields'] as $key) {
-					$relation_options['bind'][] = $this->{$key};
-				}
-				if (array_key_exists('bind', $options)) {
-					$relation_options['bind'] = array_merge($relation_options['bind'], $options['bind']);
-				}
-				if (array_key_exists('bind', $relation['default_options'])) {
-					$relation_options['bind'] = array_merge($relation_options['bind'], $relation['default_options']['bind']);
-				}
-				$options['bind'] = $relation_options['bind'];
-
-				if ($relation['type'] === RelationModel::TYPE_HAS_ONE || $relation['type'] === RelationModel::TYPE_BELONGS_TO_ONE) {
-					return $target::findFirst($options);
-				}
-				return $target::find($options);
-
-			case RelationModel::TYPE_BELONGS_TO_MANY_TO_MANY:
-			case RelationModel::TYPE_HAS_MANY_TO_MANY:
-				$intermediate = $relation['intermediate_model'];
-				$relation_options = [
-					'conditions' => ModelHelpers::getEscapedWhere($relation['intermediate_source_fields'], $intermediate::getSource()),
-					'join' => 'LEFT JOIN ' . $intermediate::getEscapedSource() .
-						' ON ' . ModelHelpers::getEscapedOn(
-							$relation['intermediate_target_fields'], $intermediate::getSource(),
-							$relation['target_fields'], $target::getSource()),
-					'bind' => []
-				];
-
-				if (array_key_exists('conditions', $options)) {
-					if (is_string($options['conditions'])) {
-						$options['conditions'] = [$options['conditions']];
-					}
-					$relation_options['conditions'] = array_merge($relation_options['conditions'], $options['conditions']);
-				}
-				if (array_key_exists('conditions', $relation['default_options'])) {
-					if (is_string($relation['default_options']['conditions'])) {
-						$relation['default_options']['conditions'] = [$relation['default_options']['conditions']];
-					}
-					$relation_options['conditions'] = array_merge($relation_options['conditions'], $relation['default_options']['conditions']);
-				}
-				$options['conditions'] = $relation_options['conditions'];
-
-				foreach ($relation['source_fields'] as $key) {
-					$relation_options['bind'][] = $this->{$key};
-				}
-				if (array_key_exists('bind', $options)) {
-					$relation_options['bind'] = array_merge($relation_options['bind'], $options['bind']);
-				}
-				if (array_key_exists('bind', $relation['default_options'])) {
-					$relation_options['bind'] = array_merge($relation_options['bind'], $relation['default_options']['bind']);
-				}
-				$options['bind'] = $relation_options['bind'];
-
-				return $target::find($options);
+		case RelationModel::TYPE_BELONGS_TO_MANY_TO_MANY:
+		case RelationModel::TYPE_HAS_MANY_TO_MANY:
+			$intermediate = $relation['intermediate_model'];
+			$relation_options['conditions'][] = ModelHelpers::getEscapedWhere($relation['intermediate_source_fields'], $intermediate::getSource());
+			$relation_options['join'] = 'LEFT JOIN ' . $intermediate::getEscapedSource() .
+				' ON ' . ModelHelpers::getEscapedOn(
+					$relation['intermediate_target_fields'], $intermediate::getSource(),
+					$relation['target_fields'], $target::getSource());
+			break;
 		}
+
+		if (array_key_exists('conditions', $options)) {
+			if (is_string($options['conditions'])) {
+				$options['conditions'] = [$options['conditions']];
+			}
+			$relation_options['conditions'] = array_merge($relation_options['conditions'], $options['conditions']);
+		}
+		if (array_key_exists('conditions', $relation['default_options'])) {
+			if (is_string($relation['default_options']['conditions'])) {
+				$relation['default_options']['conditions'] = [$relation['default_options']['conditions']];
+			}
+			$relation_options['conditions'] = array_merge($relation_options['conditions'], $relation['default_options']['conditions']);
+		}
+		$options['conditions'] = $relation_options['conditions'];
+
+		foreach ($relation['source_fields'] as $key) {
+			$relation_options['bind'][] = $this->{$key};
+		}
+		if (array_key_exists('bind', $options)) {
+			$relation_options['bind'] = array_merge($relation_options['bind'], $options['bind']);
+		}
+		if (array_key_exists('bind', $relation['default_options'])) {
+			$relation_options['bind'] = array_merge($relation_options['bind'], $relation['default_options']['bind']);
+		}
+		$options['bind'] = $relation_options['bind'];
+
+		switch ($relation['type']) {
+		case RelationModel::TYPE_BELONGS_TO_ONE:
+		case RelationModel::TYPE_HAS_ONE:
+			return $count ? 1 : $target::findFirst($options);
+
+		case RelationModel::TYPE_BELONGS_TO_MANY:
+		case RelationModel::TYPE_HAS_MANY:
+			return $count ? $target::count($options) : $target::find($options);
+
+		case RelationModel::TYPE_BELONGS_TO_MANY_TO_MANY:
+		case RelationModel::TYPE_HAS_MANY_TO_MANY:
+			return $count ? $target::count($options) : $target::find($options);
+		}
+
 		return false;
 	}
 
