@@ -178,17 +178,11 @@ class Router {
 
 	// Mapping of static methods of Router to RouterInstance methods
 
-	protected static $global_instance  = null;
-	protected static $current_instance = null;
-	protected static $instances        = [];
+	protected static $global_instance = null;
 
 	protected static function init() {
 		if (self::$global_instance === null) {
 			self::$global_instance = new RouterInstance(new VarCollection());
-			self::$instances[] = self::$global_instance;
-		}
-		if (self::$current_instance === null) {
-			self::$current_instance = self::$global_instance;
 		}
 	}
 
@@ -201,13 +195,7 @@ class Router {
 
 	public static function getInstance() {
 		self::init();
-		return self::$current_instance;
-	}
-
-	public static function runDeferred() {
-		foreach (array_reverse(self::$instances) as $instance) {
-			$instance->runDeferred();
-		}
+		return self::$global_instance->getInstance();
 	}
 
 	// Global utility methods

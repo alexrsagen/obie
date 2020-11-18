@@ -10,6 +10,7 @@ class RouterInstance {
 
 	protected $routes       = [];
 	protected $deferred     = [];
+	protected $instance     = null;
 	protected $ran_deferred = false;
 
 	public function __construct(VarCollection $vars = null) {
@@ -24,8 +25,15 @@ class RouterInstance {
 		$this->deferred = array_merge($this->deferred, $handlers);
 	}
 
+	public function getInstance(): RouterInstance {
+		return $this->instance ?? $this;
+	}
+
 	public function runDeferred() {
 		if ($this->ran_deferred) return;
+		if ($this->instance !== null) {
+			$this->instance->runDeferred();
+		}
 		$vc = $this->vars->getContainer();
 		foreach (array_reverse($this->deferred) as $handler) {
 			$handler->bindTo($vc, $vc)();
@@ -38,18 +46,24 @@ class RouterInstance {
 		$invalid_method = false;
 		foreach ($this->routes as $route) {
 			switch ($route->execute($method, $path)) {
-				case Route::EINVALID_METHOD:
-					if (!$route->isRouteCatchall()) $matched = true;
-					$invalid_method = true;
-					break;
-				case Route::OK_NO_RESPONSE:
-					if (!$route->isRouteCatchall()) $matched = true;
-					break;
-				case Route::OK_EARLY_RESPONSE:
-				case Route::OK:
-					if (!$route->isRouteCatchall()) $matched = true;
-					$responded = true;
-					break 2;
+			case Route::EINVALID_METHOD:
+				if (!$route->isRouteCatchall()) $matched = true;
+				$invalid_method = true;
+				break;
+			case Route::OK_NO_RESPONSE:
+				if (!$route->isRouteCatchall()) {
+					$matched = true;
+					$this->instance = $route->getRouterInstance();
+				}
+				break;
+			case Route::OK_EARLY_RESPONSE:
+			case Route::OK:
+				if (!$route->isRouteCatchall()) {
+					$matched = true;
+				}
+				$responded = true;
+				$this->instance = $route->getRouterInstance();
+				break 2;
 			}
 		}
 		if ($responded) {
@@ -60,7 +74,7 @@ class RouterInstance {
 		return self::ENOT_FOUND;
 	}
 
-	public function route(string $method_str, string $route_str, \Closure ...$handlers) {
+	public function route(string $method_str, string $route_str, ...$handlers) {
 		$methods = explode(',', strtoupper($method_str));
 		$route = new Route($methods, $route_str, ...$handlers);
 		$route->vars = $this->vars;

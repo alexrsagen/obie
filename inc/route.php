@@ -19,11 +19,25 @@ class Route {
 	protected $charset = Router::CHARSET_UTF8;
 	protected $minify = true;
 
-	public function __construct(array $methods, string $route, \Closure ...$handlers) {
+	public function __construct(array $methods, string $route, ...$handlers) {
 		$this->_init_vars();
 		$this->methods = $methods;
 		$this->route = $route;
-		$this->handlers = $handlers;
+		foreach ($handlers as $handler) {
+			$this->handlers[] = $handler;
+			if ($handler instanceof RouterInstance) {
+				break;
+			}
+		}
+	}
+
+	public function getRouterInstance() {
+		if (count($this->handlers) === 0) return null;
+		$last_handler = $this->handlers[count($this->handlers)-1];
+		if ($last_handler instanceof RouterInstance) {
+			return $last_handler;
+		}
+		return null;
 	}
 
 	public function isRouteCatchall() {
