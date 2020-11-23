@@ -1,4 +1,5 @@
 <?php namespace ZeroX;
+use \ZeroX\Router;
 use \ZeroX\Log;
 use \ZeroX\Vars\StaticVarTrait;
 
@@ -20,31 +21,48 @@ class Session {
 	public static function set(...$v) {
 		self::_init_vars();
 		self::$vars->set(...$v);
-		self::_applyHmac(); // generate new session integrity HMAC
+		static::_applyHmac(); // generate new session integrity HMAC
 	}
 
 	public static function unset(...$v) {
 		self::_init_vars();
 		self::$vars->unset(...$v);
-		self::_applyHmac(); // generate new session integrity HMAC
+		static::_applyHmac(); // generate new session integrity HMAC
 	}
 
 	public static function generateNewID() {
 		session_id(Random::string(64, 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789,-'));
 	}
 
+	public static function getName(): string {
+		return (string)(App::getConfig()->get('sessions', 'name') ?? 'session');
+	}
+
+	public static function getID(): ?string {
+		$config = App::getConfig();
+		$only_cookie = (bool)($config->get('sessions', 'use_only_cookies') ?? true);
+		if (isset($_COOKIE[static::getName()]) && !empty(isset($_COOKIE[static::getName()]))) {
+			return $_COOKIE[static::getName()];
+		}
+		if ($only_cookie) return null;
+		return Router::getPost(static::getName()) ?? Router::getQuery(static::getName());
+	}
+
 	public static function new() {
 		// destroy any existing session
-		if (self::started()) self::destroy();
+		if (static::started()) static::destroy();
 
 		// generate custom session ID
-		self::generateNewID();
+		static::generateNewID();
 
 		// start the new session
-		self::_start(true);
+		static::_start(true);
 	}
 
 	protected static function _start(bool $new = false) {
+		// set session ID
+		session_id(static::getID());
+
 		// start a new session or resume an existing session
 		session_start();
 
@@ -75,64 +93,65 @@ class Session {
 		// set session parameters from config
 		ini_set('session.save_handler', $config->get('sessions', 'save_handler'));
 		ini_set('session.save_path', $config->get('sessions', 'save_path'));
-		ini_set('session.gc_maxlifetime', (int)$config->get('sessions', 'lifetime'));
+		ini_set('session.gc_maxlifetime', (int)($config->get('sessions', 'lifetime') ?? 3600));
+		ini_set('session.use_only_cookies', (int)(bool)($config->get('sessions', 'use_only_cookies') ?? true));
 		session_set_cookie_params([
-			'lifetime' => (int)$config->get('sessions', 'lifetime'),
+			'lifetime' => (int)($config->get('sessions', 'lifetime') ?? 3600),
 			'path'     => '/',
 			'domain'   => substr($config->get('url'), strpos($config->get('url'), '://') + 3),
 			'secure'   => strpos($config->get('url'), 'https://') === 0,
 			'httponly' => true,
 			'samesite' => $config->get('sessions', 'samesite') ?? 'Lax'
 		]);
-		session_name($config->get('sessions', 'name'));
+		session_name(static::getName());
 
 		// ensure session is only started once
 		if (session_status() !== PHP_SESSION_NONE) return;
 
 		// ensure a session has been started
-		if (!isset($_COOKIE[session_name()])) {
-			self::new();
+		if (empty(static::getID())) {
+			static::new();
 		} else {
-			self::_start();
+			static::_start();
 		}
 
 		// ensure session integrity HMAC is set
 		if (!self::isset('_real')) {
 			Log::info('New session: Session integrity marker not set');
-			self::new();
+			static::new();
 		}
 
 		// verify session integrity
-		if (!self::_verifyHmac()) {
+		if (!static::_verifyHmac()) {
 			Log::info('New session: Invalid session integrity');
-			self::new();
+			static::new();
 		}
 
 		// ensure last active timestamp is set
 		if (!self::isset('_new') && !self::isset('_lastactive')) {
 			Log::info('New session: Last active timestamp not set');
-			self::new();
+			static::new();
 		}
 
 		// verify last active timestamp
 		$last_active = self::get('_lastactive');
 		if ($last_active !== null && time() - $last_active > (int)App::getConfig()->get('sessions', 'lifetime')) {
 			Log::info('New session: Lifetime expired');
-			self::new();
+			static::new();
 		}
 	}
 
 	public static function started() {
-		return session_status() === PHP_SESSION_ACTIVE && session_id() !== '';
+		return session_status() === PHP_SESSION_ACTIVE && !empty(session_id());
 	}
 
 	public static function reset() {
-		if (!self::started()) return;
+		if (!static::started()) return;
 		session_reset();
 	}
 
 	public static function destroy() {
-		if (self::started()) {
+		if (static::started()) {
 			session_unset();
 			session_destroy();
 		}
@@ -141,7 +160,7 @@ class Session {
 
 	public static function end() {
 		// ensure a session has been started
-		if (!self::started()) return;
+		if (!static::started()) return;
 
 		// clear new flag, as it is no longer a new session
 		if (self::isset('_new')) self::unset('_new');
