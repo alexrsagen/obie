@@ -3,7 +3,7 @@
 class Querystring {
 	const DELIMITER = '&';
 
-	public static function decode(string $qs) {
+	public static function decode(string $qs): array {
 		// get last possible query string,
 		// in case invalid input or a full URL is passed
 		$qs_pos = strrpos($qs, '?');
