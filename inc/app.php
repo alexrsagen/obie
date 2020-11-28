@@ -68,13 +68,20 @@ class App {
 			error_log(self::$app . '::initViews failed', E_USER_ERROR);
 			return false;
 		}
-		self::$app::initSessions();
-		self::$app::initMail();
-		self::$app::initDatabase();
+		if (!self::$app::initSessions()) {
+			error_log(self::$app . '::initSessions failed', E_USER_ERROR);
+			return false;
+		}
+		if (!self::$app::initMail()) {
+			error_log(self::$app . '::initMail failed', E_USER_ERROR);
+			return false;
+		}
+		if (!self::$app::initDatabase()) {
+			error_log(self::$app . '::initDatabase failed', E_USER_ERROR);
+			return false;
+		}
 		return true;
 	}
-
-	// public static function init(): bool {}
 
 	/**
 	 * Init everything related to time
@@ -225,7 +232,7 @@ class App {
 	public static function initSessions(): bool {
 		if (Session::started()) return true;
 		if (!self::$app::initConfig()) return false;
-		if (php_sapi_name() === 'cli' || !self::$config->get('sessions', 'enable')) return false;
+		if (php_sapi_name() === 'cli' || !self::$config->get('sessions', 'enable')) return true;
 		if (!self::$app::initRouter()) return false;
 		Session::start();
 		Router::defer(function() {
@@ -284,7 +291,7 @@ class App {
 	public static function initMail(): bool {
 		if (!self::$app::initConfig()) return false;
 		if (!self::$app::initTemp()) return false;
-		if (!self::$config->get('mail', 'enable')) return false;
+		if (!self::$config->get('mail', 'enable')) return true;
 
 		// Set up SwiftMailer
 		if (!class_exists('Swift_Preferences')) {
@@ -303,7 +310,7 @@ class App {
 	public static function initDatabase(): bool {
 		if (self::$db !== null && self::$ro_db !== null) return true;
 		if (!self::$app::initConfig()) return false;
-		if (!self::$config->get('db', 'enable')) return false;
+		if (!self::$config->get('db', 'enable')) return true;
 		if (!extension_loaded('pdo')) {
 			error_log(self::$app . '::initDatabase: PDO module is not loaded.', E_USER_ERROR);
 			return false;
@@ -319,7 +326,7 @@ class App {
 			self::$db->setAttribute(\PDO::ATTR_TIMEOUT, 5);
 			self::$db->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
 		} catch (\PDOException $e) {
-			error_log(self::$app . '::initDatabase: Unable to connect to database.', E_USER_ERROR);
+			error_log(self::$app . '::initDatabase: Unable to connect to database: ' . $e->getMessage(), E_USER_ERROR);
 			return false;
 		}
 		Models\BaseModel::setDefaultDatabase(self::$db);
@@ -335,7 +342,7 @@ class App {
 				self::$ro_db->setAttribute(\PDO::ATTR_TIMEOUT, 5);
 				self::$ro_db->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
 			} catch (\PDOException $e) {
-				error_log(self::$app . '::initDatabase: Unable to connect to read-only database.', E_USER_ERROR);
+				error_log(self::$app . '::initDatabase: Unable to connect to read-only database: ' . $e->getMessage(), E_USER_ERROR);
 				return false;
 			}
 			Models\BaseModel::setDefaultReadOnlyDatabase(self::$ro_db);
@@ -345,7 +352,7 @@ class App {
 
 	public static function initEventHandlers(): bool {
 		if (!self::$app::initConfig()) return false;
-		if (!self::$config->get('errors', 'handle')) return false;
+		if (!self::$config->get('errors', 'handle')) return true;
 		// Set up error handler
 		if (php_sapi_name() !== 'cli') {
 			set_error_handler([self::$app, 'errorHandler']);
