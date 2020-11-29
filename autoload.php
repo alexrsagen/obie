@@ -1,17 +1,17 @@
-<?php namespace ZeroX;
+<?php namespace Obie;
 
 // Set globals
-if (defined('IN_ZEROX')) {
+if (defined('IN_OBIE')) {
 	return;
 }
-define('IN_ZEROX', true);
-if (!defined('ZEROX_BASE_DIR')) {
-	define('ZEROX_BASE_DIR', __DIR__);
+define('IN_OBIE', true);
+if (!defined('OBIE_BASE_DIR')) {
+	define('OBIE_BASE_DIR', __DIR__);
 }
 
 // Register class autoloader
 spl_autoload_register(function(string $name) {
-	static $base_path = ZEROX_BASE_DIR . DIRECTORY_SEPARATOR . 'inc' . DIRECTORY_SEPARATOR;
+	static $base_path = OBIE_BASE_DIR . DIRECTORY_SEPARATOR;
 
 	$ns_parts = explode('\\', $name);
 
