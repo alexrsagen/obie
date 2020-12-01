@@ -29,13 +29,13 @@ class AcceptHeader {
 		}));
 	}
 
-	public function getFirstMatch(Mime|string $input): ?Mime {
+	public function getFirstMatch(Mime|string $input, bool $exact = false): ?Mime {
 		if (is_string($input)) $input = Mime::decode($input);
 		if ($input === null) return null;
 		foreach ($this->types as $type) {
 			if (
-				($type->type === '*' || $type->type === $input->type) &&
-				($type->subtype === '*' || $type->subtype === $input->subtype)
+				(!$exact && ($type->type === '*' || $input->type === '*') || $type->type === $input->type) &&
+				(!$exact && ($type->subtype === '*' || $input->subtype === '*') || $type->subtype === $input->subtype)
 			) {
 				return $type;
 			}
@@ -44,6 +44,10 @@ class AcceptHeader {
 	}
 
 	public function contains(Mime|string $input): bool {
-		return $this->getFirstMatch($input) !== null;
+		return $this->getFirstMatch($input, exact: true) !== null;
+	}
+
+	public function matches(Mime|string $input): bool {
+		return $this->getFirstMatch($input, exact: false) !== null;
 	}
 }
