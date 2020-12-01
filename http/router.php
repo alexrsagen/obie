@@ -256,7 +256,9 @@ class Router {
 	}
 
 	public static function getQueryString() {
-		return Request::current()->getQueryString();
+		$qs = Request::current()->getQueryString();
+		if (empty($qs)) return '';
+		return '?' . $qs;
 	}
 
 	public static function getScheme() {
