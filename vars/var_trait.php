@@ -15,33 +15,33 @@ trait VarTrait {
 		}
 	}
 
-	public function get(...$v) {
+	public function get(...$v): mixed {
 		return $this->vars->get(...$v);
 	}
 
-	public function getHTMLEscaped(...$v) {
+	public function getHTMLEscaped(...$v): string {
 		$res = $this->vars->get(...$v);
 		if ($res === null) return null;
 		return htmlentities((string)$res);
 	}
 
-	public function getURLEscaped(...$v) {
+	public function getURLEscaped(...$v): string {
 		$res = $this->vars->get(...$v);
 		if ($res === null) return null;
 		return urlencode((string)$res);
 	}
 
-	public function set(...$v) {
+	public function set(...$v): static {
 		$this->vars->set(...$v);
 		return $this;
 	}
 
-	public function unset(...$v) {
+	public function unset(...$v): static {
 		$this->vars->unset(...$v);
 		return $this;
 	}
 
-	public function isset(...$v) {
+	public function isset(...$v): bool {
 		return $this->vars->isset(...$v);
 	}
 }

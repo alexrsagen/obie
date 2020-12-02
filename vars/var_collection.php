@@ -84,7 +84,7 @@ class VarCollection implements \ArrayAccess, \IteratorAggregate, \Countable, \Se
 		return new VarContainer($this->storage);
 	}
 
-	public function get(...$v) {
+	public function get(...$v): mixed {
 		$cur = &$this->storage;
 		foreach ($v as $i => $key) {
 			$prev = &$cur;
@@ -101,7 +101,7 @@ class VarCollection implements \ArrayAccess, \IteratorAggregate, \Countable, \Se
 		return $cur;
 	}
 
-	public function set(...$v) {
+	public function set(...$v): static {
 		if (count($v) < 2) {
 			throw new \InvalidArgumentException('Both key and value must be provided');
 		}
@@ -109,7 +109,7 @@ class VarCollection implements \ArrayAccess, \IteratorAggregate, \Countable, \Se
 		foreach ($v as $i => $key) {
 			if ($i === count($v)-2) {
 				$cur[$key] = $v[$i+1];
-				return null;
+				return $this;
 			} else {
 				if (!is_array($cur) && !is_a($cur, '\Obie\Vars\VarCollection')) {
 					throw new \InvalidArgumentException('Full path from keys could not be accessed');
@@ -117,46 +117,48 @@ class VarCollection implements \ArrayAccess, \IteratorAggregate, \Countable, \Se
 				$prev = &$cur;
 				unset($cur);
 				if (is_a($prev, '\Obie\Vars\VarCollection')) {
-					return $prev->set(...array_slice($v, $i));
+					$prev->set(...array_slice($v, $i));
+					return $this;
 				}
 				if (!isset($prev[$key])) {
-					$prev[$key] = $this->assoc ? [] : new self();
+					$prev[$key] = $this->assoc ? [] : new static();
 				}
 				$cur = &$prev[$key];
 				unset($prev);
 			}
 		}
-		return null;
+		return $this;
 	}
 
-	public function unset(...$v) {
+	public function unset(...$v): static {
 		$cur = &$this->storage;
 		foreach ($v as $i => $key) {
 			if ((!is_array($cur) && !is_a($cur, '\Obie\Vars\VarCollection'))) {
-				return null;
+				return $this;
 			}
 			if ($i === count($v)-1) {
 				if (!isset($cur[$key])) {
-					return null;
+					return $this;
 				}
 				unset($cur[$key]);
 			} else {
 				$prev = &$cur;
 				unset($cur);
 				if (is_a($prev, '\Obie\Vars\VarCollection')) {
-					return $prev->unset(...array_slice($v, $i));
+					$prev->unset(...array_slice($v, $i));
+					return $this;
 				}
 				if (!isset($prev[$key])) {
-					return null;
+					return $this;
 				}
 				$cur = &$prev[$key];
 				unset($prev);
 			}
 		}
-		return null;
+		return $this;
 	}
 
-	public function isset(...$v) {
+	public function isset(...$v): bool {
 		$cur = &$this->storage;
 		foreach ($v as $i => $key) {
 			if (!is_array($cur) && !is_a($cur, '\Obie\Vars\VarCollection')) {
