@@ -47,7 +47,7 @@ class Jwt {
 		return static::encodeParts($parts);
 	}
 
-	public static function decode(string $jwt, ?string $key = null) {
+	public static function decode(string $jwt, ?string $key = null, string $algorithm = self::ALG_HS256) {
 		$parts = static::decodeParts($jwt);
 		if (count($parts) < 3) {
 			Log::info('JWT: Invalid part count');
@@ -58,6 +58,10 @@ class Jwt {
 		// get type and algorithn from header
 		$typ = array_key_exists('typ', $hdr) ? $hdr['typ'] : null;
 		$alg = array_key_exists('alg', $hdr) ? $hdr['alg'] : self::ALG_NONE;
+		if ($alg !== $algorithm) {
+			Log::info('JWT: Invalid algorithm');
+			return null;
+		}
 		// peform signature verification or decryption depending on type
 		switch ($typ) {
 		case self::TYP_JWT:
