@@ -12,7 +12,7 @@ class AcceptHeader {
 			return $v !== null;
 		});
 		usort($types, function($a, $b) {
-			return round((float)$b->getParameter('q') - (float)$a->getParameter('q'));
+			return round((float)$a->getParameter('q') - (float)$b->getParameter('q'));
 		});
 		return new static($types);
 	}
