@@ -43,6 +43,19 @@ class AcceptHeader {
 		return null;
 	}
 
+	public function getPreferredType(?array $types = null, Mime|string|null $fallback = null): ?Mime {
+		if (is_string($fallback)) $fallback = Mime::decode($fallback);
+		foreach ($this->types as $type) {
+			if ($types === null) return $v;
+			foreach ($types as $input_type) {
+				if (empty($input_type)) continue;
+				if (is_string($input_type)) $input_type = Mime::decode($input_type);
+				if ($input_type->matches($type)) return $type;
+			}
+		}
+		return $fallback;
+	}
+
 	public function contains(Mime|string $input): bool {
 		return $this->getFirstMatch($input, exact: true) !== null;
 	}
