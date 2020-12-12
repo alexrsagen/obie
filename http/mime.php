@@ -1154,13 +1154,13 @@ class Mime {
 		return $this;
 	}
 
-	public function matches(string $type = '*', string $subtype = '*') {
+	public function matches(string $type = '*', string $subtype = '*', bool $exact = false) {
 		$parts = explode('/', $type, 2);
 		$type = $parts[0];
 		if (count($parts) > 1 && $subtype === '*') {
 			$subtype = $parts[1];
 		}
-		return ($type === '*' || $this->type === '*' || $type === $this->type) &&
-			($subtype === '*' || $this->subtype === '*' || $subtype === $this->subtype);
+		return (!$exact && ($type === '*' || $this->type === '*') || $type === $this->type) &&
+			(!$exact && ($subtype === '*' || $this->subtype === '*') || $subtype === $this->subtype);
 	}
 }

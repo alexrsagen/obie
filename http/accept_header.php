@@ -29,28 +29,33 @@ class AcceptHeader {
 		}));
 	}
 
-	public function getFirstMatch(Mime|string $input, bool $exact = false): ?Mime {
+	public function getFirstMatch(Mime|string $input, Mime|string|null $fallback = null, bool $exact = false): ?Mime {
 		if (is_string($input)) $input = Mime::decode($input);
-		if ($input === null) return null;
+		if (is_string($fallback)) $fallback = Mime::decode($fallback);
+		if ($input === null) return $fallback;
 		foreach ($this->types as $type) {
-			if (
-				(!$exact && ($type->type === '*' || $input->type === '*') || $type->type === $input->type) &&
-				(!$exact && ($type->subtype === '*' || $input->subtype === '*') || $type->subtype === $input->subtype)
-			) {
-				return $type;
-			}
+			if (!$input->matches($type, exact: $exact)) continue;
+			return $type;
 		}
-		return null;
+		return $fallback;
 	}
 
-	public function getPreferredType(?array $types = null, Mime|string|null $fallback = null): ?Mime {
+	public function getPreferredType(?array $input = null, Mime|string|null $fallback = null, bool $exact = false): ?Mime {
 		if (is_string($fallback)) $fallback = Mime::decode($fallback);
+		if ($input !== null && count($input) === 0) return $fallback;
+		if (count($this->types) === 0) return $fallback;
+		if ($input === null) return $this->types[0];
+		$input_mime = array_filter(array_map(function($v) {
+			if (empty($v)) return null;
+			if (is_string($v)) return Mime::decode($v);
+			return $v;
+		}, $input), function($v) {
+			return $v !== null;
+		});
 		foreach ($this->types as $type) {
-			if ($types === null) return $v;
-			foreach ($types as $input_type) {
-				if (empty($input_type)) continue;
-				if (is_string($input_type)) $input_type = Mime::decode($input_type);
-				if ($input_type->matches($type)) return $type;
+			foreach ($input_mime as $input_type) {
+				if (!$input_type->matches($type, exact: $exact)) continue;
+				return $type;
 			}
 		}
 		return $fallback;
