@@ -5,7 +5,10 @@ class Mime {
 		public string $type = '',
 		public string $subtype = '',
 		public array $parameters = [],
-	) {}
+	) {
+		$this->type = strtolower(ltrim($type, "\n\r\t "));
+		$this->subtype = strtolower(rtrim($subtype, "\n\r\t "));
+	}
 
 	const EXT_TYPES = [
 		'.123' => 'application/vnd.lotus-1-2-3',
@@ -1125,14 +1128,14 @@ class Mime {
 
 	public function setType(string $type, ?string $subtype = null): static {
 		$parts = explode('/', $type, 2);
-		$this->type = $parts[0];
+		$this->type = strtolower(ltrim($parts[0], "\n\r\t "));
 		if (count($parts) > 1) {
-			$this->subtype = $parts[1];
+			$this->subtype = strtolower(rtrim($parts[1], "\n\r\t "));
 		} else {
 			$this->subtype = '';
 		}
 		if ($subtype !== null) {
-			$this->subtype = $subtype;
+			$this->subtype = strtolower(rtrim($subtype, "\n\r\t "));
 		}
 		return $this;
 	}
@@ -1154,12 +1157,21 @@ class Mime {
 		return $this;
 	}
 
-	public function matches(string $type = '*', string $subtype = '*', bool $exact = false) {
-		$parts = explode('/', $type, 2);
-		$type = $parts[0];
-		if (count($parts) > 1 && $subtype === '*') {
-			$subtype = $parts[1];
+	public function matches(Mime|string $type = '*', string $subtype = '*', bool $exact = false) {
+		if (is_string($type)) {
+			$parts = explode('/', $type, 2);
+			if (count($parts) > 1 && $subtype === '*') {
+				$subtype = $parts[1];
+			}
+			$type = $parts[0];
+		} else {
+			if (!empty($type->subtype) && $subtype === '*') {
+				$subtype = $type->subtype;
+			}
+			$type = $type->type;
 		}
+		$type = strtolower(ltrim($type, "\n\r\t "));
+		$subtype = strtolower(rtrim($subtype, "\n\r\t "));
 		return (!$exact && ($type === '*' || $this->type === '*') || $type === $this->type) &&
 			(!$exact && ($subtype === '*' || $this->subtype === '*') || $subtype === $this->subtype);
 	}
