@@ -246,7 +246,7 @@ class App {
 		self::$router = Router::getInstance();
 		$nonce = base64_encode(random_bytes(16));
 		self::$router->vars->set('nonce', $nonce);
-		self::$router->vars->set('config', self::$config);
+		self::$router->vars->set('config', self::$config->vars);
 		Router::setResponseHeader('Content-Security-Policy', "img-src data: 'self' " .
 			implode(' ', self::$config->get('server', 'csp_sources', 'img') ?? []) . "; media-src 'self' " .
 			implode(' ', self::$config->get('server', 'csp_sources', 'media') ?? []) . "; script-src 'self' 'nonce-$nonce' " .
