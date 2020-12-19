@@ -53,8 +53,9 @@ class Route {
 		return false;
 	}
 
-	public function where(string $part_name, string $pattern) {
+	public function where(string $part_name, string $pattern): static {
 		$this->patterns[$part_name] = $pattern;
+		return $this;
 	}
 
 	public function execute(string $method = null, string $path = null) {
@@ -116,16 +117,19 @@ class Route {
 		return $this->apply(...$this->handlers);
 	}
 
-	protected function setContentType(string $content_type = Router::CONTENT_TYPE_HTML) {
+	protected function setContentType(string $content_type = Router::CONTENT_TYPE_HTML): static {
 		$this->content_type = $content_type;
+		return $this;
 	}
 
-	protected function setCharset(string $charset = Router::CHARSET_UTF8) {
+	protected function setCharset(string $charset = Router::CHARSET_UTF8): static {
 		$this->charset = $charset;
+		return $this;
 	}
 
-	protected function setMinify(bool $minify = true) {
+	protected function setMinify(bool $minify = true): static {
 		$this->minify = $minify;
+		return $this;
 	}
 
 	protected function apply(\Closure ...$handlers) {
