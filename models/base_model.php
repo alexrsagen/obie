@@ -1,4 +1,5 @@
 <?php namespace Obie\Models;
+use \Obie\Formatters\EnglishNoun;
 
 class BaseModel {
 	const VALID_TYPES = [
@@ -89,11 +90,11 @@ class BaseModel {
 
 	protected static function initSource() {
 		if (static::$source === null) {
-			static::$source_singular = ModelHelpers::getSingularFromClassNS(get_called_class());
-			static::$source = ModelHelpers::getPlural(static::$source_singular);
+			static::$source_singular = EnglishNoun::classNameToSingular(get_called_class());
+			static::$source = EnglishNoun::toPlural(static::$source_singular);
 		}
 		if (static::$source_singular === null) {
-			static::$source_singular = ModelHelpers::getSingular(static::$source);
+			static::$source_singular = EnglishNoun::toSingular(static::$source);
 		}
 	}
 

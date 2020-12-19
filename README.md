@@ -15,9 +15,15 @@ Check out [alexrsagen/obie-sample-app](https://github.com/alexrsagen/obie-sample
 - Replace `Obie\Router` with `Obie\Http\Router` <sup>[1]</sup>
 - Replace `Obie\RouterInstance` with `Obie\Http\RouterInstance` <sup>[1]</sup>
 - Replace `Obie\Route` with `Obie\Http\Route` <sup>[1]</sup>
-- Rewrite your usage of `Obie\Http\Client` to use `Obie\Http\Request` instead of passing tons of arguments to `perform()`
+- Replace `Obie\Http\Client` with `Obie\Http\Request` using its method `perform()`
+- Replace `Obie\Util::formatBytes` with `Obie\Formatters\Bytes::toString`
+- Replace `Obie\Util::formatTime` with `Obie\Formatters\Time::toRelativeString`
+- Replace `Obie\ModelHelpers::getSingular` with `Obie\Formatters\EnglishNoun::toSingular`
+- Replace `Obie\ModelHelpers::getPlural` with `Obie\Formatters\EnglishNoun::toPlural`
+- Replace `Obie\ModelHelpers::getSingularFromClassNS` with `Obie\Formatters\EnglishNoun::classNameToSingular`
+- Replace `Obie\Util::sendMail` with `Obie\App::sendMail`
 
-<sup>[1]</sup> Ideally, replace all use of Router with Controller / Request / Response.
+<sup>[1]</sup> Ideally, replace all possible use of Router with Request / Response as well.
 
 ## Documentation
 I want to provide documentation in the future, but currently there is not enough development time to write any documentation.

@@ -3,6 +3,10 @@
 class Querystring {
 	const DELIMITER = '&';
 
+	const NUMERIC_TYPE_INDEXED = 0;
+	const NUMERIC_TYPE_BRACKETS = 1;
+	const NUMERIC_TYPE_APPEND = 2;
+
 	public static function decode(string $qs): array {
 		// get last possible query string,
 		// in case invalid input or a full URL is passed
@@ -27,7 +31,12 @@ class Querystring {
 		}, explode(self::DELIMITER, $qs)));
 	}
 
-	public static function encode(array $data): string {
-		return http_build_query($data, '', self::DELIMITER, PHP_QUERY_RFC3986);
+	public static function encode(array $data, int $numeric_type = self::NUMERIC_TYPE_INDEXED): string {
+		$qs = http_build_query($data, '', self::DELIMITER, PHP_QUERY_RFC3986);
+		return match ($numeric_type) {
+			self::NUMERIC_TYPE_BRACKETS => preg_replace('/%5B[0-9]+%5D/', '%5B%5D', $qs),
+			self::NUMERIC_TYPE_APPEND => preg_replace('/%5B[0-9]+%5D/', '', $qs),
+			default => $qs,
+		};
 	}
 }

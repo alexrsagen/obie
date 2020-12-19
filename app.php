@@ -1,5 +1,7 @@
 <?php namespace Obie;
 use \Obie\Http\Router;
+use \Obie\Http\Request;
+use \Obie\Http\Response;
 
 class App {
 	public static $app = self::class;
@@ -91,11 +93,12 @@ class App {
 	}
 
 	public static function doHostRedirect(): bool {
+		if (!self::$app::initConfig()) return false;
 		// Redirect if wrong host header
 		if (php_sapi_name() === 'cli') return true;
-		if (App::getConfig()->get('host_redirect')) {
-			$desired_host = substr(App::getConfig()->get('url'), strpos(App::getConfig()->get('url'), '://') + 3);
-			if (Router::getHost() !== $desired_host) {
+		if (self::$config->get('host_redirect')) {
+			$desired_host = substr(self::$config->get('url'), strpos(self::$config->get('url'), '://') + 3);
+			if (Request::current()->getHost() !== $desired_host) {
 				Router::redirect($_SERVER['REQUEST_URI']);
 				return false;
 			}
@@ -104,11 +107,12 @@ class App {
 	}
 
 	public static function doSchemeRedirect(): bool {
+		if (!self::$app::initConfig()) return false;
 		// Redirect if wrong scheme
 		if (php_sapi_name() === 'cli') return true;
-		if (App::getConfig()->get('scheme_redirect')) {
-			$desired_scheme = substr(App::getConfig()->get('url'), 0, strpos(App::getConfig()->get('url'), '://'));
-			if (Router::getScheme() !== $desired_scheme) {
+		if (self::$config->get('scheme_redirect')) {
+			$desired_scheme = substr(self::$config->get('url'), 0, strpos(self::$config->get('url'), '://'));
+			if (Request::current()->getScheme() !== $desired_scheme) {
 				Router::redirect($_SERVER['REQUEST_URI']);
 				return false;
 			}
@@ -247,15 +251,18 @@ class App {
 		$nonce = base64_encode(random_bytes(16));
 		self::$router->vars->set('nonce', $nonce);
 		self::$router->vars->set('config', self::$config->vars);
-		Router::setResponseHeader('Content-Security-Policy', "img-src data: 'self' " .
+		self::$router->vars->set('req', Request::current());
+		$res = Response::current();
+		self::$router->vars->set('res', $res);
+		$res->setHeader('content-security-policy', "img-src data: 'self' " .
 			implode(' ', self::$config->get('server', 'csp_sources', 'img') ?? []) . "; media-src 'self' " .
 			implode(' ', self::$config->get('server', 'csp_sources', 'media') ?? []) . "; script-src 'self' 'nonce-$nonce' " .
 			implode(' ', self::$config->get('server', 'csp_sources', 'script') ?? []) . "; style-src 'self' 'unsafe-inline' " .
 			implode(' ', self::$config->get('server', 'csp_sources', 'style') ?? []) . "");
-		Router::setResponseHeader('X-XSS-Protection', '1; mode=block');
-		Router::setResponseHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
-		Router::setResponseHeader('X-Frame-Options', 'SAMEORIGIN');
-		Router::setResponseHeader('Date', gmdate('D, d M Y H:i:s T', time()));
+		$res->setHeader('x-xss-protection', '1; mode=block');
+		$res->setHeader('referrer-policy', 'strict-origin-when-cross-origin');
+		$res->setHeader('x-frame-options', 'SAMEORIGIN');
+		$res->setHeader('date', gmdate('D, d M Y H:i:s T', time()));
 		return true;
 	}
 
@@ -435,11 +442,11 @@ class App {
 
 		if (self::$app::initConfig()) {
 			if (self::$config->get('errors', 'mail')) {
-				Util::sendMail(self::$config->get('errors', 'mail_address'), 'Internal server error on ' . self::$config->get('site_name'), $error_html, true);
+				App::sendMail(self::$config->get('errors', 'mail_address'), 'Internal server error on ' . self::$config->get('site_name'), $error_html, true);
 			}
 
 			if (self::$app::initRouter()) {
-				Router::setResponseCode(Router::HTTP_INTERNAL_SERVER_ERROR);
+				Response::current()->setCode(Response::HTTP_INTERNAL_SERVER_ERROR);
 				if (self::$config->get('errors', 'dump')) {
 					Router::sendResponse($error_html);
 				} else {
@@ -455,6 +462,37 @@ class App {
 		$error = error_get_last();
 		if ($error && ($error['type'] & (E_ERROR | E_USER_ERROR | E_PARSE | E_CORE_ERROR | E_COMPILE_ERROR | E_RECOVERABLE_ERROR))){
 			self::$app::errorHandler($error['type'], $error['message'], $error['file'], $error['line']);
+		}
+	}
+
+	public static function sendMail($recipients, string $subject, string $body, bool $is_html = false) {
+		if (!self::$app::initConfig()) return false;
+
+		if (is_string($recipients)) {
+			$recipients = [$recipients];
+		}
+		if (!is_array($recipients)) {
+			throw new \TypeError('Recipients must be string or array');
+		}
+		if (!self::$config->get('mail', 'enable')) {
+			throw new \Exception('Mail is not enabled in the server configuration');
+		}
+
+		$transport = new \Swift_SmtpTransport(self::$config->get('mail', 'host'), self::$config->get('mail', 'port'), self::$config->get('mail', 'security'));
+		$transport->setUsername(self::$config->get('mail', 'username'));
+		$transport->setPassword(self::$config->get('mail', 'password'));
+
+		$mailer = new \Swift_Mailer($transport);
+
+		$message = new \Swift_Message($subject);
+		$message->setFrom([self::$config->get('mail', 'from_email') => self::$config->get('mail', 'from_name')]);
+		$message->setTo($recipients);
+		$message->setBody($body, $is_html ? 'text/html' : 'text/plain');
+
+		try {
+			return $mailer->send($message);
+		} catch (\Exception $e) {
+			return false;
 		}
 	}
 }

@@ -1,14 +1,15 @@
 <?php namespace Obie\Http;
 use \Obie\Encoding\Querystring;
-use \Obie\Encoding\Multipart;
-use \Obie\Encoding\Multipart\FormData;
-use \Obie\Encoding\Json;
 use \Obie\Encoding\Url;
-use \Obie\Http\Mime;
+use \Obie\Log;
 
-// TODO: test
-// TODO: setters
 class Request {
+	use HeaderTrait;
+	use BodyTrait;
+
+	public static $request_log_format  = "----- BEGIN HTTP REQUEST -----\n%s\n%s\n----- END HTTP REQUEST -----";
+	public static $response_log_format = "----- BEGIN HTTP RESPONSE -----\n%s\n----- END HTTP RESPONSE -----";
+
 	// Request methods
 	const METHOD_GET     = 'GET';
 	const METHOD_HEAD    = 'HEAD';
@@ -18,81 +19,41 @@ class Request {
 	const METHOD_OPTIONS = 'OPTIONS';
 	const METHOD_PATCH   = 'PATCH';
 
+	// Initializers
+
 	public function __construct(
+		public string $method = self::METHOD_GET,
+		string $url = '',
 		public string $scheme = '',
 		public ?string $username = '',
 		public ?string $password = '',
 		public string $host = '',
-		public string $method = '',
-		public string $path = '',
-		public array $query = [],
-		protected array $headers = [],
-		protected ?Mime $content_type = null,
-		protected string $body = '',
-		protected mixed $body_data = null,
 		public string $remote_ip = '',
 		public int $remote_port = 0,
+		public string $path = '',
+		public array $query = [],
+		array $headers = [],
+		?Mime $content_type = null,
+		?AcceptHeader $accept = null,
+		string $body = '',
+		mixed $body_data = null,
 	) {
-		$this->scheme = strtolower($scheme);
-		$this->host = strtolower($host);
-		$this->method = strtoupper($method);
-		$this->headers = array_combine(array_map(function($key) {
-			return static::normalizeHeaderKey($key);
-		}, array_keys($headers)), array_values($headers));
-		if (empty($body_data) && !empty($body) && ($this->getMethod() === 'POST' || $this->getMethod() === 'PUT')) {
-			$this->body_data = $this->decodeBody($body);
+		if (!empty($method)) $this->setMethod($method);
+		if (!empty($url)) $this->setURL($url);
+		if (!empty($scheme)) $this->setScheme($scheme);
+		if (!empty($username)) $this->setUsername($username);
+		if (!empty($password)) $this->setPassword($password);
+		if (!empty($host)) $this->setHost($host);
+		if (!empty($remote_port)) $this->setRemotePort($remote_port);
+		if (!empty($path)) $this->setPath($path);
+		if (!empty($query)) $this->setQuery(array_merge_recursive($this->getQuery(), $query));
+		if (!empty($headers)) $this->setHeaders($headers);
+		if ($content_type !== null) $this->setContentType($content_type);
+		if ($accept !== null) $this->setAccept($accept);
+		if ($this->methodHasBody()) {
+			$this->initBody($body, $body_data);
 		}
 	}
-
-	// Helpers
-
-	protected static function normalizeHeaderKey(string $key): string {
-		return strtolower(str_replace('_', '-', str_starts_with($key, 'HTTP_') ? substr($key, 5) : $key));
-	}
-
-	protected static function normalizeAddress(string $address, bool $binary = false): ?string {
-		$address_bin = inet_pton($address);
-		if ($address_bin === false) return null;
-
-		// fix IPv6-mapped IPv4 address
-		$v4mapped_prefix_bin = hex2bin('00000000000000000000ffff');
-		if (str_starts_with($address_bin, $v4mapped_prefix_bin)) {
-			$address_bin = substr($address_bin, strlen($v4mapped_prefix_bin));
-		}
-
-		return $binary ? $address_bin : inet_ntop($address_bin);
-	}
-
-	protected function decodeBody(string $input): mixed {
-		if (strlen($input) === 0) return null;
-		return match($this->getContentType()?->getType()) {
-			'multipart/form-data' => FormData::decode($input),
-			'application/x-www-form-urlencoded' => Querystring::decode($input),
-			'application/json' => Json::decode($input),
-			default => null,
-		};
-	}
-
-	protected function encodeBody(mixed $input): string {
-		if ($input === null) return '';
-		switch ($this->getContentType()?->getType()) {
-		case 'multipart/form-data':
-			if (!is_array($input)) return '';
-			$boundary = $this->getContentType()?->getParameter('boundary');
-			if ($boundary === null) {
-				$boundary = Multipart::generateBoundary();
-				$this->getContentType()?->setParameter('boundary', $boundary);
-			}
-			return FormData::encode($input, [], $boundary);
-		case 'application/x-www-form-urlencoded':
-			return Querystring::encode($input);
-		case 'application/json':
-			return Json::encode($input);
-		}
-		return '';
-	}
-
-	// Initializers
 
 	public static function current(): ?static {
 		if (php_sapi_name() === 'cli') return null;
@@ -121,7 +82,7 @@ class Request {
 				username: array_key_exists('PHP_AUTH_USER', $_SERVER) ? $_SERVER['PHP_AUTH_USER'] : null,
 				password: array_key_exists('PHP_AUTH_PW', $_SERVER) ? $_SERVER['PHP_AUTH_PW'] : null,
 				host: $host,
-				method: strtoupper($_SERVER['REQUEST_METHOD']),
+				method: $_SERVER['REQUEST_METHOD'],
 				path: $path,
 				query: Querystring::decode($qs),
 				headers: array_filter($_SERVER, function($k) {
@@ -133,6 +94,29 @@ class Request {
 			);
 		}
 		return $current;
+	}
+
+	public static function get(string $url = ''): static { return new static(method: self::METHOD_GET, url: $url); }
+	public static function head(string $url = ''): static { return new static(method: self::METHOD_HEAD, url: $url); }
+	public static function post(string $url = ''): static { return new static(method: self::METHOD_POST, url: $url); }
+	public static function put(string $url = ''): static { return new static(method: self::METHOD_PUT, url: $url); }
+	public static function delete(string $url = ''): static { return new static(method: self::METHOD_DELETE, url: $url); }
+	public static function options(string $url = ''): static { return new static(method: self::METHOD_OPTIONS, url: $url); }
+	public static function patch(string $url = ''): static { return new static(method: self::METHOD_PATCH, url: $url); }
+
+	// Helpers
+
+	protected static function normalizeAddress(string $address, bool $binary = false): ?string {
+		$address_bin = inet_pton($address);
+		if ($address_bin === false) return null;
+
+		// fix IPv6-mapped IPv4 address
+		$v4mapped_prefix_bin = hex2bin('00000000000000000000ffff');
+		if (str_starts_with($address_bin, $v4mapped_prefix_bin)) {
+			$address_bin = substr($address_bin, strlen($v4mapped_prefix_bin));
+		}
+
+		return $binary ? $address_bin : inet_ntop($address_bin);
 	}
 
 	// Getters
@@ -149,10 +133,6 @@ class Request {
 		return $this->path;
 	}
 
-	public function getRawBody(): string {
-		return $this->body;
-	}
-
 	public function getUsername(): ?string {
 		return $this->username;
 	}
@@ -161,52 +141,12 @@ class Request {
 		return $this->password;
 	}
 
-	public function getBody(?string $key = null, string $type = 'string', ?string $fallback = null): mixed {
-		if ($key === null) return $this->body_data;
-		$value = is_array($this->body_data) && array_key_exists($key, $this->body_data) ? $this->body_data[$key] : $fallback;
-		return match($type) {
-			'int' => (int)$value,
-			'float' => (float)$value,
-			'bool' => $value === '1' || $value === 'true' || $value === 'yes',
-			default => $value,
-		};
+	public function getQuery(?string $key = null, string $type = 'string', mixed $fallback = null): mixed {
+		return static::getValue($this->query, $key, $type, $fallback);
 	}
 
-	public function getQuery(?string $key = null, string $type = 'string', ?string $fallback = null): mixed {
-		if ($key === null) return $this->query;
-		$value = array_key_exists($key, $this->query) ? $this->query[$key] : $fallback;
-		return match($type) {
-			'int' => (int)$value,
-			'float' => (float)$value,
-			'bool' => $value === '1' || $value === 'true' || $value === 'yes',
-			default => $value,
-		};
-	}
-
-	public function getQueryString(): string {
+	public function getQueryString(int $numeric_type = Querystring::NUMERIC_TYPE_INDEXED): string {
 		return Querystring::encode($this->getQuery());
-	}
-
-	public function getHeader(?string $key = null, string $type = 'string', ?string $fallback = null): mixed {
-		if ($key === null) return $this->headers;
-		$key = static::normalizeHeaderKey($key);
-		$value = array_key_exists($key, $this->headers) ? $this->headers[$key] : $fallback;
-		return match($type) {
-			'int' => (int)$value,
-			'float' => (float)$value,
-			'bool' => $value === '1' || $value === 'true' || $value === 'yes',
-			default => $value,
-		};
-	}
-
-	public function getContentType(): ?Mime {
-		if ($this->content_type === null) {
-			$hdr = $this->getHeader('content-type');
-			if (!empty($hdr)) {
-				$this->content_type = Mime::decode($hdr);
-			}
-		}
-		return $this->content_type;
 	}
 
 	public function getMethod(): string {
@@ -225,7 +165,7 @@ class Request {
 		return $this->remote_port;
 	}
 
-	public function getURL(): string {
+	public function getURL(int $numeric_type = Querystring::NUMERIC_TYPE_INDEXED): string {
 		$parts = [
 			'scheme' => $this->getScheme(),
 			'host' => $this->getHost(),
@@ -237,27 +177,145 @@ class Request {
 		if (!empty($this->getPassword())) {
 			$parts['pass'] = $this->getPassword();
 		}
-		if (!empty($this->getQueryString())) {
-			$parts['query'] = $this->getQueryString();
+		if (!empty($this->getQueryString(numeric_type: $numeric_type))) {
+			$parts['query'] = $this->getQueryString(numeric_type: $numeric_type);
 		}
 		return Url::encode($parts);
 	}
 
+	public function getUseragent(): string {
+		return $this->getHeader('user-agent', fallback: 'Obie/1.0');
+	}
+
 	// Setters
 
-	public function setContentType(string|Mime $mime): static {
-		if (is_string($mime)) {
-			$mime = Mime::decode($mime);
-			$mime->setParameter('charset', 'utf-8');
-		}
-		$this->content_type = $mime;
-		$this->setHeader('content-type', $mime->encode());
+	public function methodHasBody(): bool {
+		return in_array($this->getMethod(), ['POST', 'PUT', 'PATCH'], true);
+	}
+
+	public function setScheme(string $scheme): static {
+		$this->scheme = strtolower($scheme);
 		return $this;
+	}
+
+	public function setHost(string $host): static {
+		$this->host = strtolower($host);
+		return $this;
+	}
+
+	public function setPath(string $path): static {
+		$this->path = $path;
+		return $this;
+	}
+
+	public function setUsername(string $username): static {
+		$this->username = $username;
+		return $this;
+	}
+
+	public function setPassword(string $password): static {
+		$this->password = $password;
+		return $this;
+	}
+
+	public function setQuery(array $query): static {
+		$this->query = $query;
+		return $this;
+	}
+
+	public function setQueryString(string $qs, int $numeric_type = Querystring::NUMERIC_TYPE_INDEXED): static {
+		$this->query = Querystring::decode($qs, numeric_type: $numeric_type);
+		return $this;
+	}
+
+	public function setMethod(string $method): static {
+		$this->method = strtoupper($method);
+		return $this;
+	}
+
+	public function setRemoteAddress(string $remote_ip): static {
+		$this->remote_ip = $remote_ip;
+		return $this;
+	}
+
+	public function setRemotePort(int $remote_port): static {
+		$this->remote_port = $remote_port;
+		return $this;
+	}
+
+	public function setURL(string $url, int $numeric_type = Querystring::NUMERIC_TYPE_INDEXED): static {
+		$url = Url::decode($url);
+		if (!is_array($url)) return $this;
+		if (array_key_exists('scheme', $url)) $this->setScheme($url['scheme']);
+		if (array_key_exists('user', $url)) $this->setUsername($url['user']);
+		if (array_key_exists('pass', $url)) $this->setPassword($url['pass']);
+		if (array_key_exists('host', $url)) $this->setHost($url['host']);
+		if (array_key_exists('port', $url)) $this->setRemotePort($url['port']);
+		if (array_key_exists('path', $url)) $this->setPath($url['path']);
+		if (array_key_exists('query', $url)) $this->setQueryString($url['query'], numeric_type: $numeric_type);
+		return $this;
+	}
+
+	public function setUseragent(string $ua): static {
+		return $this->setHeader('user-agent', $ua);
 	}
 
 	// Actions
 
-	public function perform(): Response {
-		// TODO: interact with Client
+	public function perform(bool $debug = false, int $numeric_type = Querystring::NUMERIC_TYPE_INDEXED): Response {
+		// Initialize cURL context
+		$ch = curl_init();
+		curl_setopt($ch, CURLOPT_URL, $this->getURL(numeric_type: $numeric_type));
+		curl_setopt($ch, CURLOPT_USERAGENT, $this->getUseragent());
+		curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $this->getMethod());
+		curl_setopt($ch, CURLOPT_FAILONERROR, false);
+		curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+		curl_setopt($ch, CURLOPT_HEADER, true);
+		curl_setopt($ch, CURLINFO_HEADER_OUT, $debug);
+		curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
+		curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
+
+		// Add POST/PUT/PATCH body data to cURL context
+		if ($this->methodHasBody()) {
+			curl_setopt($ch, CURLOPT_POSTFIELDS, $this->getRawBody());
+			curl_setopt($ch, CURLOPT_SAFE_UPLOAD, true);
+			curl_setopt($ch, CURLOPT_POST, 1);
+		}
+
+		// Add headers to cURL context
+		$headers = $this->getRawHeaders();
+		$headers[] = 'Expect:';
+		curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+
+		// Execute request, get response code and throw exception on error
+		$res_body = curl_exec($ch);
+		if ($res_body === false) {
+			$res_errno = curl_errno($ch);
+			curl_close($ch);
+			$res = new Response($res_body, errors: [sprintf('cURL error (%d): %s', $res_errno, curl_strerror($res_errno))]);
+			return $res;
+		}
+
+		// Dump request + response if debugging
+		if ($debug) {
+			Log::debug(sprintf(static::$request_log_format, curl_getinfo($ch, CURLINFO_HEADER_OUT), $this->getRawBody()));
+			Log::debug(sprintf(static::$response_log_format, $res_body));
+		}
+
+		// Get response code and size of response headers
+		$res_code         = curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
+		$res_header_size  = curl_getinfo($ch, CURLINFO_HEADER_SIZE);
+		curl_close($ch);
+
+		// Get the headers of the last request (ignoring the headers of any redirects)
+		$res_headerstr          = substr($res_body, 0, $res_header_size);
+		$res_body               = substr($res_body, $res_header_size);
+		$res_headerstr_startpos = strrpos("\r\n\r\n", $res_headerstr);
+		if ($res_headerstr_startpos !== false) {
+			$res_headerstr = substr($res_headerstr, $res_headerstr_startpos);
+		}
+
+		return (new Response($res_body, code: (int)$res_code))
+			->setRawHeaders($res_headerstr);
 	}
 }

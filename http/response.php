@@ -1,7 +1,12 @@
 <?php namespace Obie\Http;
 use \Obie\Encoding\Json;
+use \Obie\Minify;
 
-class Response {	// Constants
+class Response {
+	use HeaderTrait;
+	use BodyTrait;
+
+	// Constants
 
 	// HTTP 1xx - Informational
 	const HTTP_CONTINUE                               = 100;
@@ -159,61 +164,46 @@ class Response {	// Constants
 	const HTTP_CLASS_CLIENT_ERROR  = 4;
 	const HTTP_CLASS_SERVER_ERROR  = 5;
 
-	protected $data,
-	          $errors,
-	          $code,
-	          $headers;
+	// Initializers
 
-	function __construct($data = null, array $errors = [], int $code = 0, array $headers = []) {
-		$this->data    = $data;
-		$this->errors  = $errors;
-		$this->code    = $code;
-		$this->headers = $headers;
+	public function __construct(
+		string $body = '',
+		protected array $errors = [],
+		protected int $code = 0,
+		array $headers = [],
+		mixed $body_data = null,
+		string|Mime|null $content_type = null,
+		?AcceptHeader $accept = null,
+		protected array $html_minify_options = [],
+		protected string $html_suffix = '',
+		protected bool $minify = true,
+	) {
+		$this->setHeaders($headers);
+		if ($content_type !== null) {
+			$this->setContentType($content_type);
+		}
+		if ($accept !== null) {
+			$this->setAccept($accept);
+		}
+		$this->initBody($body, $body_data);
 	}
 
-	public function getData(...$path) {
-		if (count($path) === 1 && is_array($path[0])) {
-			$path = $path[0];
+	public static function current(): ?static {
+		if (php_sapi_name() === 'cli') return null;
+		static $current = null;
+		if ($current === null) {
+			// get current request
+			$current = new static(
+				code: self::HTTP_OK,
+				content_type: 'text/html',
+			);
 		}
-		$cur = $this->data;
-		foreach ($path as $k) {
-			if (!is_array($cur) || !array_key_exists($k, $cur)) {
-				return null;
-			}
-			$cur = $cur[$k];
-		}
-		return $cur;
+		return $current;
 	}
 
-	public function setData($data) {
-		$this->data = $data;
-		return $this;
-	}
+	// Getters
 
-	public function getHeader(string $key = null) {
-		if ($key === null) {
-			return $this->headers;
-		}
-		$key = strtolower($key);
-		if (array_key_exists($key, $this->headers)) {
-			return $this->headers[$key];
-		}
-		return null;
-	}
-
-	public function setHeader($key, string $value = null) {
-		if (!is_string($key) && !is_array($key)) {
-			throw new \InvalidArgumentException('key must be string or array');
-		}
-		if ($value === null) {
-			$this->headers = $key;
-			return $this;
-		}
-		$this->headers[$key] = $value;
-		return $this;
-	}
-
-	public function getFirstError() {
+	public function getFirstError(): string {
 		$error = null;
 		$keys  = array_keys($this->errors);
 		if (count($keys) > 0) {
@@ -225,7 +215,7 @@ class Response {	// Constants
 		return $error;
 	}
 
-	public function getLastError() {
+	public function getLastError(): string {
 		$error = null;
 		$keys  = array_keys($this->errors);
 		if (count($keys) > 0) {
@@ -245,21 +235,88 @@ class Response {	// Constants
 		return !empty($this->errors);
 	}
 
-	public function setErrors(array $errors) {
+	public function getCode(): int {
+		return $this->code;
+	}
+
+	public function getCodeClass(): int {
+		return (int)floor($this->code / 100);
+	}
+
+	public function getCodeText(): ?string {
+		if (array_key_exists($this->getCode(), self::HTTP_STATUSTEXT)) {
+			return self::HTTP_STATUSTEXT[$this->getCode()];
+		}
+		return null;
+	}
+
+	public function getHTMLMinifyOptions(): array {
+		return $this->html_minify_options;
+	}
+
+	public function getHTMLSuffix(): string {
+		return $this->html_suffix;
+	}
+
+	public function getMinify(): bool {
+		return $this->minify;
+	}
+
+	// Setters
+
+	public function setErrors(array $errors): static {
 		$this->errors = $errors;
 		return $this;
 	}
 
-	public function getResponseCode() {
-		return $this->code;
-	}
-
-	public function getResponseCodeClass(): int {
-		return (int)floor($this->code / 100);
-	}
-
-	public function setResponseCode(int $code) {
+	public function setCode(int $code) {
 		$this->code = $code;
+		return $this;
+	}
+
+	public function setHTMLMinifyOptions(array $options): static {
+		$this->html_minify_options = $options;
+		return $this;
+	}
+
+	public function setHTMLSuffix(string $suffix): static {
+		$this->html_suffix = $suffix;
+		return $this;
+	}
+
+	public function setMinify(bool $minify): static {
+		$this->minify = $minify;
+		return $this;
+	}
+
+	// Actions
+
+	public function send(): static {
+		// Set default content-type header, if none is set
+		if (!$this->getContentType()) {
+			$this->setContentType('text/html');
+		}
+
+		// Prepare body
+		$body = $this->getRawBody();
+		if ($this->getContentType()?->matches('text/html')) {
+			$body .= $this->getHTMLSuffix();
+		}
+
+		// Set content-length header
+		$this->setHeader('content-length', (string)strlen($body));
+
+		// Remove any buffered output
+		if (ob_get_contents() !== false) ob_clean();
+
+		// Flush response to client
+		http_response_code($this->getCode());
+		foreach ($this->getRawHeaders() as $header) {
+			header($header);
+		}
+		if ($body !== null) echo $body;
+		flush();
+
 		return $this;
 	}
 }

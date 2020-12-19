@@ -1,9 +1,6 @@
 <?php namespace Obie\Http;
 use \Obie\App;
-use \Obie\Minify;
 use \Obie\Vars\VarCollection;
-use \Obie\Encoding\Json;
-use \Obie\Encoding\Querystring;
 
 class Router {
 	// Constants
@@ -205,8 +202,6 @@ class Router {
 	public static $strict               = true;
 	public static $html_suffix          = '';
 	public static $html_minify_options  = [];
-	protected static $headers           = [];
-	protected static $response_code     = self::HTTP_OK;
 	protected static $response_sent     = false;
 
 	public static function stripTrailingSlash() {
@@ -219,16 +214,16 @@ class Router {
 		return false;
 	}
 
-	public static function getPost(?string $key = null) {
-		return Request::current()->getBody($key);
+	public static function getPost(?string $key = null, string $type = 'raw', mixed $fallback = null) {
+		return Request::current()->getBody($key, $type, $fallback);
 	}
 
 	public static function getPostBool(string $key) {
 		return Request::current()->getBody($key, 'bool', false);
 	}
 
-	public static function getQuery(?string $key = null) {
-		return Request::current()->getQuery($key);
+	public static function getQuery(?string $key = null, string $type = 'raw', mixed $fallback = null) {
+		return Request::current()->getQuery($key, $type, $fallback);
 	}
 
 	public static function getQueryBool(string $key) {
@@ -284,34 +279,20 @@ class Router {
 	public static function sendResponse($response = null, string $content_type = self::CONTENT_TYPE_HTML, string $charset = 'utf-8', bool $minify = true) {
 		if (self::$response_sent) return;
 
-		// Prepare response
-		if ($response !== null) {
-			if ($content_type === self::CONTENT_TYPE_JSON) {
-				$response = Json::encode($response, $minify ? 0 : JSON_PRETTY_PRINT);
-			}
-			if ($minify && $content_type === self::CONTENT_TYPE_HTML) {
-				$response = Minify::HTML($response, static::$html_minify_options);
-			}
-			if ($content_type === self::CONTENT_TYPE_HTML) {
-				$response .= self::$html_suffix;
-			}
-			static::setResponseHeader('Content-Type', $content_type . '; charset=' . $charset);
-			static::setResponseHeader('Content-Length', (string)strlen($response));
-		}
-
 		// Run deferred functions from all router instances
 		static::runDeferred();
 
-		// Remove any buffered output
-		if (ob_get_contents() !== false) ob_clean();
+		// Send response
+		$content_type = Mime::decode($content_type);
+		$content_type->setParameter('charset', $charset);
+		Response::current()
+			->setContentType($content_type)
+			->setMinify($minify)
+			->setHTMLMinifyOptions(self::$html_minify_options)
+			->setHTMLSuffix(self::$html_suffix)
+			->setBody($response)
+			->send();
 
-		// Flush response to client
-		http_response_code(self::$response_code);
-		foreach (self::$headers as $name => $value) {
-			header(sprintf('%s: %s', $name, $value));
-		}
-		if ($response !== null) echo $response;
-		flush();
 		self::$response_sent = true;
 	}
 
@@ -325,7 +306,7 @@ class Router {
 
 	public static function redirectOut(string $location, int $code = self::HTTP_FOUND) {
 		if (self::$response_sent) return;
-		static::setResponseHeader('Location', str_replace(array(';', "\r", "\n"), '', $location));
+		static::setResponseHeader('location', str_replace(array(';', "\r", "\n"), '', $location));
 		static::setResponseCode($code);
 		static::sendResponse();
 	}
@@ -335,44 +316,35 @@ class Router {
 	}
 
 	public static function setResponseCode(int $response_code) {
-		self::$response_code = $response_code;
+		Response::current()->setCode($response_code);
 	}
 
-	public static function getResponseCode() {
-		return self::$response_code;
+	public static function getResponseCode(): int {
+		return Response::current()->getCode();
 	}
 
-	public static function getResponseCodeText() {
-		if (array_key_exists(self::$response_code, self::HTTP_STATUSTEXT)) {
-			return self::HTTP_STATUSTEXT[self::$response_code];
-		}
-		return '';
+	public static function getResponseCodeText(): string {
+		return Response::current()->getCodeText() ?? '';
 	}
 
 	public static function getResponseHeader(?string $name = null) {
-		if ($name === null) return self::$headers;
-		if (!array_key_exists($name, self::$headers)) return null;
-		return self::$headers[$name];
+		return Response::current()->getHeader($name);
 	}
 
 	public static function setResponseHeader(string $name, string $value) {
-		self::$headers[$name] = $value;
+		Response::current()->setHeader($name, $value);
 	}
 
 	public static function setResponseHeaders(array $headers) {
-		foreach ($headers as $name => $value) {
-			self::$headers[$name] = $value;
-		}
+		Response::current()->setHeaders($headers);
 	}
 
 	public static function unsetResponseHeader(string $name) {
-		unset(self::$headers[$name]);
+		Response::current()->unsetHeader($name);
 	}
 
 	public static function unsetResponseHeaders(array $names) {
-		foreach ($names as $name) {
-			unset(self::$headers[$name]);
-		}
+		Response::current()->unsetHeaders($name);
 	}
 
 	public static function vars(): VarCollection {

@@ -1,5 +1,4 @@
 <?php namespace Obie\ApiClients;
-use \Obie\Http\Client;
 use \Obie\Encoding\Uuid;
 use \Obie\Encoding\Json;
 use \Obie\Validation\SimpleValidator;
@@ -9,12 +8,28 @@ use \Obie\Validation\SimpleValidator;
  *
  * @link https://mds2.fidoalliance.org/help
  */
-class FidoMds extends Client {
-	protected $token = '';
+class FidoMds {
+	function __construct(
+		protected string $token,
+		protected bool $debug = false
+	) {}
 
-	function __construct(string $token, bool $debug = false) {
+	public function getToken(): string {
+		return $this->token;
+	}
+
+	public function getDebug(): bool {
+		return $this->debug;
+	}
+
+	public function setToken(string $token): static {
 		$this->token = $token;
-		$this->setDebug($debug);
+		return $this;
+	}
+
+	public function setDebug(bool $debug): static {
+		$this->debug = $debug;
+		return $this;
 	}
 
 	/**
@@ -28,9 +43,10 @@ class FidoMds extends Client {
 			$aaguid = Uuid::encode($aaguid);
 		}
 
-		$res = static::request(Client::METHOD_GET, 'https://mds2.fidoalliance.org/metadata/' . urlencode($aaguid) . '/', [
-			'token' => $this->token
-		], null);
+		$req = Request::get('https://mds2.fidoalliance.org/metadata/' . urlencode($aaguid) . '/')
+			->setQuery(['token' => $this->token]);
+
+		$res = $req->perform(debug: $this->getDebug());
 
 		// Log errors
 		if ($res->hasErrors()) {
@@ -39,7 +55,7 @@ class FidoMds extends Client {
 		}
 
 		// Return decoded data
-		if ($res->getResponseCode() !== 200 || !$res->getData()) return null;
-		return Json::decode(base64_decode($res->getData()));
+		if ($res->getCode() !== 200 || !$res->getRawBody()) return null;
+		return Json::decode(base64_decode($res->getRawBody()));
 	}
 }

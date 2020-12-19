@@ -1,4 +1,5 @@
 <?php namespace Obie\Models;
+use \Obie\Formatters\EnglishNoun;
 
 trait RelationTrait {
 	protected static $relations = [];
@@ -148,7 +149,7 @@ trait RelationTrait {
 			throw new \InvalidArgumentException('Target field(s) must be string or array');
 		}
 		if ($relation_name === null) {
-			$relation_name = ModelHelpers::getSingularFromClassNS($target_model);
+			$relation_name = EnglishNoun::classNameToSingular($target_model);
 		}
 		static::$relations[$relation_name] = [
 			'type' => RelationModel::TYPE_BELONGS_TO_ONE,
@@ -179,7 +180,7 @@ trait RelationTrait {
 			throw new \InvalidArgumentException('Target field(s) must be string or array');
 		}
 		if ($relation_name === null) {
-			$relation_name = ModelHelpers::getPlural(ModelHelpers::getSingularFromClassNS($target_model));
+			$relation_name = EnglishNoun::toPlural(EnglishNoun::classNameToSingular($target_model));
 		}
 		static::$relations[$relation_name] = [
 			'type' => RelationModel::TYPE_BELONGS_TO_MANY,
@@ -225,7 +226,7 @@ trait RelationTrait {
 			throw new \InvalidArgumentException('Target field(s) must be string or array');
 		}
 		if ($relation_name === null) {
-			$relation_name = ModelHelpers::getPlural(ModelHelpers::getSingularFromClassNS($target_model));
+			$relation_name = EnglishNoun::toPlural(EnglishNoun::classNameToSingular($target_model));
 		}
 		static::$relations[$relation_name] = [
 			'type' => RelationModel::TYPE_BELONGS_TO_MANY_TO_MANY,
@@ -259,7 +260,7 @@ trait RelationTrait {
 			throw new \InvalidArgumentException('Target field(s) must be string or array');
 		}
 		if ($relation_name === null) {
-			$relation_name = ModelHelpers::getSingularFromClassNS($target_model);
+			$relation_name = EnglishNoun::classNameToSingular($target_model);
 		}
 		static::$relations[$relation_name] = [
 			'type' => RelationModel::TYPE_HAS_ONE,
@@ -290,7 +291,7 @@ trait RelationTrait {
 			throw new \InvalidArgumentException('Target field(s) must be string or array');
 		}
 		if ($relation_name === null) {
-			$relation_name = ModelHelpers::getPlural(ModelHelpers::getSingularFromClassNS($target_model));
+			$relation_name = EnglishNoun::toPlural(EnglishNoun::classNameToSingular($target_model));
 		}
 		static::$relations[$relation_name] = [
 			'type' => RelationModel::TYPE_HAS_MANY,
@@ -336,7 +337,7 @@ trait RelationTrait {
 			throw new \InvalidArgumentException('Target field(s) must be string or array');
 		}
 		if ($relation_name === null) {
-			$relation_name = ModelHelpers::getPlural(ModelHelpers::getSingularFromClassNS($target_model));
+			$relation_name = EnglishNoun::toPlural(EnglishNoun::classNameToSingular($target_model));
 		}
 		static::$relations[$relation_name] = [
 			'type' => RelationModel::TYPE_HAS_MANY_TO_MANY,
