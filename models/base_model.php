@@ -1,5 +1,6 @@
 <?php namespace Obie\Models;
 use \Obie\Formatters\EnglishNoun;
+use \Obie\Formatters\Casing;
 
 class BaseModel {
 	const VALID_TYPES = [
@@ -808,7 +809,7 @@ class BaseModel {
 	}
 
 	public function __call(string $name, array $arguments) {
-		$name_snake = ModelHelpers::getSnakeCase($name);
+		$name_snake = Casing::camelToSnake($name);
 		$key_snake = substr($name_snake, 4);
 		if (array_key_exists($key_snake, static::$columns) ||
 			isset(static::$relations) && array_key_exists($key_snake, static::$relations)) {

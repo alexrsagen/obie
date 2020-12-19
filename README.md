@@ -21,6 +21,8 @@ Check out [alexrsagen/obie-sample-app](https://github.com/alexrsagen/obie-sample
 - Replace `Obie\ModelHelpers::getSingular` with `Obie\Formatters\EnglishNoun::toSingular`
 - Replace `Obie\ModelHelpers::getPlural` with `Obie\Formatters\EnglishNoun::toPlural`
 - Replace `Obie\ModelHelpers::getSingularFromClassNS` with `Obie\Formatters\EnglishNoun::classNameToSingular`
+- Replace `Obie\ModelHelpers::getSnakeCase` with `Obie\Formatters\Casing::camelToSnake`
+- Replace `Obie\ModelHelpers::getCamelCase` with `Obie\Formatters\Casing::snakeToCamel`
 - Replace `Obie\Util::sendMail` with `Obie\App::sendMail`
 
 <sup>[1]</sup> Ideally, replace all possible use of Router with Request / Response as well.

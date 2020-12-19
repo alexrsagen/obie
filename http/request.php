@@ -39,14 +39,18 @@ class Request {
 		mixed $body_data = null,
 	) {
 		if (!empty($method)) $this->setMethod($method);
-		if (!empty($url)) $this->setURL($url);
+		if (!empty($url)) {
+			$this->setURL($url);
+			if (!empty($query)) $this->setQuery(array_merge_recursive($this->getQuery(), $query));
+		} elseif (!empty($query)) {
+			$this->setQuery($query);
+		}
 		if (!empty($scheme)) $this->setScheme($scheme);
 		if (!empty($username)) $this->setUsername($username);
 		if (!empty($password)) $this->setPassword($password);
 		if (!empty($host)) $this->setHost($host);
 		if (!empty($remote_port)) $this->setRemotePort($remote_port);
 		if (!empty($path)) $this->setPath($path);
-		if (!empty($query)) $this->setQuery(array_merge_recursive($this->getQuery(), $query));
 		if (!empty($headers)) $this->setHeaders($headers);
 		if ($content_type !== null) $this->setContentType($content_type);
 		if ($accept !== null) $this->setAccept($accept);
