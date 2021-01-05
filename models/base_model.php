@@ -16,7 +16,6 @@ class BaseModel {
 	protected $_data                 = [];
 	protected $_original_data        = [];
 	protected $_modified_columns     = [];
-	protected $_relation_cache       = [];
 	protected static $_default_db    = null;
 	protected static $_default_ro_db = null;
 
@@ -87,6 +86,10 @@ class BaseModel {
 
 	public static function columnsExist(string ...$names): bool {
 		return empty(array_diff($names, static::getAllColumns()));
+	}
+
+	protected static function canGetOrSet(string $name): bool {
+		return static::columnExists($name);
 	}
 
 	protected static function initSource() {
@@ -193,6 +196,10 @@ class BaseModel {
 			}
 		}
 		if (array_key_exists('with', $options)) {
+			$class_name = get_called_class();
+			if (!method_exists($class_name, 'getJoin')) {
+				throw new \InvalidArgumentException("With can only be used on models with relations. Model \"$class_name\" does not have relations.");
+			}
 			if (is_string($options['with'])) {
 				$options['with'] = [$options['with']];
 			}
@@ -202,7 +209,6 @@ class BaseModel {
 			foreach ($options['with'] as $with) {
 				$join = static::getJoin($with);
 				if (!$join) {
-					$class_name = get_called_class();
 					throw new \InvalidArgumentException("Relation \"$with\" does not exist on model \"$class_name\"");
 				}
 				$query .= ' ' . $join;
@@ -319,24 +325,10 @@ class BaseModel {
 			}
 			$is_seq = $options['bind'] !== [] && array_keys($options['bind']) === range(0, count($options['bind']) - 1);
 			foreach ($options['bind'] as $key => $val) {
-				if (is_int($val)) {
-					$type = \PDO::PARAM_INT;
-				} elseif (is_bool($val)) {
-					$type = \PDO::PARAM_INT;
-					$val = (int)$val;
-				} elseif ($val === null) {
-					$type = \PDO::PARAM_NULL;
-				} else {
-					$type = \PDO::PARAM_STR;
-				}
-				if ($val instanceof \DateTime) {
-					$val = $val->format('Y-m-d H:i:s');
-				}
 				if ($is_seq || is_int($key)) {
-					$stmt->bindValue($key + 1, $val, $type);
-				} else {
-					$stmt->bindValue($key, $val, $type);
+					$key += 1;
 				}
+				static::bindValue($stmt, $key, $val);
 			}
 		}
 		return $stmt;
@@ -540,23 +532,7 @@ class BaseModel {
 
 		// Update database
 		$stmt = static::getDatabase()->prepare('INSERT INTO ' . static::getEscapedSource() . ' SET ' . ModelHelpers::getEscapedSet($this->_modified_columns));
-		foreach ($this->_modified_columns as $i => $key) {
-			$val = $this->get($key, false);
-			if (is_int($val)) {
-				$type = \PDO::PARAM_INT;
-			} elseif (is_bool($val)) {
-				$type = \PDO::PARAM_INT;
-				$val = (int)$val;
-			} elseif ($val === null) {
-				$type = \PDO::PARAM_NULL;
-			} else {
-				$type = \PDO::PARAM_STR;
-			}
-			if ($val instanceof \DateTime) {
-				$val = $val->format('Y-m-d H:i:s');
-			}
-			$stmt->bindValue($i + 1, $val, $type);
-		}
+		$this->bindValues($stmt, $this->_modified_columns);
 		$this->_error = null;
 		try {
 			$retval = $stmt->execute();
@@ -591,41 +567,8 @@ class BaseModel {
 		// Update database
 		$pk_list = static::getPrimaryKeys();
 		$stmt = static::getDatabase()->prepare('UPDATE ' . static::getEscapedSource() . ' SET ' . ModelHelpers::getEscapedSet($this->_modified_columns) . ' WHERE ' . ModelHelpers::getEscapedWhere($pk_list) . ' LIMIT 1');
-		$i = 0;
-		foreach ($this->_modified_columns as $key) {
-			$val = $this->get($key, false);
-			if (is_int($val)) {
-				$type = \PDO::PARAM_INT;
-			} elseif (is_bool($val)) {
-				$type = \PDO::PARAM_INT;
-				$val = (int)$val;
-			} elseif ($val === null) {
-				$type = \PDO::PARAM_NULL;
-			} else {
-				$type = \PDO::PARAM_STR;
-			}
-			if ($val instanceof \DateTime) {
-				$val = $val->format('Y-m-d H:i:s');
-			}
-			$stmt->bindValue(++$i, $val, $type);
-		}
-		foreach ($pk_list as $key) {
-			$val = $this->get($key, false);
-			if (is_int($val)) {
-				$type = \PDO::PARAM_INT;
-			} elseif (is_bool($val)) {
-				$type = \PDO::PARAM_INT;
-				$val = (int)$val;
-			} elseif ($val === null) {
-				$type = \PDO::PARAM_NULL;
-			} else {
-				$type = \PDO::PARAM_STR;
-			}
-			if ($val instanceof \DateTime) {
-				$val = $val->format('Y-m-d H:i:s');
-			}
-			$stmt->bindValue(++$i, $val, $type);
-		}
+		$i = $this->bindValues($stmt, $this->_modified_columns);
+		$this->bindValues($stmt, $pk_list, $i);
 		$this->_error = null;
 		try {
 			$retval = $stmt->execute();
@@ -653,23 +596,7 @@ class BaseModel {
 
 		$pk_list = static::getPrimaryKeys();
 		$stmt = static::getDatabase()->prepare('DELETE FROM ' . static::getEscapedSource() . ' WHERE ' . ModelHelpers::getEscapedWhere($pk_list) . ' LIMIT 1');
-		foreach ($pk_list as $i => $key) {
-			$val = $this->get($key, false);
-			if (is_int($val)) {
-				$type = \PDO::PARAM_INT;
-			} elseif (is_bool($val)) {
-				$type = \PDO::PARAM_INT;
-				$val = (int)$val;
-			} elseif ($val === null) {
-				$type = \PDO::PARAM_NULL;
-			} else {
-				$type = \PDO::PARAM_STR;
-			}
-			if ($val instanceof \DateTime) {
-				$val = $val->format('Y-m-d H:i:s');
-			}
-			$stmt->bindValue($i + 1, $val, $type);
-		}
+		$this->bindValues($stmt, $pk_list);
 		$this->_error = null;
 		try {
 			$retval = $stmt->execute();
@@ -689,6 +616,31 @@ class BaseModel {
 		}
 
 		return $retval;
+	}
+
+	protected function bindValues(\PDOStatement $stmt, array $keys, int $i = 1): int {
+		foreach ($keys as $key) {
+			$val = $this->get($key, false);
+			static::bindValue($stmt, $i++, $val);
+		}
+		return $i;
+	}
+
+	protected static function bindValue(\PDOStatement $stmt, string|int $key, mixed $val) {
+		if (is_int($val)) {
+			$type = \PDO::PARAM_INT;
+		} elseif (is_bool($val)) {
+			$type = \PDO::PARAM_INT;
+			$val = (int)$val;
+		} elseif ($val === null) {
+			$type = \PDO::PARAM_NULL;
+		} else {
+			$type = \PDO::PARAM_STR;
+		}
+		if ($val instanceof \DateTime) {
+			$val = $val->format('Y-m-d H:i:s');
+		}
+		$stmt->bindValue($key, $val, $type);
 	}
 
 	public function forceCleanState() {
@@ -723,7 +675,7 @@ class BaseModel {
 	}
 
 	public function originalData(?string $key = null) {
-		if (!array_key_exists($key, static::$columns)) {
+		if (!static::columnExists($key)) {
 			$class_name = get_called_class();
 			throw new \Exception("Column $key is not defined in model $class_name");
 		}
@@ -738,31 +690,19 @@ class BaseModel {
 	}
 
 	public function get(string $key, bool $hooks = true) {
-		if (array_key_exists($key, static::$columns)) {
-			if (!array_key_exists($key, $this->_data)) return null;
-			$value = $this->_data[$key];
-			if ($hooks) {
-				foreach ($this->getHooks('beforeGet') as $name) {
-					// hook arguments: key, value, is_relation, type
-					$value = $this->{$name}($key, $value, false, static::$columns[$key]);
-				}
-			}
-			return $value;
-		} elseif (isset(static::$relations) && array_key_exists($key, static::$relations)) {
-			if (!array_key_exists($key, $this->_relation_cache)) {
-				$this->_relation_cache[$key] = $this->getRelated($key);
-			}
-			$value = $this->_relation_cache[$key];
-			if ($hooks) {
-				foreach ($this->getHooks('beforeGet') as $name) {
-					// hook arguments: key, value, is_relation, type (always null in case of relation)
-					$value = $this->{$name}($key, $value, true, null);
-				}
-			}
-			return $value;
+		if (!static::columnExists($key)) {
+			$class_name = get_called_class();
+			throw new \Exception("Column $key is not defined in model $class_name");
 		}
-		$class_name = get_called_class();
-		throw new \Exception("Column $key is not defined in model $class_name");
+		if (!array_key_exists($key, $this->_data)) return null;
+		$value = $this->_data[$key];
+		if ($hooks) {
+			foreach ($this->getHooks('beforeGet') as $name) {
+				// hook arguments: key, value, is_relation, type
+				$value = $this->{$name}($key, $value, false, static::$columns[$key]);
+			}
+		}
+		return $value;
 	}
 
 	public function __get(string $key) {
@@ -770,17 +710,18 @@ class BaseModel {
 	}
 
 	public function set(string $key, $value, bool $hooks = true) {
-		if (!array_key_exists($key, static::$columns)) {
+		if (!static::columnExists($key)) {
 			$class_name = get_called_class();
 			throw new \Exception("Column $key is not defined in model $class_name");
 		}
+		$type = static::$columns[$key];
 		foreach ($this->getHooks('beforeSet') as $name) {
-			$value = $this->{$name}($key, $value, static::$columns[$key]);
+			$value = $this->{$name}($key, $value, $type);
 		}
 		$original_data = $this->get($key, false);
 		if ($value === null) {
 			$this->_data[$key] = null;
-		} elseif (static::$columns[$key] === 'date') {
+		} elseif ($type === 'date') {
 			if ($value instanceof \DateTime) {
 				$this->_data[$key] = $value;
 			} elseif (is_string($value)) {
@@ -791,7 +732,7 @@ class BaseModel {
 				throw new \InvalidArgumentException('Date values must be an instance of DateTime, a string or an int');
 			}
 		} else {
-			settype($value, static::$columns[$key]);
+			settype($value, $type);
 			$this->_data[$key] = $value;
 		}
 		if (!in_array($key, $this->_modified_columns)) {
@@ -799,7 +740,7 @@ class BaseModel {
 			$this->_modified_columns[] = $key;
 		}
 		foreach ($this->getHooks('afterSet') as $name) {
-			$this->{$name}($key, $value, static::$columns[$key]);
+			$this->{$name}($key, $value, $type);
 		}
 		return $this;
 	}
@@ -808,23 +749,23 @@ class BaseModel {
 		$this->set($key, $value);
 	}
 
-	public function __call(string $name, array $arguments) {
-		$name_snake = Casing::camelToSnake($name);
-		$key_snake = substr($name_snake, 4);
-		if (array_key_exists($key_snake, static::$columns) ||
-			isset(static::$relations) && array_key_exists($key_snake, static::$relations)) {
-			switch (substr($name_snake, 0, 4)) {
-				case 'get_':
-					return $this->__get($key_snake);
-				case 'set_':
+	public function __call(string $function_name, array $arguments) {
+		$parts = explode('_', Casing::camelToSnake($function_name), 2);
+		$method = $parts[0];
+		$key = count($parts) > 1 ? $parts[1] : '';
+		if (static::canGetOrSet($key)) {
+			switch ($method) {
+				case 'get':
+					return $this->__get($key);
+				case 'set':
 					if (count($arguments) === 0) {
 						throw new \InvalidArgumentException('Setters must be called with a key and value');
 					}
-					$this->__set($key_snake, $arguments[0]);
+					$this->__set($key, $arguments[0]);
 					return $this;
 			}
 		}
 		$class_name = get_called_class();
-		throw new \Exception("Method $name not defined in model $class_name");
+		throw new \Exception("Method $method not defined in model $class_name");
 	}
 }

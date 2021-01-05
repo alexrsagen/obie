@@ -3,6 +3,52 @@ use \Obie\Formatters\EnglishNoun;
 
 trait RelationTrait {
 	protected static $relations = [];
+	protected $_relation_cache  = [];
+
+	public static function getAllRelations(): array {
+		return array_keys(static::$relations);
+	}
+
+	public static function relationExists(string $name): bool {
+		return array_key_exists($name, static::$relations);
+	}
+
+	public static function relationsExist(string ...$names): bool {
+		return empty(array_diff($names, static::getAllRelations()));
+	}
+
+	protected static function canGetOrSet(string $name): bool {
+		return static::columnExists($name) || static::relationExists($name);
+	}
+
+	public function get(string $key, bool $hooks = true) {
+		if (static::columnExists($key)) {
+			if (!array_key_exists($key, $this->_data)) return null;
+			$value = $this->_data[$key];
+			if ($hooks) {
+				foreach ($this->getHooks('beforeGet') as $name) {
+					// hook arguments: key, value, is_relation, type
+					$value = $this->{$name}($key, $value, false, static::$columns[$key]);
+				}
+			}
+			return $value;
+		} elseif (static::relationExists($key)) {
+			if (!array_key_exists($key, $this->_relation_cache)) {
+				$this->_relation_cache[$key] = $this->getRelated($key);
+				if (!$this->_relation_cache[$key]) $this->_relation_cache[$key] = null;
+			}
+			$value = $this->_relation_cache[$key];
+			if ($hooks) {
+				foreach ($this->getHooks('beforeGet') as $name) {
+					// hook arguments: key, value, is_relation, type (always null in case of relation)
+					$value = $this->{$name}($key, $value, true, null);
+				}
+			}
+			return $value;
+		}
+		$class_name = get_called_class();
+		throw new \Exception("Column $key is not defined in model $class_name");
+	}
 
 	public function getRelated(string $relation_name, array $options = [], bool $count = false) {
 		if (is_string($options)) {
