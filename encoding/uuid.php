@@ -4,7 +4,7 @@ class Uuid {
 	const PREFIX_URN = 'urn:uuid:';
 
 	public static function decode(string $uuid) {
-		$uuid = hex2bin(str_replace(array('-', '{', '}', self::PREFIX_URN), '', $uuid));
+		$uuid = hex2bin(str_replace(['-', '{', '}', self::PREFIX_URN], '', $uuid));
 		if (!$uuid || strlen($uuid) !== 16) {
 			throw new \Exception('Invalid UUID');
 		}

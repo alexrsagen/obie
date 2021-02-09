@@ -81,49 +81,49 @@ class QuotedString {
 
 	public static function extract(string $input, int &$position, bool $extract_value = false): ?string {
 		// https://fetch.spec.whatwg.org/#collect-an-http-quoted-string
-		// 2.2.1: Let positionStart be position.
+		// 1. Let positionStart be position.
 		$position_start = $position;
-		// 2.2.2: Let value be the empty string.
+		// 2. Let value be the empty string.
 		$value = '';
-		// 2.2.3: Assert: the code point at position within input is U+0022 (").
+		// 3. Assert: the code point at position within input is U+0022 (").
 		if ($input[$position] !== '"') return null;
-		// 2.2.4: Advance position by 1.
+		// 4. Advance position by 1.
 		$position++;
-		// 2.2.5: While true:
+		// 5. While true:
 		while (true) {
-			// 2.2.5.1: Append the result of collecting a sequence of code points that are not U+0022 (") or U+005C (\) from input, given position, to value.
+			// 5.1. Append the result of collecting a sequence of code points that are not U+0022 (") or U+005C (\) from input, given position, to value.
 			for (; $position < strlen($input) && $input[$position] !== '"' && $input[$position] !== '\\'; $position++) {
 				$value .= $input[$position];
 			}
-			// 2.2.5.2: If position is past the end of input, then break.
+			// 5.2. If position is past the end of input, then break.
 			if ($position >= strlen($input)) break;
-			// 2.2.5.3: Let quoteOrBackslash be the code point at position within input.
+			// 5.3. Let quoteOrBackslash be the code point at position within input.
 			$quote_or_backslash = $input[$position];
-			// 2.2.5.4: Advance position by 1.
+			// 5.4. Advance position by 1.
 			$position++;
-			// 2.2.5.5: If quoteOrBackslash is U+005C (\), then:
+			// 5.5. If quoteOrBackslash is U+005C (\), then:
 			if ($quote_or_backslash === '\\') {
-				// 2.2.5.5.1: If position is past the end of input, then append U+005C (\) to value and break.
+				// 5.5.1. If position is past the end of input, then append U+005C (\) to value and break.
 				if ($position >= strlen($input)) {
 					$value .= '\\';
 					break;
 				}
-				// 2.2.5.5.2: Append the code point at position within input to value.
+				// 5.5.2. Append the code point at position within input to value.
 				$value .= $input[$position];
-				// 2.2.5.5.3: Advance position by 1.
+				// 5.5.3. Advance position by 1.
 				$position++;
 			}
-			// 2.2.5.6: Otherwise:
+			// 5.6. Otherwise:
 			else {
-				// 2.2.5.6.1: Assert: quoteOrBackslash is U+0022 (").
+				// 5.6.1. Assert: quoteOrBackslash is U+0022 (").
 				if ($quote_or_backslash !== '"') return null;
-				// 2.2.5.6.2: Break.
+				// 5.6.2. Break.
 				break;
 			}
 		}
-		// 2.2.6: If the extract-value flag is set, then return value.
+		// 6. If the extract-value flag is set, then return value.
 		if ($extract_value) return $value;
-		// 2.2.7: Return the code points from positionStart to position, inclusive, within input.
+		// 7. Return the code points from positionStart to position, inclusive, within input.
 		return substr($input, $position_start, $position - $position_start);
 	}
 }

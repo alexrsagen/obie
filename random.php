@@ -34,7 +34,7 @@ class Random {
 			$part_prng = random_bytes(32);
 			hash_update($hash_ctx, $part_prng);
 		}
-		$id_hex = hash_final($hash_ctx, false);
+		$id_hex = hash_final($hash_ctx, true);
 
 		// Convert 32-byte snowflake hash to two 16-byte number parts and XOR them together
 		$id_l_gmp = gmp_init(substr($id_hex, 0, 16), 16);
