@@ -64,7 +64,7 @@ trait BodyTrait {
 		return match($type) {
 			'int' => (int)$value_single,
 			'float' => (float)$value_single,
-			'bool' => $value_single === '1' || $value_single === 'true' || $value_single === 'yes',
+			'bool' => $value_single === true || $value_single === 1 || $value_single === '1' || $value_single === 'true' || $value_single === 'yes',
 			'string' => (string)$value_single,
 			'array' => is_array($value) ? $value : [$value],
 			default => $value,
