@@ -1,4 +1,5 @@
 <?php namespace Obie;
+use \Obie\Encoding\Querystring;
 
 class Tel {
 	const FMT_NUM = 'num'; // Just the number, no prefix or calling code
@@ -8,6 +9,8 @@ class Tel {
 	const FMT_INT = 'int'; // E.164 with international prefix, calling code
 	const FMT_EPP = 'epp'; // E.164 with international prefix, dot, calling code
 	const FMT_TEL = 'tel'; // RFC3966
+
+	const NON_DIGIT_REGEX = '/[^\d\x{FF10}-\x{FF19}\x{0660}-\x{0669}\x{06F0}-\x{06F9}a-zA-Z\s()\.-]/u';
 
 	protected $fmt = '';
 	protected $int = '';
@@ -180,7 +183,7 @@ class Tel {
 		// a part of the number
 		$num_len = strlen($number) - $offset;
 		for ($i = $offset; $i < strlen($number); $i++) {
-			if (preg_match('/[^\d\x{FF10}-\x{FF19}\x{0660}-\x{0669}\x{06F0}-\x{06F9}a-zA-Z\s()\.-]/u', $number[$i]) === 1) {
+			if (preg_match(self::NON_DIGIT_REGEX, $number[$i]) === 1) {
 				$num_len = $i - $offset;
 				break;
 			}
@@ -201,7 +204,7 @@ class Tel {
 			// find extension length by finding first non-digit char
 			$ext_len = strlen($number) - $offset;
 			for ($i = $offset; $i < strlen($number); $i++) {
-				if (preg_match('/[^\d\x{FF10}-\x{FF19}\x{0660}-\x{0669}\x{06F0}-\x{06F9}a-zA-Z\s()\.-]/u', $number[$i]) === 1) {
+				if (preg_match(self::NON_DIGIT_REGEX, $number[$i]) === 1) {
 					$ext_len = $i - $offset;
 					break;
 				}
@@ -229,6 +232,33 @@ class Tel {
 		}
 
 		return $res;
+	}
+
+	public function getMetadataFormat(): ?array {
+		foreach (self::METADATA[$this->cc]['formats'] as $format) {
+			if (
+				preg_match($format['pattern'], $this->num) === 1 &&
+				(
+					!array_key_exists('leadingDigits', $format) ||
+					preg_match($format['leadingDigits'], $this->num) === 1
+				)
+			) return $format;
+		}
+		return null;
+	}
+
+	public function stripDuplicateCC(): self {
+		if (array_key_exists($this->cc, self::METADATA)) {
+			$tmp_num = $this->num;
+			while ($this->getMetadataFormat() === null && str_starts_with($this->num, $this->cc)) {
+				$this->num = substr($this->num, strlen($this->cc));
+			}
+			if ($this->getMetadataFormat() === null) {
+				// number still does not match any formats, restore original number
+				$this->num = $tmp_num;
+			}
+		}
+		return $this;
 	}
 
 	public function format(?string $fmt = null): string {
@@ -268,19 +298,7 @@ class Tel {
 		if (array_key_exists($this->cc, self::METADATA) && ($fmt === self::FMT_LOC || $fmt === self::FMT_NAT)) {
 			// local formatting
 			// find matching format
-			$format = null;
-			foreach (self::METADATA[$this->cc]['formats'] as $v) {
-				if (
-					preg_match($v['pattern'], $this->num) === 1 &&
-					(
-						!array_key_exists('leadingDigits', $v) ||
-						preg_match($v['leadingDigits'], $this->num) === 1
-					)
-				) {
-					$format = $v;
-					break;
-				}
-			}
+			$format = $this->getMetadataFormat();
 			// apply formatting if possible
 			if ($format !== null) {
 				$res .= preg_replace($format['pattern'], $format['format'], $this->num);
