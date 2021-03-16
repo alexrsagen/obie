@@ -46,7 +46,7 @@ class Tel {
 	public function getExt(): string {
 		return $this->ext;
 	}
-	public function getParams(): string {
+	public function getParams(): array {
 		return $this->params;
 	}
 
