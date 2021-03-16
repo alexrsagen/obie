@@ -254,15 +254,15 @@ class App {
 		self::$router->vars->set('req', Request::current());
 		$res = Response::current();
 		self::$router->vars->set('res', $res);
-		$res->setHeader('content-security-policy', "img-src data: 'self' " .
+		$res?->setHeader('content-security-policy', "img-src data: 'self' " .
 			implode(' ', self::$config->get('server', 'csp_sources', 'img') ?? []) . "; media-src 'self' " .
 			implode(' ', self::$config->get('server', 'csp_sources', 'media') ?? []) . "; script-src 'self' 'nonce-$nonce' " .
 			implode(' ', self::$config->get('server', 'csp_sources', 'script') ?? []) . "; style-src 'self' 'unsafe-inline' " .
 			implode(' ', self::$config->get('server', 'csp_sources', 'style') ?? []) . "");
-		$res->setHeader('x-xss-protection', '1; mode=block');
-		$res->setHeader('referrer-policy', 'strict-origin-when-cross-origin');
-		$res->setHeader('x-frame-options', 'SAMEORIGIN');
-		$res->setHeader('date', gmdate('D, d M Y H:i:s T', time()));
+		$res?->setHeader('x-xss-protection', '1; mode=block');
+		$res?->setHeader('referrer-policy', 'strict-origin-when-cross-origin');
+		$res?->setHeader('x-frame-options', 'SAMEORIGIN');
+		$res?->setHeader('date', gmdate('D, d M Y H:i:s T', time()));
 		return true;
 	}
 
