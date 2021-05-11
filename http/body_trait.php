@@ -5,8 +5,6 @@ use \Obie\Encoding\Multipart\FormData;
 use \Obie\Encoding\Json;
 
 trait BodyTrait {
-	const BOOLISH_TRUE = [1, '1', true, 'true', 'yes'];
-
 	protected string $body = '';
 	protected mixed $body_data = null;
 
@@ -69,7 +67,7 @@ trait BodyTrait {
 		return match($type) {
 			'int' => (int)$value,
 			'float' => (float)$value,
-			'bool' => in_array($value, self::BOOLISH_TRUE, true),
+			'bool' => in_array($value, [1, '1', true, 'true', 'yes'], true),
 			'string' => (string)$value,
 			'array' => is_array($value) ? $value : [$value],
 			default => $value,
