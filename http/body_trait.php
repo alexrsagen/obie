@@ -5,6 +5,8 @@ use \Obie\Encoding\Multipart\FormData;
 use \Obie\Encoding\Json;
 
 trait BodyTrait {
+	const BOOLISH_TRUE = [1, '1', true, 'true', 'yes'];
+
 	protected string $body = '';
 	protected mixed $body_data = null;
 
@@ -54,18 +56,21 @@ trait BodyTrait {
 		$path = explode('.', $key);
 		$value = $data;
 		foreach ($path as $k) {
-			if (!is_array($value) || !array_key_exists($k, $value)) {
-				$value = $fallback;
-				break;
-			}
+			if (!is_array($value) || !array_key_exists($k, $value)) return $fallback;
 			$value = $value[$k];
 		}
-		$value_single = is_array($value) ? (array_key_exists(0, $value) ? $value[0] : $fallback) : $value;
+		// If the type represents a single value and the value is an array,
+		// return the first value from the array.
+		if (in_array($type, ['int', 'float', 'bool', 'string'], true) && is_array($value)) {
+			$keys = array_keys($value);
+			$value = count($keys) === 0 ? null : $value[$keys[0]];
+		}
+		if ($value === null || $value === $fallback) return $fallback;
 		return match($type) {
-			'int' => (int)$value_single,
-			'float' => (float)$value_single,
-			'bool' => $value_single === true || $value_single === 1 || $value_single === '1' || $value_single === 'true' || $value_single === 'yes',
-			'string' => (string)$value_single,
+			'int' => (int)$value,
+			'float' => (float)$value,
+			'bool' => in_array($value, self::BOOLISH_TRUE, true),
+			'string' => (string)$value,
 			'array' => is_array($value) ? $value : [$value],
 			default => $value,
 		};

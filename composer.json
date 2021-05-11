@@ -1,6 +1,6 @@
 {
     "name": "alexrsagen/obie",
-    "version": "1.1.7",
+    "version": "1.1.8",
     "type": "framework",
     "description": "Obie is a simple PHP framework. It aims to provide basic services needed for any web app.",
     "keywords": ["framework", "php", "http", "template", "view", "router", "routing", "model", "models", "session", "sessions"],
