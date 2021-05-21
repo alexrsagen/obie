@@ -50,7 +50,7 @@ trait HeaderTrait {
 
 	public function setRawHeaders(string $input): static {
 		$headers = [];
-		foreach (explode("\n", $input) as $i => $line) {
+		foreach (explode("\n", $input) as $line) {
 			$kv = explode(':', trim($line, "\n\r\t "), 2);
 			$key = static::normalizeHeaderKey(rtrim($kv[0], "\n\r\t "));
 			if (empty($key)) continue;

@@ -170,7 +170,7 @@ class Response {
 		string $body = '',
 		protected array $errors = [],
 		protected int $code = 0,
-		array $headers = [],
+		array|string $headers = [],
 		mixed $body_data = null,
 		string|Mime|null $content_type = null,
 		?AcceptHeader $accept = null,
@@ -178,7 +178,11 @@ class Response {
 		protected string $html_suffix = '',
 		protected bool $minify = true,
 	) {
-		$this->setHeaders($headers);
+		if (is_string($headers)) {
+			$this->setRawHeaders($headers);
+		} else {
+			$this->setHeaders($headers);
+		}
 		if ($content_type !== null) {
 			$this->setContentType($content_type);
 		}

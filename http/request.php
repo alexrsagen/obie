@@ -319,7 +319,6 @@ class Request {
 			$res_headerstr = substr($res_headerstr, $res_headerstr_startpos);
 		}
 
-		return (new Response($res_body, code: (int)$res_code))
-			->setRawHeaders($res_headerstr);
+		return new Response($res_body, code: (int)$res_code, headers: $res_headerstr);
 	}
 }
