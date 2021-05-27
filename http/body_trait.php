@@ -8,6 +8,11 @@ trait BodyTrait {
 	protected string $body = '';
 	protected mixed $body_data = null;
 
+	// From \Obie\Http\HeaderTrait
+
+	abstract public function getContentType(): ?Mime;
+	abstract public function setHeader(string $key, string $value): static;
+
 	// Initializers
 
 	protected function initBody(string $body, mixed $body_data) {
