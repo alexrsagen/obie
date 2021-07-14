@@ -25,7 +25,7 @@ class ModelHelpers {
 		return implode(',', $set_parts);
 	}
 
-	public static function getEscapedWhere(array $column_names = [], string $table_prefix = null) {
+	public static function getEscapedWhere(array $column_names = [], string $table_prefix = null, string $kind = 'AND') {
 		$where_parts = [];
 		foreach ($column_names as $i => $key) {
 			$where_parts[$i] = '';
@@ -34,7 +34,7 @@ class ModelHelpers {
 			}
 			$where_parts[$i] .= static::getEscapedSource($key) . ' = ?';
 		}
-		return implode(' AND ', $where_parts);
+		return implode(' ' . trim($kind) . ' ', $where_parts);
 	}
 
 	public static function getEscapedOn(array $source_column_names = [], string $source_table_prefix = null,
