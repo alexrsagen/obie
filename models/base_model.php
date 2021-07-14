@@ -375,7 +375,7 @@ class BaseModel {
 		// Create model instance
 		$model = new static();
 		foreach ($result[0] as $key => $val) {
-			$model->{$key} = $val;
+			$model->set($key, $val, false);
 		}
 
 		// Run post-load hooks
@@ -420,7 +420,7 @@ class BaseModel {
 		foreach ($result as $row) {
 			$model = new static();
 			foreach ($row as $key => $val) {
-				$model->{$key} = $val;
+				$model->set($key, $val, false);
 			}
 
 			// Run post-load hooks
@@ -544,7 +544,7 @@ class BaseModel {
 
 		if ($retval) {
 			if (count(static::getPrimaryKeys()) === 1) {
-				$this->{static::getPrimaryKeys()[0]} = $id;
+				$this->set(static::getPrimaryKeys()[0], $id, false);
 			}
 
 			// Run post-create hooks
@@ -715,8 +715,10 @@ class BaseModel {
 			throw new \Exception("Column $key is not defined in model $class_name");
 		}
 		$type = static::$columns[$key];
-		foreach ($this->getHooks('beforeSet') as $name) {
-			$value = $this->{$name}($key, $value, $type);
+		if ($hooks) {
+			foreach ($this->getHooks('beforeSet') as $name) {
+				$value = $this->{$name}($key, $value, $type);
+			}
 		}
 		$original_data = $this->get($key, false);
 		if ($value === null) {
@@ -739,8 +741,10 @@ class BaseModel {
 			$this->_original_data[$key] = $original_data;
 			$this->_modified_columns[] = $key;
 		}
-		foreach ($this->getHooks('afterSet') as $name) {
-			$this->{$name}($key, $value, $type);
+		if ($hooks) {
+			foreach ($this->getHooks('afterSet') as $name) {
+				$this->{$name}($key, $value, $type);
+			}
 		}
 		return $this;
 	}
