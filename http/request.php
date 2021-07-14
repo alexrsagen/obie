@@ -150,7 +150,7 @@ class Request {
 	}
 
 	public function getQueryString(int $numeric_type = Querystring::NUMERIC_TYPE_INDEXED): string {
-		return Querystring::encode($this->getQuery());
+		return Querystring::encode($this->getQuery(), $numeric_type);
 	}
 
 	public function getMethod(): string {
@@ -227,8 +227,8 @@ class Request {
 		return $this;
 	}
 
-	public function setQueryString(string $qs, int $numeric_type = Querystring::NUMERIC_TYPE_INDEXED): static {
-		$this->query = Querystring::decode($qs, numeric_type: $numeric_type);
+	public function setQueryString(string $qs): static {
+		$this->query = Querystring::decode($qs);
 		return $this;
 	}
 
@@ -247,7 +247,7 @@ class Request {
 		return $this;
 	}
 
-	public function setURL(string $url, int $numeric_type = Querystring::NUMERIC_TYPE_INDEXED): static {
+	public function setURL(string $url): static {
 		$url = Url::decode($url);
 		if (!is_array($url)) return $this;
 		if (array_key_exists('scheme', $url)) $this->setScheme($url['scheme']);
@@ -256,7 +256,7 @@ class Request {
 		if (array_key_exists('host', $url)) $this->setHost($url['host']);
 		if (array_key_exists('port', $url)) $this->setRemotePort($url['port']);
 		if (array_key_exists('path', $url)) $this->setPath($url['path']);
-		if (array_key_exists('query', $url)) $this->setQueryString($url['query'], numeric_type: $numeric_type);
+		if (array_key_exists('query', $url)) $this->setQueryString($url['query']);
 		return $this;
 	}
 
