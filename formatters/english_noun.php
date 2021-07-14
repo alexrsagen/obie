@@ -6,7 +6,7 @@ class EnglishNoun {
 			return substr($name, 0, -3) . 'y';
 		} elseif (substr($name, -2) === 'es') {
 			return substr($name, -2);
-		} elseif (substr($name, -1) === 's') {
+		} elseif (substr($name, -1) === 's' && substr($name, -2, 1) !== 's') {
 			return substr($name, 0, -1);
 		}
 		return $name;
