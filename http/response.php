@@ -174,9 +174,9 @@ class Response {
 		mixed $body_data = null,
 		string|Mime|null $content_type = null,
 		?AcceptHeader $accept = null,
-		protected array $html_minify_options = [],
+		array $html_minify_options = [],
 		protected string $html_suffix = '',
-		protected bool $minify = true,
+		bool $minify = true,
 	) {
 		if (is_string($headers)) {
 			$this->setRawHeaders($headers);
@@ -189,6 +189,8 @@ class Response {
 		if ($accept !== null) {
 			$this->setAccept($accept);
 		}
+		$this->setHTMLMinifyOptions($html_minify_options);
+		$this->setMinify($minify);
 		$this->initBody($body, $body_data);
 	}
 
@@ -254,16 +256,8 @@ class Response {
 		return null;
 	}
 
-	public function getHTMLMinifyOptions(): array {
-		return $this->html_minify_options;
-	}
-
 	public function getHTMLSuffix(): string {
 		return $this->html_suffix;
-	}
-
-	public function getMinify(): bool {
-		return $this->minify;
 	}
 
 	// Setters
@@ -278,18 +272,8 @@ class Response {
 		return $this;
 	}
 
-	public function setHTMLMinifyOptions(array $options): static {
-		$this->html_minify_options = $options;
-		return $this;
-	}
-
 	public function setHTMLSuffix(string $suffix): static {
 		$this->html_suffix = $suffix;
-		return $this;
-	}
-
-	public function setMinify(bool $minify): static {
-		$this->minify = $minify;
 		return $this;
 	}
 

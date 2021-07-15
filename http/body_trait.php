@@ -3,10 +3,13 @@ use \Obie\Encoding\Querystring;
 use \Obie\Encoding\Multipart;
 use \Obie\Encoding\Multipart\FormData;
 use \Obie\Encoding\Json;
+use \Obie\Minify;
 
 trait BodyTrait {
 	protected string $body = '';
 	protected mixed $body_data = null;
+	protected array $html_minify_options = [];
+	protected bool $minify = true;
 
 	// From \Obie\Http\HeaderTrait
 
@@ -49,7 +52,12 @@ trait BodyTrait {
 		case 'application/x-www-form-urlencoded':
 			return Querystring::encode($input);
 		case 'application/json':
-			return Json::encode($input);
+			return Json::encode($input, $this->minify ? 0 : JSON_PRETTY_PRINT);
+		case 'text/html':
+			if ($this->minify) {
+				return Minify::HTML((string)$input, $this->html_minify_options);
+			}
+			break;
 		}
 		return (string)$input;
 	}
@@ -89,6 +97,14 @@ trait BodyTrait {
 		return $this->body;
 	}
 
+	public function getHTMLMinifyOptions(): array {
+		return $this->html_minify_options;
+	}
+
+	public function getMinify(): bool {
+		return $this->minify;
+	}
+
 	// Setters
 
 	public function setRawBody(string $body): static {
@@ -102,6 +118,16 @@ trait BodyTrait {
 		$this->body = $this->encodeBody($body);
 		$this->body_data = $body;
 		$this->setHeader('content-length', (string)strlen($this->body));
+		return $this;
+	}
+
+	public function setHTMLMinifyOptions(array $options): static {
+		$this->html_minify_options = $options;
+		return $this;
+	}
+
+	public function setMinify(bool $minify): static {
+		$this->minify = $minify;
 		return $this;
 	}
 }
