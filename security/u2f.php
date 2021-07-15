@@ -65,7 +65,7 @@ class U2f {
 		foreach ($raw_key_handles as $key_handle_raw) {
 			$key = [
 				'version'   => 'U2F_V2',
-				'keyHandle' => Base64Url::encode($key_handle_raw)
+				'keyHandle' => Base64Url::encodeUnpadded($key_handle_raw)
 			];
 			if ($transports !== null) {
 				$key['transports'] = $transports;
