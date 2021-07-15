@@ -5,6 +5,7 @@ class RouterInstance {
 	const OK              = 1;
 	const ENOT_FOUND      = -1;
 	const EINVALID_METHOD = -2;
+	const ENO_CONTENT     = -3;
 
 	public $vars;
 
@@ -48,7 +49,6 @@ class RouterInstance {
 		foreach ($this->routes as $route) {
 			switch ($route->execute($method, $path)) {
 			case Route::EINVALID_METHOD:
-				if (!$route->isRouteCatchall()) $matched = true;
 				$invalid_method = true;
 				break;
 			case Route::OK_NO_RESPONSE:
@@ -69,6 +69,8 @@ class RouterInstance {
 		}
 		if ($responded) {
 			return self::OK;
+		} elseif ($matched) {
+			return self::ENO_CONTENT;
 		} elseif ($invalid_method) {
 			return self::EINVALID_METHOD;
 		}
