@@ -25,14 +25,19 @@ class ModelHelpers {
 		return implode(',', $set_parts);
 	}
 
-	public static function getEscapedWhere(array $column_names = [], string $table_prefix = null, string $kind = 'AND') {
+	public static function getEscapedWhere(array $column_names = [], string $table_prefix = null, string $kind = 'AND', string $op = '=', int $value_count = 1) {
 		$where_parts = [];
 		foreach ($column_names as $i => $key) {
 			$where_parts[$i] = '';
 			if ($table_prefix !== null) {
 				$where_parts[$i] .= static::getEscapedSource($table_prefix) . '.';
 			}
-			$where_parts[$i] .= static::getEscapedSource($key) . ' = ?';
+			$where_parts[$i] .= static::getEscapedSource($key) . ' ';
+			if (in_array(strtoupper($op), ['IN', 'NOT IN'], true)) {
+				$where_parts[$i] .= $op . '(' . implode(',', array_fill(0, $value_count, '?')) . ')';
+			} else {
+				$where_parts[$i] .= $op . ' ?';
+			}
 		}
 		return implode(' ' . trim($kind) . ' ', $where_parts);
 	}
