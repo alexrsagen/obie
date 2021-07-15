@@ -467,7 +467,7 @@ class BaseModel {
 		// Build query options
 		$pk_list = static::getPrimaryKeys();
 		$options = [
-			'conditions' => ModelHelpers::getEscapedWhere($pk_list),
+			'conditions' => ModelHelpers::getEscapedWhere($pk_list, static::getSource()),
 			'bind'       => [],
 			'read_only'  => true
 		];
@@ -531,7 +531,7 @@ class BaseModel {
 		}
 
 		// Update database
-		$stmt = static::getDatabase()->prepare('INSERT INTO ' . static::getEscapedSource() . ' SET ' . ModelHelpers::getEscapedSet($this->_modified_columns));
+		$stmt = static::getDatabase()->prepare('INSERT INTO ' . static::getEscapedSource() . ' SET ' . ModelHelpers::getEscapedSet($this->_modified_columns, static::getSource()));
 		$this->bindValues($stmt, $this->_modified_columns);
 		$this->_error = null;
 		try {
@@ -566,7 +566,7 @@ class BaseModel {
 
 		// Update database
 		$pk_list = static::getPrimaryKeys();
-		$stmt = static::getDatabase()->prepare('UPDATE ' . static::getEscapedSource() . ' SET ' . ModelHelpers::getEscapedSet($this->_modified_columns) . ' WHERE ' . ModelHelpers::getEscapedWhere($pk_list) . ' LIMIT 1');
+		$stmt = static::getDatabase()->prepare('UPDATE ' . static::getEscapedSource() . ' SET ' . ModelHelpers::getEscapedSet($this->_modified_columns, static::getSource()) . ' WHERE ' . ModelHelpers::getEscapedWhere($pk_list, static::getSource()) . ' LIMIT 1');
 		$i = $this->bindValues($stmt, $this->_modified_columns);
 		$this->bindValues($stmt, $pk_list, $i);
 		$this->_error = null;
@@ -595,7 +595,7 @@ class BaseModel {
 		}
 
 		$pk_list = static::getPrimaryKeys();
-		$stmt = static::getDatabase()->prepare('DELETE FROM ' . static::getEscapedSource() . ' WHERE ' . ModelHelpers::getEscapedWhere($pk_list) . ' LIMIT 1');
+		$stmt = static::getDatabase()->prepare('DELETE FROM ' . static::getEscapedSource() . ' WHERE ' . ModelHelpers::getEscapedWhere($pk_list, static::getSource()) . ' LIMIT 1');
 		$this->bindValues($stmt, $pk_list);
 		$this->_error = null;
 		try {
