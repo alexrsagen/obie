@@ -67,14 +67,20 @@ class ModelCollection implements \ArrayAccess, \IteratorAggregate, \Countable, \
 		return $arr;
 	}
 
-	public function getRelated(string $relation_name, array $options = []) {
-		$results = new static();
+	public function getRelated(string $relation_name, array $options = [], bool $count = false): static|int {
+		if ($count) {
+			$results = 0;
+		} else {
+			$results = new static();
+		}
 		foreach ($this->models as $model) {
-			$model_results = $model->getRelated($relation_name, $options);
+			$model_results = $model->getRelated($relation_name, $options, $count);
 			if ($model_results instanceof static) {
 				foreach ($model_results as $model_result) {
 					$results[] = $model_result;
 				}
+			} elseif (is_int($model_results) && $count) {
+				$results += $model_results;
 			} else {
 				$results[] = $model_results;
 			}
