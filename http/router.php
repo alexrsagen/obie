@@ -344,7 +344,7 @@ class Router {
 	}
 
 	public static function unsetResponseHeaders(array $names) {
-		Response::current()->unsetHeaders($name);
+		Response::current()->unsetHeaders($names);
 	}
 
 	public static function vars(): VarCollection {
