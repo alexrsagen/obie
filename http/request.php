@@ -21,6 +21,8 @@ class Request {
 
 	// Initializers
 
+	protected array $query = [];
+
 	public function __construct(
 		public string $method = self::METHOD_GET,
 		string $url = '',
@@ -31,7 +33,7 @@ class Request {
 		public string $remote_ip = '',
 		public int $remote_port = 0,
 		public string $path = '',
-		public array $query = [],
+		array $query = [],
 		array $headers = [],
 		?Mime $content_type = null,
 		?AcceptHeader $accept = null,
