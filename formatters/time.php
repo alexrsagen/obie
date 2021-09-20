@@ -36,23 +36,19 @@ class Time {
 								return 'just now';
 							}
 							// Same minute
-							$offset = (int)date('s', $now) - (int)date('s', $input);
-							$offset = ($offset < 0 ? -$offset : $offset);
+							$offset = abs((int)date('s', $now) - (int)date('s', $input));
 							return sprintf('%s%d second%s%s', $prefix, $offset, ($offset > 1 ? 's' : ''), $suffix);
 						}
 						// Same hour
-						$offset = (int)date('i', $now) - (int)date('i', $input);
-						$offset = ($offset < 0 ? -$offset : $offset);
+						$offset = abs((int)date('i', $now) - (int)date('i', $input));
 						return sprintf('%s%d minute%s%s', $prefix, $offset, ($offset > 1 ? 's' : ''), $suffix);
 					}
 					// Same day
-					$offset = (int)date('G', $now) - (int)date('G', $input);
-					$offset = ($offset < 0 ? -$offset : $offset);
+					$offset = abs((int)date('G', $now) - (int)date('G', $input));
 					return sprintf('%s%d hour%s%s', $prefix, $offset, ($offset > 1 ? 's' : ''), $suffix);
 				}
 				// Same month
-				$offset = (int)date('j', $now) - (int)date('j', $input);
-				$offset = ($offset < 0 ? -$offset : $offset);
+				$offset = abs((int)date('j', $now) - (int)date('j', $input));
 				return sprintf('%s%d day%s%s', $prefix, $offset, ($offset > 1 ? 's' : ''), $suffix);
 			}
 			// Same year
