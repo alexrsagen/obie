@@ -1,5 +1,6 @@
 <?php namespace Obie\Http;
 
+// QuotedString implements an RFC 7230 HTTP quoted-string encoder/decoder.
 class QuotedString {
 	// An HTTP quoted-string token code point is U+0009 TAB, a code point in the range U+0020 SPACE to U+007E (~), inclusive, or a code point in the range U+0080 through U+00FF (ÿ), inclusive.
 	// https://mimesniff.spec.whatwg.org/#http-quoted-string-token-code-point
@@ -66,7 +67,7 @@ class QuotedString {
 	}
 
 	public static function getOffset(string $input, int $offset = 0): ?int {
-		$offset = strpos($str, '"', $offset);
+		$offset = strpos($input, '"', $offset);
 		if ($offset === false) return null;
 		return $offset;
 	}
