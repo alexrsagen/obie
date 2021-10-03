@@ -98,7 +98,7 @@ class App {
 		if (php_sapi_name() === 'cli') return true;
 		if (self::$config->get('host_redirect')) {
 			$desired_host = substr(self::$config->get('url'), strpos(self::$config->get('url'), '://') + 3);
-			if (Request::current()->getHost() !== $desired_host) {
+			if (Request::current()?->getHost() !== $desired_host) {
 				Router::redirect($_SERVER['REQUEST_URI']);
 				return false;
 			}
@@ -112,7 +112,7 @@ class App {
 		if (php_sapi_name() === 'cli') return true;
 		if (self::$config->get('scheme_redirect')) {
 			$desired_scheme = substr(self::$config->get('url'), 0, strpos(self::$config->get('url'), '://'));
-			if (Request::current()->getScheme() !== $desired_scheme) {
+			if (Request::current()?->getScheme() !== $desired_scheme) {
 				Router::redirect($_SERVER['REQUEST_URI']);
 				return false;
 			}
@@ -446,7 +446,7 @@ class App {
 			}
 
 			if (self::$app::initRouter()) {
-				Response::current()->setCode(Response::HTTP_INTERNAL_SERVER_ERROR);
+				Response::current()?->setCode(Response::HTTP_INTERNAL_SERVER_ERROR);
 				if (self::$config->get('errors', 'dump')) {
 					Router::sendResponse($error_html);
 				} else {

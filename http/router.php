@@ -215,53 +215,53 @@ class Router {
 	}
 
 	public static function getPost(?string $key = null, string $type = 'raw', mixed $fallback = null) {
-		return Request::current()->getBody($key, $type, $fallback);
+		return Request::current()?->getBody($key, $type, $fallback);
 	}
 
 	public static function getPostBool(string $key) {
-		return Request::current()->getBody($key, 'bool', false);
+		return Request::current()?->getBody($key, 'bool', false);
 	}
 
 	public static function getQuery(?string $key = null, string $type = 'raw', mixed $fallback = null) {
-		return Request::current()->getQuery($key, $type, $fallback);
+		return Request::current()?->getQuery($key, $type, $fallback);
 	}
 
 	public static function getQueryBool(string $key) {
-		return Request::current()->getQuery($key, 'bool', false);
+		return Request::current()?->getQuery($key, 'bool', false);
 	}
 
 	public static function getRequestHeader(?string $key = null) {
-		return Request::current()->getHeader($key);
+		return Request::current()?->getHeader($key);
 	}
 
 	public static function getMethod() {
-		return Request::current()->getMethod();
+		return Request::current()?->getMethod();
 	}
 
 	public static function getRemoteAddress(bool $pack = false, bool $allow_x_forwarded_for = true) {
-		return Request::current()->getRemoteAddress($allow_x_forwarded_for ? 'x-forwarded-for' : null, $pack);
+		return Request::current()?->getRemoteAddress($allow_x_forwarded_for ? 'x-forwarded-for' : null, $pack);
 	}
 
 	public static function getRemotePort(): int {
-		return Request::current()->getRemotePort();
+		return Request::current()?->getRemotePort();
 	}
 
 	public static function getPath() {
-		return Request::current()->getPath();
+		return Request::current()?->getPath();
 	}
 
 	public static function getQueryString() {
-		$qs = Request::current()->getQueryString();
+		$qs = Request::current()?->getQueryString();
 		if (empty($qs)) return '';
 		return '?' . $qs;
 	}
 
 	public static function getScheme() {
-		return Request::current()->getScheme();
+		return Request::current()?->getScheme();
 	}
 
 	public static function getHost(bool $validate_strict = false) {
-		$host = Request::current()->getHost();
+		$host = Request::current()?->getHost();
 		if ($validate_strict && filter_var($host, FILTER_VALIDATE_DOMAIN, FILTER_FLAG_HOSTNAME) === false) {
 			return null;
 		}
@@ -316,35 +316,35 @@ class Router {
 	}
 
 	public static function setResponseCode(int $response_code) {
-		Response::current()->setCode($response_code);
+		Response::current()?->setCode($response_code);
 	}
 
 	public static function getResponseCode(): int {
-		return Response::current()->getCode();
+		return Response::current()?->getCode();
 	}
 
 	public static function getResponseCodeText(): string {
-		return Response::current()->getCodeText() ?? '';
+		return Response::current()?->getCodeText() ?? '';
 	}
 
 	public static function getResponseHeader(?string $name = null) {
-		return Response::current()->getHeader($name);
+		return Response::current()?->getHeader($name);
 	}
 
 	public static function setResponseHeader(string $name, string $value) {
-		Response::current()->setHeader($name, $value);
+		Response::current()?->setHeader($name, $value);
 	}
 
 	public static function setResponseHeaders(array $headers) {
-		Response::current()->setHeaders($headers);
+		Response::current()?->setHeaders($headers);
 	}
 
 	public static function unsetResponseHeader(string $name) {
-		Response::current()->unsetHeader($name);
+		Response::current()?->unsetHeader($name);
 	}
 
 	public static function unsetResponseHeaders(array $names) {
-		Response::current()->unsetHeaders($names);
+		Response::current()?->unsetHeaders($names);
 	}
 
 	public static function vars(): VarCollection {
