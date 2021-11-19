@@ -20,12 +20,13 @@ class AcceptHeader {
 	public function encode(): string {
 		return implode(',', array_filter(array_map(function($v) {
 			if (is_string($v)) $v = Mime::decode($v);
+			if ($v === null || !($v instanceof Mime)) return null;
 			$weight = $v->getParameter('q');
 			$v->parameters = [];
 			$v->setParameter('q', $weight);
 			return $v->encode();
 		}, $this->types), function($v) {
-			return $v instanceof Mime;
+			return !empty($v) && is_string($v) && $v !== '/';
 		}));
 	}
 
