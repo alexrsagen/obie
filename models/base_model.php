@@ -675,14 +675,18 @@ class BaseModel {
 	}
 
 	public function originalData(?string $key = null) {
-		if (!static::columnExists($key)) {
-			$class_name = get_called_class();
-			throw new \Exception("Column $key is not defined in model $class_name");
-		}
 		if ($key !== null) {
+			if (!static::columnExists($key)) {
+				$class_name = get_called_class();
+				throw new \Exception("Column $key is not defined in model $class_name");
+			}
 			return array_key_exists($key, $this->_original_data) ? $this->_original_data[$key] : $this->_data[$key];
 		}
 		return array_merge($this->_data, $this->_original_data);
+	}
+
+	public function undoModifications() {
+		$this->_data = $this->originalData();
 	}
 
 	public function toArray() {
