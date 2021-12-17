@@ -1,5 +1,6 @@
 <?php namespace Obie;
 use \Obie\Encoding\Json;
+use \Obie\Encoding\Url;
 use \Monolog\Handler\StreamHandler;
 use \Monolog\Formatter\LineFormatter;
 
@@ -22,8 +23,11 @@ class Logger extends \Monolog\Logger {
 	}
 
 	protected function getLogPath(): string {
-		$path = realpath(static::$logs_dir . DIRECTORY_SEPARATOR . $this->name . '.log');
+		$path = static::$logs_dir . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, Url::removeDotSegments(str_replace('\\', '/', $this->name))) . '.log';
 		if ($path !== false && strncmp($path, static::$logs_dir, strlen(static::$logs_dir)) !== 0) {
+			throw new \Exception('Log path directory escape');
+		}
+		if (realpath(dirname($path)) !== realpath(static::$logs_dir)) {
 			throw new \Exception('Log path directory escape');
 		}
 		return $path;
