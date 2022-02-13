@@ -1,6 +1,6 @@
 <?php namespace Obie\Vars;
 
-class VarCollection implements \ArrayAccess, \IteratorAggregate, \Countable, \Serializable, \JsonSerializable {
+class VarCollection implements \ArrayAccess, \IteratorAggregate, \Countable, \JsonSerializable {
 	protected $storage;
 	protected $assoc;
 
@@ -28,18 +28,18 @@ class VarCollection implements \ArrayAccess, \IteratorAggregate, \Countable, \Se
 
 	// ArrayAccess
 
-	public function offsetExists($offset) {
+	public function offsetExists($offset): bool {
 		return isset($this->storage[$offset]);
 	}
 
-	public function offsetGet($offset) {
+	public function offsetGet($offset): mixed {
 		if (!isset($this->storage[$offset])) {
 			$this->storage[$offset] = $this->assoc ? [] : new self();
 		}
 		return $this->storage[$offset];
 	}
 
-	public function offsetSet($offset, $value) {
+	public function offsetSet($offset, $value): void {
 		if ($offset === null) {
 			$this->storage[] = $value;
 		} else {
@@ -47,35 +47,36 @@ class VarCollection implements \ArrayAccess, \IteratorAggregate, \Countable, \Se
 		}
 	}
 
-	public function offsetUnset($offset) {
+	public function offsetUnset($offset): void {
 		unset($this->storage[$offset]);
 	}
 
 	// IteratorAggregate
 
-	public function getIterator() {
+	public function getIterator(): \Traversable {
 		return new \ArrayIterator($this->storage);
 	}
 
 	// Countable
 
-	public function count() {
+	public function count(): int {
 		return count($this->storage);
 	}
 
 	// Serializable
 
-	public function serialize() {
-		return serialize($this->storage);
-	}
-
-	public function jsonSerialize() {
+	public function __serialize(): array {
 		return $this->storage;
 	}
 
-	public function unserialize($serialized) {
-		$v = unserialize($serialized);
-		if (is_array($v)) $this->storage = $v;
+	public function __unserialize(array $data): void {
+		$this->storage = $data;
+	}
+
+	// JsonSerializable
+
+	public function jsonSerialize(): mixed {
+		return $this->storage;
 	}
 
 	// Custom methods
@@ -89,7 +90,7 @@ class VarCollection implements \ArrayAccess, \IteratorAggregate, \Countable, \Se
 		foreach ($v as $i => $key) {
 			$prev = &$cur;
 			unset($cur);
-			if (is_a($prev, '\Obie\Vars\VarCollection')) {
+			if (is_object($prev) && is_a($prev, '\Obie\Vars\VarCollection')) {
 				return $prev->get(...array_slice($v, $i));
 			}
 			if (!isset($prev[$key])) {
@@ -116,7 +117,7 @@ class VarCollection implements \ArrayAccess, \IteratorAggregate, \Countable, \Se
 				}
 				$prev = &$cur;
 				unset($cur);
-				if (is_a($prev, '\Obie\Vars\VarCollection')) {
+				if (is_object($prev) && is_a($prev, '\Obie\Vars\VarCollection')) {
 					$prev->set(...array_slice($v, $i));
 					return $this;
 				}
@@ -144,7 +145,7 @@ class VarCollection implements \ArrayAccess, \IteratorAggregate, \Countable, \Se
 			} else {
 				$prev = &$cur;
 				unset($cur);
-				if (is_a($prev, '\Obie\Vars\VarCollection')) {
+				if (is_object($prev) && is_a($prev, '\Obie\Vars\VarCollection')) {
 					$prev->unset(...array_slice($v, $i));
 					return $this;
 				}
@@ -166,7 +167,7 @@ class VarCollection implements \ArrayAccess, \IteratorAggregate, \Countable, \Se
 			}
 			$prev = &$cur;
 			unset($cur);
-			if (is_a($prev, '\Obie\Vars\VarCollection')) {
+			if (is_object($prev) && is_a($prev, '\Obie\Vars\VarCollection')) {
 				return $prev->isset(...array_slice($v, $i));
 			}
 			if (!isset($prev[$key])) {

@@ -1,6 +1,6 @@
 <?php namespace Obie\Models;
 
-class ModelCollection implements \ArrayAccess, \IteratorAggregate, \Countable, \Serializable {
+class ModelCollection implements \ArrayAccess, \IteratorAggregate, \Countable, \JsonSerializable {
 	protected $models;
 	protected $error;
 
@@ -10,15 +10,15 @@ class ModelCollection implements \ArrayAccess, \IteratorAggregate, \Countable, \
 
 	// ArrayAccess
 
-	public function offsetExists($offset) {
+	public function offsetExists($offset): bool {
 		return isset($this->models[$offset]);
 	}
 
-	public function offsetGet($offset) {
+	public function offsetGet($offset): mixed {
 		return $this->models[$offset];
 	}
 
-	public function offsetSet($offset, $value) {
+	public function offsetSet($offset, $value): void {
 		if ($offset === null) {
 			$this->models[] = $value;
 		} else {
@@ -26,31 +26,36 @@ class ModelCollection implements \ArrayAccess, \IteratorAggregate, \Countable, \
 		}
 	}
 
-	public function offsetUnset($offset) {
+	public function offsetUnset($offset): void {
 		unset($this->models[$offset]);
 	}
 
 	// IteratorAggregate
 
-	public function getIterator() {
+	public function getIterator(): \Traversable {
 		return new \ArrayIterator($this->models);
 	}
 
 	// Countable
 
-	public function count() {
+	public function count(): int {
 		return count($this->models);
 	}
 
 	// Serializable
 
-	public function serialize() {
-		return serialize($this->models);
+	public function __serialize(): array {
+		return $this->models;
 	}
 
-	public function unserialize($serialized) {
-		$v = unserialize($serialized);
-		if (is_array($v)) $this->models = $v;
+	public function __unserialize(array $data) {
+		$this->models = $data;
+	}
+
+	// JsonSerializable
+
+	public function jsonSerialize(): mixed {
+		return $this->toArray();
 	}
 
 	// Custom methods

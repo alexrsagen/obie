@@ -31,62 +31,137 @@ class App {
 	}
 
 	public static function init(): bool {
-		if (!self::$app::initTime()) {
-			error_log(self::$app . '::initTime failed', E_USER_ERROR);
+		try {
+			if (!self::$app::initTime()) {
+				error_log(self::$app . '::initTime failed', E_USER_ERROR);
+				return false;
+			}
+		} catch (\Exception $e) {
+			error_log(self::$app . '::initTime failed: ' . $e->getMessage(), E_USER_ERROR);
 			return false;
 		}
-		if (!self::$app::initVendor()) {
-			error_log(self::$app . '::initVendor failed', E_USER_ERROR);
+		try {
+			if (!self::$app::initVendor()) {
+				error_log(self::$app . '::initVendor failed', E_USER_ERROR);
+				return false;
+			}
+		} catch (\Exception $e) {
+			error_log(self::$app . '::initVendor failed: ' . $e->getMessage(), E_USER_ERROR);
 			return false;
 		}
-		if (!self::$app::initAppDir()) {
-			error_log(self::$app . '::initAppDir failed', E_USER_ERROR);
+		try {
+			if (!self::$app::initAppDir()) {
+				error_log(self::$app . '::initAppDir failed', E_USER_ERROR);
+				return false;
+			}
+		} catch (\Exception $e) {
+			error_log(self::$app . '::initAppDir failed: ' . $e->getMessage(), E_USER_ERROR);
 			return false;
 		}
-		if (!self::$app::initConfig()) {
-			error_log(self::$app . '::initConfig failed', E_USER_ERROR);
+		try {
+			if (!self::$app::initConfig()) {
+				error_log(self::$app . '::initConfig failed', E_USER_ERROR);
+				return false;
+			}
+		} catch (\Exception $e) {
+			error_log(self::$app . '::initConfig failed: ' . $e->getMessage(), E_USER_ERROR);
 			return false;
 		}
-		if (!self::$app::initLogger()) {
-			error_log(self::$app . '::initLogger failed', E_USER_ERROR);
+		try {
+			if (!self::$app::initLogger()) {
+				error_log(self::$app . '::initLogger failed', E_USER_ERROR);
+				return false;
+			}
+		} catch (\Exception $e) {
+			error_log(self::$app . '::initLogger failed: ' . $e->getMessage(), E_USER_ERROR);
 			return false;
 		}
-		if (!self::$app::initTemp()) {
-			error_log(self::$app . '::initTemp failed', E_USER_ERROR);
+		try {
+			if (!self::$app::initTemp()) {
+				error_log(self::$app . '::initTemp failed', E_USER_ERROR);
+				return false;
+			}
+		} catch (\Exception $e) {
+			error_log(self::$app . '::initTemp failed: ' . $e->getMessage(), E_USER_ERROR);
 			return false;
 		}
-		if (!self::$app::initEventHandlers()) {
-			error_log(self::$app . '::initEventHandlers failed', E_USER_ERROR);
+		try {
+			if (!self::$app::initEventHandlers()) {
+				error_log(self::$app . '::initEventHandlers failed', E_USER_ERROR);
+				return false;
+			}
+		} catch (\Exception $e) {
+			error_log(self::$app . '::initEventHandlers failed: ' . $e->getMessage(), E_USER_ERROR);
 			return false;
 		}
-		if (!self::$app::initLocale()) {
-			error_log(self::$app . '::initLocale failed', E_USER_ERROR);
+		try {
+			if (!self::$app::initLocale()) {
+				error_log(self::$app . '::initLocale failed', E_USER_ERROR);
+				return false;
+			}
+		} catch (\Exception $e) {
+			error_log(self::$app . '::initLocale failed: ' . $e->getMessage(), E_USER_ERROR);
 			return false;
 		}
-		if (!self::$app::initRouter()) {
-			error_log(self::$app . '::initRouter failed', E_USER_ERROR);
+		try {
+			if (!self::$app::initRouter()) {
+				error_log(self::$app . '::initRouter failed', E_USER_ERROR);
+				return false;
+			}
+		} catch (\Exception $e) {
+			error_log(self::$app . '::initRouter failed: ' . $e->getMessage(), E_USER_ERROR);
 			return false;
 		}
-		if (!self::$app::initViews()) {
-			error_log(self::$app . '::initViews failed', E_USER_ERROR);
+		try {
+			if (!self::$app::initViews()) {
+				error_log(self::$app . '::initViews failed', E_USER_ERROR);
+				return false;
+			}
+		} catch (\Exception $e) {
+			error_log(self::$app . '::initViews failed: ' . $e->getMessage(), E_USER_ERROR);
 			return false;
 		}
-		if (!self::$app::initSessions()) {
-			error_log(self::$app . '::initSessions failed', E_USER_ERROR);
+		try {
+			if (!self::$app::initSessions()) {
+				error_log(self::$app . '::initSessions failed', E_USER_ERROR);
+				return false;
+			}
+		} catch (\Exception $e) {
+			error_log(self::$app . '::initSessions failed: ' . $e->getMessage(), E_USER_ERROR);
 			return false;
 		}
-		if (!self::$app::initMail()) {
-			error_log(self::$app . '::initMail failed', E_USER_ERROR);
+		try {
+			if (!self::$app::initMail()) {
+				error_log(self::$app . '::initMail failed', E_USER_ERROR);
+				return false;
+			}
+		} catch (\Exception $e) {
+			error_log(self::$app . '::initMail failed: ' . $e->getMessage(), E_USER_ERROR);
 			return false;
 		}
-		if (!self::$app::initDatabase()) {
-			error_log(self::$app . '::initDatabase failed', E_USER_ERROR);
+		try {
+			if (!self::$app::initDatabase()) {
+				error_log(self::$app . '::initDatabase failed', E_USER_ERROR);
+				return false;
+			}
+		} catch (\Exception $e) {
+			error_log(self::$app . '::initDatabase failed: ' . $e->getMessage(), E_USER_ERROR);
 			return false;
 		}
-		if (!self::$app::doHostRedirect()) {
+		try {
+			if (!self::$app::doHostRedirect()) {
+				return false;
+			}
+		} catch (\Exception $e) {
+			error_log(self::$app . '::doHostRedirect failed: ' . $e->getMessage(), E_USER_ERROR);
 			return false;
 		}
-		if (!self::$app::doSchemeRedirect()) {
+		try {
+			if (!self::$app::doSchemeRedirect()) {
+				return false;
+			}
+		} catch (\Exception $e) {
+			error_log(self::$app . '::doSchemeRedirect failed: ' . $e->getMessage(), E_USER_ERROR);
 			return false;
 		}
 		return true;
