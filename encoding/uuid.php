@@ -17,6 +17,10 @@ class Uuid {
 	}
 
 	public static function generate(): string {
-		return static::encode(random_bytes(16));
+		$buf = random_bytes(16);
+		// As per RFC 4122 section 4.4, set bits for version and clock_seq_hi_and_reserved
+		$buf[6] = chr((ord($buf[6]) & 0x0f) | 0x40);
+		$buf[8] = chr((ord($buf[8]) & 0x3f) | 0x80);
+		return static::encode($buf);
 	}
 }
