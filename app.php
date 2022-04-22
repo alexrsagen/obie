@@ -478,38 +478,29 @@ class App {
 	}
 
 	public static function errorHandler($errno, $errstr, $errfile, $errline) {
-		switch ($errno){
-			case E_ERROR: // 1
-				$typestr = 'E_ERROR'; break;
-			case E_WARNING: // 2
-				$typestr = 'E_WARNING'; break;
-			case E_PARSE: // 4
-				$typestr = 'E_PARSE'; break;
-			case E_NOTICE: // 8
-				$typestr = 'E_NOTICE'; break;
-			case E_CORE_ERROR: // 16
-				$typestr = 'E_CORE_ERROR'; break;
-			case E_CORE_WARNING: // 32
-				$typestr = 'E_CORE_WARNING'; break;
-			case E_COMPILE_ERROR: // 64
-				$typestr = 'E_COMPILE_ERROR'; break;
-			case E_CORE_WARNING: // 128
-				$typestr = 'E_COMPILE_WARNING'; break;
-			case E_USER_ERROR: // 256
-				$typestr = 'E_USER_ERROR'; break;
-			case E_USER_WARNING: // 512
-				$typestr = 'E_USER_WARNING'; break;
-			case E_USER_NOTICE: // 1024
-				$typestr = 'E_USER_NOTICE'; break;
-			case E_STRICT: // 2048
-				$typestr = 'E_STRICT'; break;
-			case E_RECOVERABLE_ERROR: // 4096
-				$typestr = 'E_RECOVERABLE_ERROR'; break;
-			case E_DEPRECATED: // 8192
-				$typestr = 'E_DEPRECATED'; break;
-			case E_USER_DEPRECATED: // 16384
-				$typestr = 'E_USER_DEPRECATED'; break;
+		if (!(error_reporting() & $errno)) {
+			// This error code is not included in error_reporting, so let it fall
+			// through to the standard PHP error handler
+			return false;
 		}
+
+		$typestr = match ($errno) {
+			E_ERROR => 'E_ERROR',
+			E_WARNING => 'E_WARNING',
+			E_PARSE => 'E_PARSE',
+			E_NOTICE => 'E_NOTICE',
+			E_CORE_ERROR => 'E_CORE_ERROR',
+			E_CORE_WARNING => 'E_CORE_WARNING',
+			E_COMPILE_ERROR => 'E_COMPILE_ERROR',
+			E_CORE_WARNING => 'E_COMPILE_WARNING',
+			E_USER_ERROR => 'E_USER_ERROR',
+			E_USER_WARNING => 'E_USER_WARNING',
+			E_USER_NOTICE => 'E_USER_NOTICE',
+			E_STRICT => 'E_STRICT',
+			E_RECOVERABLE_ERROR => 'E_RECOVERABLE_ERROR',
+			E_DEPRECATED => 'E_DEPRECATED',
+			E_USER_DEPRECATED => 'E_USER_DEPRECATED',
+		};
 
 		$error_plain = $typestr . ': ' . $errstr . ' in ' . $errfile . ' on line ' . $errline;
 		$error_html = "<p>A fatal error occurred at " . date(DATE_ATOM) . ".</p><p><b>" . $typestr . ": </b>" . $errstr . " in <b>" . $errfile . "</b> on line <b>" . $errline . "</b></p>";
