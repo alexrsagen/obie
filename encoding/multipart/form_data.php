@@ -1,7 +1,9 @@
 <?php namespace Obie\Encoding\Multipart;
 use \Obie\Encoding\Multipart;
 use \Obie\Encoding\Multipart\Segment;
+use Obie\Encoding\Rfc8187;
 use \Obie\Http\Mime;
+use Obie\Http\QuotedString;
 
 class FormData {
 	public static function decode(string $raw, string $boundary = ''): array {
@@ -13,7 +15,15 @@ class FormData {
 			// parse content-disposition header
 			$disp = array_merge_recursive(...array_map(function($v) {
 				$kv = explode('=', trim($v), 2);
-				return [$kv[0] => count($kv) > 1 ? trim($kv[1], "\"'") : ''];
+				$key = $kv[0];
+				$val = count($kv) > 1 ? $kv[1] : '';
+				if (str_ends_with($key, '*')) {
+					$key = substr($key, 0, -1);
+					$val = Rfc8187::decode($val);
+				} else {
+					$val = QuotedString::decode($val) ?? $val;
+				}
+				return [$key => $val];
 			}, explode(';', $segments[$i]->getHeader('content-disposition'))));
 
 			// get filename
@@ -76,8 +86,8 @@ class FormData {
 	public static function fieldToSegment(string $name, string $value): Segment {
 		return new Segment($value, [
 			'content-disposition' => sprintf(
-				'form-data; name="%s"',
-				addslashes($name)
+				'form-data; name=%s',
+				QuotedString::encode($name, true),
 			)
 		]);
 	}
@@ -85,7 +95,12 @@ class FormData {
 	public static function fileToSegment(string $field_name, string $file_name, string $value, string|Mime|null $type = null): Segment {
 		return new Segment($value, [
 			'content-type' => $type->encode(),
-			'content-disposition' => sprintf('form-data; name="%s"; filename="%s"', addslashes($field_name), addslashes($file_name)),
+			'content-disposition' => sprintf(
+				'form-data; name=%s; filename=%s; filename*=%s',
+				QuotedString::encode($field_name, true),
+				QuotedString::encode($file_name, true),
+				Rfc8187::encode($file_name)
+			),
 			'content-transfer-encoding' => 'base64',
 		]);
 	}
