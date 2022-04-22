@@ -1,13 +1,10 @@
 <?php namespace Obie\Encoding\Multipart;
 
 class Segment {
-	protected $headers   = [];
-	protected $body      = '';
-	protected $body_size = 0;
+	use \Obie\Http\HeaderTrait;
 
-	function __construct(string $body, array $headers = []) {
-		$this->setBody($body);
-		$this->setHeaders($headers);
+	function __construct(public string $body, array $headers = []) {
+		if (!empty($headers)) $this->setHeaders($headers);
 	}
 
 	protected static function encodeBody(string $body, string $encoding) {
@@ -15,7 +12,7 @@ class Segment {
 		case 'quoted-printable':
 			return quoted_printable_encode($body);
 		case 'base64':
-			return base64_encode($body);
+			return chunk_split(base64_encode($body));
 		case '7bit': case '8bit': case 'binary': default:
 			return $body;
 		}
@@ -32,37 +29,9 @@ class Segment {
 		}
 	}
 
-	protected static function normalizeHeader(string $key): string {
-		return strtolower(str_replace('_', '-', trim($key)));
-	}
-
-	public function setHeader(string $key, string $value): self {
-		$key = static::normalizeHeader($key);
-		$this->headers[$key] = $value;
+	public function setBody(string $body): static {
+		$this->body = $body;
 		return $this;
-	}
-
-	public function setHeaders(array $headers): self {
-		foreach ($headers as $k => $v) {
-			$this->setHeader($k, (string)$v);
-		}
-		return $this;
-	}
-
-	public function setBody(string $body): self {
-		$this->body      = $body;
-		$this->body_size = strlen($body);
-		return $this;
-	}
-
-	public function getHeader(string $key): ?string {
-		$key = static::normalizeHeader($key);
-		if (!array_key_exists($key, $this->headers)) return null;
-		return $this->headers[$key];
-	}
-
-	public function getHeaders(): array {
-		return $this->headers;
 	}
 
 	public function getBody(): string {
@@ -70,17 +39,14 @@ class Segment {
 	}
 
 	public function getBodySize(): int {
-		return $this->body_size;
+		return strlen($this->body);
 	}
 
 	public function build(): string {
 		$body_encoding = $this->getHeader('content-transfer-encoding') ?? '8bit';
-		$raw = '';
-		foreach ($this->headers as $k => $v) {
-			$raw .= $k . ': ' . $v . "\r\n";
-		}
+		$raw = implode("\r\n", $this->getRawHeaders());
 		$raw .= "\r\n";
-		$raw .= static::encodeBody($this->body, $body_encoding);
+		$raw .= static::encodeBody($this->body, $body_encoding, $this->line_length);
 		return $raw;
 	}
 
@@ -90,7 +56,6 @@ class Segment {
 
 	public static function decode(string $raw): ?self {
 		$raw_len = strlen($raw);
-		$body = '';
 		$headers = [];
 
 		$last_field_name = null;
@@ -118,7 +83,7 @@ class Segment {
 					}
 
 					$header_parts = explode(':', $line, 2);
-					$field_name = static::normalizeHeader($header_parts[0]);
+					$field_name = static::normalizeHeaderKey($header_parts[0]);
 					$headers[$field_name] = count($header_parts) > 1 ? trim($header_parts[1]) : '';
 				}
 			}

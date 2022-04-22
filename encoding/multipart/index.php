@@ -6,6 +6,7 @@ class Multipart {
 	const ENC_FORM_DATA   = 'multipart/form-data';
 	const ENC_MIXED       = 'multipart/mixed';
 	const ENC_DIGEST      = 'multipart/digest';
+	const ENC_RELATED     = 'multipart/related';
 
 	public static function decode(string $raw, string $boundary = ''): array {
 		$raw_len = strlen($raw);

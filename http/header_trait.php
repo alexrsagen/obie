@@ -6,6 +6,7 @@ trait HeaderTrait {
 	protected ?AcceptHeader $accept = null;
 
 	public static function normalizeHeaderKey(string $key): string {
+		$key = trim($key);
 		return strtolower(str_replace('_', '-', str_starts_with($key, 'HTTP_') ? substr($key, 5) : $key));
 	}
 

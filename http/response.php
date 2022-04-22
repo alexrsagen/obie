@@ -1,6 +1,5 @@
 <?php namespace Obie\Http;
 use \Obie\Encoding\Json;
-use \Obie\Minify;
 
 class Response {
 	use HeaderTrait;

@@ -1098,7 +1098,7 @@ class Mime {
 		return $mime_type;
 	}
 
-	public function encode(): ?string {
+	public function encode(): string {
 		// https://mimesniff.spec.whatwg.org/#serializing-a-mime-type
 		// 4.5.1: Let serialization be the concatenation of mimeType’s type, U+002F (/), and mimeType’s subtype.
 		$serialization = $this->getType();

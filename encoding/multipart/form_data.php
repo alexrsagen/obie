@@ -67,7 +67,7 @@ class FormData {
 			if (array_key_exists('type', $v)) {
 				$type = $v['type'];
 			}
-			$segments[] = static::fileToSegment($k, $v['name'], $type, $v['body']);
+			$segments[] = static::fileToSegment($k, $v['name'], $v['body'], $type);
 		}
 
 		return Multipart::encode($segments, $boundary);
@@ -77,28 +77,16 @@ class FormData {
 		return new Segment($value, [
 			'content-disposition' => sprintf(
 				'form-data; name="%s"',
-				str_replace(["\\", "\""], ["\\\\", "\\\""], $name)
+				addslashes($name)
 			)
 		]);
 	}
 
-	public static function fileToSegment(string $field_name, string $file_name, ?string $type = null, string $value): Segment {
-		$headers = [
-			'content-disposition' => sprintf(
-				'form-data; name="%s"; filename="%s"',
-				str_replace(["\\", "\""], ["\\\\", "\\\""], $field_name),
-				str_replace(["\\", "\""], ["\\\\", "\\\""], $file_name)
-			)
-		];
-
-		// add content-type header
-		if (empty($type)) {
-			$type = Mime::getTypeByFilename($file_name);
-		}
-		if (!empty($type)) {
-			$headers['content-type'] = $type . '; charset=utf-8';
-		}
-
-		return new Segment($value, $headers);
+	public static function fileToSegment(string $field_name, string $file_name, string $value, string|Mime|null $type = null): Segment {
+		return new Segment($value, [
+			'content-type' => $type->encode(),
+			'content-disposition' => sprintf('form-data; name="%s"; filename="%s"', addslashes($field_name), addslashes($file_name)),
+			'content-transfer-encoding' => 'base64',
+		]);
 	}
 }
