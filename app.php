@@ -561,4 +561,12 @@ class App {
 			return false;
 		}
 	}
+
+	protected static $i18n = null;
+	public static function getI18n(): I18n {
+		if (static::$i18n === null) {
+			static::$i18n = I18n::new();
+		}
+		return static::$i18n;
+	}
 }
