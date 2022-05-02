@@ -1113,11 +1113,9 @@ class Mime {
 			// 4.5.2.4: If value does not solely contain HTTP token code points or value is the empty string, then:
 			if (strlen($value) === 0 || !static::isHttpToken($value)) {
 				// 4.5.2.4.1: Precede each occurence of U+0022 (") or U+005C (\) in value with U+005C (\).
-				$value = str_replace(['\\', '"'], ['\\\\', '\\"'], $value);
 				// 4.5.2.4.2: Prepend U+0022 (") to value.
-				$value = '"' . $value;
 				// 4.5.2.4.3: Append U+0022 (") to value.
-				$value .= '"';
+				$value = QuotedString::encode($value, true);
 			}
 			// 4.5.2.5: Append value to serialization.
 			$serialization .= $value;
