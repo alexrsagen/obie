@@ -113,7 +113,7 @@ class I18n {
 		if (count($args) > 0) {
 			foreach ($args as $key => $value) {
 				$key = str_replace(['\\', '{{', '}}'], ['\\\\', '\\{{', '\\}}'], $key);
-				$str = preg_replace('/(^|[^\\\\])\{\{\s*' . preg_quote($key, '/') . '\s*\}\}/', '$1' . str_replace('$', '$$', $value), $str);
+				$str = preg_replace('/(^|[^\\\\])\{\{\s*' . preg_quote($key, '/') . '\s*\}\}/', '${1}' . str_replace('$', '$$', $value), $str);
 			}
 		}
 
