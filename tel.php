@@ -296,8 +296,8 @@ class Tel {
 		}
 
 		if (strlen($res->calling_code) > 0) {
-			if (substr($num, 0, strlen($calling_code)) === $calling_code) {
-				$num_no_cc = substr($num, strlen($calling_code));
+			if (substr($num, 0, strlen($res->calling_code)) === $res->calling_code) {
+				$num_no_cc = substr($num, strlen($res->calling_code));
 			} else {
 				$num_no_cc = $num;
 			}
