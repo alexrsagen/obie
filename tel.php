@@ -215,7 +215,10 @@ class Tel {
 					if ($country['pattern'] === null) continue;
 
 					// skip numbers not matching national number pattern
-					if (preg_match($country['pattern'], $num_no_cc) !== 1) continue;
+					if (
+						preg_match($country['pattern'], $num_no_cc) !== 1 &&
+						preg_match($country['pattern'], $num) !== 1
+					) continue;
 
 					// initialize calling code matches
 					if (!array_key_exists($calling_code, $calling_code_matches)) {
@@ -230,10 +233,17 @@ class Tel {
 					// attempt to match up to one usage type pattern
 					foreach ($country['patterns'] as $typ => $pattern) {
 						if ($pattern['pattern'] === null) continue;
-						if (count($pattern['lengths']['national']) > 0 && !in_array(strlen($num_no_cc), $pattern['lengths']['national'], true)) continue;
+						if (
+							count($pattern['lengths']['national']) > 0 &&
+							!in_array(strlen($num_no_cc), $pattern['lengths']['national'], true) &&
+							!in_array(strlen($num), $pattern['lengths']['national'], true)
+						) continue;
 
 						// skip numbers not matching usage-specific number pattern
-						if (preg_match($pattern['pattern'], $num_no_cc) !== 1) continue;
+						if (
+							preg_match($pattern['pattern'], $num_no_cc) !== 1 &&
+							preg_match($pattern['pattern'], $num) !== 1
+						) continue;
 
 						// register usage type for country code
 						$country_code_typ[$country_code] = $typ;
@@ -280,17 +290,29 @@ class Tel {
 		}
 
 		// force calling code to fallback if guessing is disabled
-		$using_fallback_cc = false;
 		if (strlen($res->calling_code) === 0 && $fallback_cc !== null && array_key_exists($fallback_cc, self::METADATA) && !$raw_guess_cc) {
 			$res->calling_code = $fallback_cc;
-			$using_fallback_cc = true;
+			$res->country_code = self::METADATA[$res->calling_code]['main_country'];
 		}
 
 		if (strlen($res->calling_code) > 0) {
-			$num_contains_calling_code = substr($num, 0, strlen($res->calling_code)) === $res->calling_code;
+			if (substr($num, 0, strlen($calling_code)) === $calling_code) {
+				$num_no_cc = substr($num, strlen($calling_code));
+			} else {
+				$num_no_cc = $num;
+			}
+			if (array_key_exists($res->calling_code, self::METADATA) && array_key_exists($res->country_code, self::METADATA[$res->calling_code]['countries'])) {
+				$country = self::METADATA[$res->calling_code]['countries'][$res->country_code];
+				$num_is_raw = (
+					preg_match($country['pattern'], $num_no_cc) === 1 &&
+					preg_match($country['pattern'], $num) !== 1
+				);
+			} else {
+				$num_is_raw = $num_no_cc !== $num;
+			}
 
 			// add calling code length to offset
-			if ($num_contains_calling_code && !$using_fallback_cc) {
+			if ($num_is_raw) {
 				$offset += strlen($res->calling_code);
 			}
 
@@ -306,7 +328,7 @@ class Tel {
 					$offset++;
 					break;
 				default:
-					$res->fmt = strlen($res->int) !== 0 ? self::FMT_INT : ($num_contains_calling_code && !$using_fallback_cc ? self::FMT_RAW : self::FMT_NUM);
+					$res->fmt = strlen($res->int) !== 0 ? self::FMT_INT : ($num_is_raw ? self::FMT_RAW : self::FMT_NUM);
 					break;
 				}
 			}
