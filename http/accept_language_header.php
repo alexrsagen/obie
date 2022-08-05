@@ -5,16 +5,20 @@ class AcceptLanguageHeader {
 		public array $languages = [],
 	) {}
 
-	public static function decode(string $input): static {
+	public static function decodeArray(array $input): static {
 		$languages = array_filter(array_map(function($v) {
 			return Language::decode(trim($v, "\n\r\t "));
-		}, explode(',', $input)), function($v) {
+		}, $input), function($v) {
 			return $v !== null;
 		});
 		usort($languages, function($a, $b) {
 			return (float)($b->getParameter('q') ?? 1.0) <=> (float)($a->getParameter('q') ?? 1.0);
 		});
 		return new static($languages);
+	}
+
+	public static function decode(string $input): static {
+		return static::decodeArray(explode(',', $input));
 	}
 
 	public function encode(): string {
@@ -47,7 +51,7 @@ class AcceptLanguageHeader {
 		});
 		foreach ($input_languages as $language) {
 			$matched_locale = locale_lookup($locales, $language->locale, true, $fallback?->locale);
-			if ($matched_locale !== $fallback?->locale) {
+			if ($matched_locale !== "" && $matched_locale !== $fallback?->locale) {
 				return $language;
 			}
 		}
