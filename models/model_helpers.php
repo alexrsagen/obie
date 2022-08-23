@@ -33,8 +33,11 @@ class ModelHelpers {
 				$where_parts[$i] .= static::getEscapedSource($table_prefix) . '.';
 			}
 			$where_parts[$i] .= static::getEscapedSource($key) . ' ';
-			if (in_array(strtoupper($op), ['IN', 'NOT IN'], true)) {
+			$op = strtoupper($op);
+			if (in_array($op, ['IN', 'NOT IN'], true)) {
 				$where_parts[$i] .= $op . '(' . implode(',', array_fill(0, $value_count, '?')) . ')';
+			} elseif (in_array($op, ['IS NULL', 'IS NOT NULL'], true)) {
+				$where_parts[$i] .= $op;
 			} else {
 				$where_parts[$i] .= $op . ' ?';
 			}
