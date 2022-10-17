@@ -543,8 +543,17 @@ class BaseModel {
 		$id = static::getDatabase()->lastInsertId();
 
 		if ($retval) {
+			// Set primary key value to last insert ID
 			if (count(static::getPrimaryKeys()) === 1) {
-				$this->set(static::getPrimaryKeys()[0], $id, false);
+				$primary_key = static::getPrimaryKeys()[0];
+				if (
+					$id !== false &&
+					$id !== 0 &&
+					static::columnExists($primary_key) &&
+					in_array(static::$columns[$primary_key], ['int', 'integer'], true)
+				) {
+					$this->set($primary_key, $id, false);
+				}
 			}
 
 			// Run post-create hooks
