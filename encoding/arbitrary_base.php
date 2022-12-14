@@ -12,7 +12,7 @@ class ArbitraryBase {
 	const ALPHABET_BASE16LOWER = '0123456789abcdef';
 	const ALPHABET_BASE16UPPER = '0123456789ABCDEF';
 
-	public static function encode(string $alphabet, int $input) {
+	public static function encode(string $alphabet, int $input): string {
 		$input_gmp = gmp_init($input);
 		$base_gmp = gmp_init(strlen($alphabet));
 		$zero_gmp = gmp_init(0);
@@ -27,7 +27,7 @@ class ArbitraryBase {
 		return $output;
 	}
 
-	public static function decode(string $alphabet, string $input) {
+	public static function decode(string $alphabet, string $input): int {
 		$base_gmp = gmp_init(strlen($alphabet));
 		$output_gmp = gmp_init(0);
 		$len = strlen($input);
