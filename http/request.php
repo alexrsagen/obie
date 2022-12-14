@@ -84,7 +84,7 @@ class Request {
 			}
 			// get current request
 			$current = new static(
-				scheme: !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] == 'on' || !empty($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] == 443 ? 'https' : 'http',
+				scheme: !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' || !empty($_SERVER['SERVER_PORT']) && (int)$_SERVER['SERVER_PORT'] === 443 ? 'https' : 'http',
 				username: array_key_exists('PHP_AUTH_USER', $_SERVER) ? $_SERVER['PHP_AUTH_USER'] : null,
 				password: array_key_exists('PHP_AUTH_PW', $_SERVER) ? $_SERVER['PHP_AUTH_PW'] : null,
 				host: $host,

@@ -58,8 +58,8 @@ class Url {
 		// 2.  While the input buffer is not empty, loop as follows:
 		while ($input !== '') {
 			if (
-				($prefix = substr($input, 0, 3)) == '../' ||
-				($prefix = substr($input, 0, 2)) == './'
+				($prefix = substr($input, 0, 3)) === '../' ||
+				($prefix = substr($input, 0, 2)) === './'
 			) {
 				// A.  If the input buffer begins with a prefix of "`../`" or "`./`",
 				//     then remove that prefix from the input buffer; otherwise,
@@ -68,8 +68,8 @@ class Url {
 				// B.  if the input buffer begins with a prefix of "`/./`" or "`/.`",
 				//     where "`.`" is a complete path segment, then replace that
 				//     prefix with "`/`" in the input buffer; otherwise,
-				($prefix = substr($input, 0, 3)) == '/./' ||
-				($prefix = $input) == '/.'
+				($prefix = substr($input, 0, 3)) === '/./' ||
+				($prefix = $input) === '/.'
 			) {
 				$input = '/' . substr($input, strlen($prefix));
 			} elseif (
@@ -78,12 +78,12 @@ class Url {
 				//     prefix with "`/`" in the input buffer and remove the last
 				//     segment and its preceding "/" (if any) from the output
 				//     buffer; otherwise,
-				($prefix = substr($input, 0, 4)) == '/../' ||
-				($prefix = $input) == '/..'
+				($prefix = substr($input, 0, 4)) === '/../' ||
+				($prefix = $input) === '/..'
 			) {
 				$input = '/' . substr($input, strlen($prefix));
 				$output = substr($output, 0, strrpos($output, '/'));
-			} elseif ($input == '.' || $input == '..') {
+			} elseif ($input === '.' || $input === '..') {
 				// D.  if the input buffer consists only of "." or "..", then remove
 				//     that from the input buffer; otherwise,
 				$input = '';
