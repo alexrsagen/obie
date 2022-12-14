@@ -42,7 +42,7 @@ class Totp {
 		if ($drift_steps_fwd < 0) $drift_steps_fwd = 0;
 		$valid = false;
 		for ($drift_step = -$drift_steps_back; $drift_step < $drift_steps_fwd + 1; $drift_step++) {
-			if (hash_equals(Hotp::gen($k, (int)floor(($time + $drift_step * $time_step) / $time_step)), $code)) {
+			if (hash_equals(Hotp::gen($k, (int)floor(($time + $drift_step * $time_step) / $time_step), $len, $algo), $code)) {
 				$valid = true;
 			}
 		}
