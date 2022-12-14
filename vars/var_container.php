@@ -3,7 +3,7 @@
 class VarContainer {
 	use VarTrait;
 
-	public function __construct(&$storage = null) {
+	public function __construct(array|VarCollection &$storage = []) {
 		$this->_init_vars($storage);
 	}
 }

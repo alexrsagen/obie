@@ -1,19 +1,12 @@
 <?php namespace Obie\Vars;
 
 class VarCollection implements \ArrayAccess, \IteratorAggregate, \Countable, \JsonSerializable {
-	protected $storage;
-	protected $assoc;
-
 	// Magic methods
 
-	public function __construct(&$storage = null, bool $assoc = false) {
-		if ($storage !== null) {
-			$this->storage = &$storage;
-		} else {
-			$this->storage = [];
-		}
-		$this->assoc = $assoc;
-	}
+	public function __construct(
+		protected array &$storage = [],
+		protected bool $assoc = false,
+	) {}
 
 	public function __get(string $name) {
 		if (!isset($this->storage[$name])) {

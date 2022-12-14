@@ -39,7 +39,7 @@ class View {
 	protected $blocks = [];
 	protected $parent = null;
 
-	public function __construct(string $name, $vars = null, array &$blocks = []) {
+	public function __construct(string $name, array|VarCollection $vars = [], array &$blocks = []) {
 		$this->name = $name;
 		$this->_init_vars($vars);
 		$this->blocks = &$blocks;

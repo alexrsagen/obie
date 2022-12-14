@@ -1,13 +1,14 @@
 <?php namespace Obie;
 use \Obie\Vars\VarTrait;
 use \Obie\Encoding\Json;
+use \Obie\Vars\VarCollection;
 
 class Config {
     use VarTrait;
 
-    protected static $global_config = null;
+    protected static ?self $global_config = null;
 
-    public function __construct($data = null) {
+    public function __construct(array|VarCollection $data = []) {
         $this->_init_vars($data);
 
         if (self::$global_config === null) {
@@ -15,15 +16,15 @@ class Config {
         }
     }
 
-    public static function fromJSON(string $json) {
-        return new self(Json::decode($json));
+    public static function fromJSON(string $json, int $depth = 512, int $options = 0): static {
+        return new static(Json::decode($json, $depth, $options));
     }
 
-    public static function setGlobal(Config $config) {
+    public static function setGlobal(self $config) {
         self::$global_config = $config;
     }
 
-    public static function getGlobal() {
+    public static function getGlobal(): static {
         return self::$global_config;
     }
 }
