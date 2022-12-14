@@ -1,5 +1,4 @@
 <?php namespace Obie\Validation;
-use \Obie\Validation\IValidator;
 
 class WebauthnAttestationObjectValidator implements IValidator {
 	private $message = '';
