@@ -8,7 +8,7 @@ class Hotp {
 	 * @param int $len - HOTP code digits
 	 * @param string $algo - HMAC algorithm
 	 */
-	public static function gen(string $k, int $counter = null, int $len = 6, string $algo = 'sha1') {
+	public static function gen(string $k, int $counter = 0, int $len = 6, string $algo = 'sha1'): string {
 		$msg_bytes = [];
 		while (0 !== $counter) {
 			$msg_bytes[] = chr($counter & 0xFF);
