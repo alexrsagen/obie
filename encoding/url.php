@@ -1,7 +1,7 @@
 <?php namespace Obie\Encoding;
 
 class Url {
-	public static function decode(string $url): array {
+	public static function decode(string $url): array|false {
 		return parse_url($url);
 	}
 
@@ -42,6 +42,7 @@ class Url {
 		}
 		return $url;
 	}
+
 	/**
 	 * Remove dot segments, as per RFC 3986 section 5.2.4.
 	 * WARNING: This function will trim any leading "../"

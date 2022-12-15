@@ -93,7 +93,7 @@ class Jwt {
 	 * @param string $algorithm Allowed JWT algorithm
 	 * @return mixed The decoded data within the JWT or null on failure
 	 */
-	public static function decode(string $jwt, string|array|null $keys = null, string $algorithm = self::ALG_HS256) {
+	public static function decode(string $jwt, string|array|null $keys = null, string $algorithm = self::ALG_HS256): mixed {
 		$ignore_signature = $keys === null;
 
 		// check that algorithm is supported

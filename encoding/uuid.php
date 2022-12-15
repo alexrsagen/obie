@@ -3,15 +3,13 @@
 class Uuid {
 	const PREFIX_URN = 'urn:uuid:';
 
-	public static function decode(string $uuid) {
+	public static function decode(string $uuid): ?string {
 		$uuid = hex2bin(str_replace(['-', '{', '}', self::PREFIX_URN], '', $uuid));
-		if (!$uuid || strlen($uuid) !== 16) {
-			throw new \Exception('Invalid UUID');
-		}
+		if (!is_string($uuid) || strlen($uuid) !== 16) return null;
 		return $uuid;
 	}
 
-	public static function encode(string $uuid, bool $brackets = false, string $prefix = '') {
+	public static function encode(string $uuid, bool $brackets = false, string $prefix = ''): string {
 		$uuid = bin2hex($uuid);
 		return $prefix . ($brackets ? '{' : '') . substr($uuid, 0, 8) . '-' . substr($uuid, 8, 4) . '-' . substr($uuid, 12, 4) . '-' . substr($uuid, 16, 4) . '-' . substr($uuid, 20, 12) . ($brackets ? '}' : '');
 	}

@@ -172,11 +172,11 @@ class EnglishNoun {
 		return $class_name;
 	}
 
-	public static function classNameToSingular(string $class_name) {
+	public static function classNameToSingular(string $class_name): string {
 		return static::toSingular(Casing::camelToSnake(static::getClassName($class_name)));
 	}
 
-	public static function classNameToPlural(string $class_name) {
+	public static function classNameToPlural(string $class_name): string {
 		return static::toPlural(Casing::camelToSnake(static::getClassName($class_name)));
 	}
 }
