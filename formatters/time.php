@@ -1,8 +1,9 @@
 <?php namespace Obie\Formatters;
 use \DateTime;
+use \DateTimeZone;
 
 class Time {
-	public static function toTimestamp(int|string|DateTime $input): ?int {
+	public static function toTimestamp(int|string|DateTime|null $input): ?int {
 		if (is_string($input)) {
 			$input = strtotime($input);
 			if ($input === false) return null;
@@ -12,48 +13,51 @@ class Time {
 		return $input;
 	}
 
-	public static function toRelativeString(int|string|DateTime $input, int|string|DateTime $now = -1): string {
-		if ($now === -1) $now = time();
-		$input = static::toTimestamp($input);
-		$now = static::toTimestamp($now);
-		if ($input === null || $now === null) return 'unknown';
+	public static function toDateTime(int|string|DateTime|null $input, ?DateTimeZone $timezone = null): ?DateTime {
+		if (is_int($input)) {
+			return (new DateTime('now', $timezone))->setTimestamp($input);
+		} elseif (is_string($input)) {
+			return new DateTime($input, $timezone);
+		}
+		return $input;
+	}
 
-		$prefix = '';
-		$suffix = '';
-		if ($input > $now) {
-			$prefix = 'in ';
+	public static function toRelativeString(int|string|DateTime $input, int|string|DateTime|null $now = null, ?DateTimeZone $timezone = null, int $precision = 0, string $past_prefix = '', string $past_suffix = ' ago', string $future_prefix = 'in ', string $future_suffix = '', string $nowstr = 'just now', string $fallback = 'unknown'): string {
+		$input = static::toDateTime($input);
+		$now = static::toDateTime($now) ?? new DateTime('now', $timezone);
+		if ($input === null || $now === null) return $fallback;
+		$diff = $now->diff($input);
+
+		if ($diff->invert === 0) {
+			$prefix = $future_prefix;
+			$suffix = $future_suffix;
+		} elseif ($diff->invert === 1) {
+			$prefix = $past_prefix;
+			$suffix = $past_suffix;
 		} else {
-			$suffix = ' ago';
+			$prefix = '';
+			$suffix = '';
 		}
 
-		if (date('Y', $now) === date('Y', $input)) {
-			if (date('M', $now) === date('M', $input)) {
-				if (date('j', $now) === date('j', $input)) {
-					if (date('H', $now) === date('H', $input)) {
-						if (date('i', $now) === date('i', $input)) {
-							if (date('s', $now) === date('s', $input)) {
-								// Same second
-								return 'just now';
-							}
-							// Same minute
-							$offset = abs((int)date('s', $now) - (int)date('s', $input));
-							return sprintf('%s%d second%s%s', $prefix, $offset, ($offset > 1 ? 's' : ''), $suffix);
-						}
-						// Same hour
-						$offset = abs((int)date('i', $now) - (int)date('i', $input));
-						return sprintf('%s%d minute%s%s', $prefix, $offset, ($offset > 1 ? 's' : ''), $suffix);
-					}
-					// Same day
-					$offset = abs((int)date('G', $now) - (int)date('G', $input));
-					return sprintf('%s%d hour%s%s', $prefix, $offset, ($offset > 1 ? 's' : ''), $suffix);
-				}
-				// Same month
-				$offset = abs((int)date('j', $now) - (int)date('j', $input));
-				return sprintf('%s%d day%s%s', $prefix, $offset, ($offset > 1 ? 's' : ''), $suffix);
+		$precision_steps = [
+			'y' => 'year',
+			'm' => 'month',
+			'd' => 'day',
+			'h' => 'hour',
+			'i' => 'minute',
+			's' => 'second'
+		];
+		$str = '';
+		$i = 0;
+		foreach ($precision_steps as $step => $display) {
+			if ($precision < $i) break;
+			$val = $diff->$step;
+			if ($val > 0) {
+				$str .= sprintf('%s%d %s%s', (strlen($str) > 0 ? ', ' : ''), $val, $display, ($val === 1 ? '' : 's'));
 			}
-			// Same year
-			return 'on ' . date('j M', $input);
+			$i++;
 		}
-		return 'on ' . date('j M Y', $input);
+		if (strlen($str) === 0) return $nowstr;
+		return $prefix . $str . $suffix;
 	}
 }
