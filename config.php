@@ -17,7 +17,7 @@ class Config {
     }
 
     public static function fromJSON(string $json, int $depth = 512, int $options = 0): static {
-        return new static(Json::decode($json, $depth, $options));
+        return new static(Json::decode($json, true, $depth, $options));
     }
 
     public static function setGlobal(self $config) {
