@@ -1,5 +1,6 @@
 <?php namespace Obie\Security;
 use \Obie\Encoding\Pem;
+use \Sop\CryptoTypes\AlgorithmIdentifier\Asymmetric\ECPublicKeyAlgorithmIdentifier;
 
 class Cose {
 	const KTY_RESERVED = 0; // This value is reserved
@@ -50,7 +51,6 @@ class Cose {
 	const EC_ED448 = 7; // Ed448 for use w/ EdDSA only
 
 	public static function ecPubkeyToRaw(array $key, bool $compress = true): string {
-		if (!array_key_exists(3, $key)) return ''; // curve
 		if (!array_key_exists(-2, $key)) return ''; // x coord
 		if (!array_key_exists(-3, $key)) return ''; // y coord
 
@@ -64,52 +64,30 @@ class Cose {
 		return $compress ? Ecdsa::getCompressedPrefixForY($y) . $x : Ecdsa::PREFIX_UNCOMPRESSED . $x . $y;
 	}
 
+	public static function ecPubkeyToCurveOid(array $key): string {
+		if (!array_key_exists(-1, $key)) return '';
+		$curve = $key[-1];
+		return match ($curve) {
+			self::EC_P256 => ECPublicKeyAlgorithmIdentifier::CURVE_PRIME256V1,
+			self::EC_P384 => ECPublicKeyAlgorithmIdentifier::CURVE_SECP384R1,
+			self::EC_P521 => ECPublicKeyAlgorithmIdentifier::CURVE_SECP521R1,
+			default => '',
+		};
+	}
+
 	/**
 	 * Converts a an EC public key from RFC 8152 COSE Key Object format
 	 * to ITU X.690 DER format.
 	 *
-	 * @param array $key - COSE Key Object
+	 * @param array $key COSE Key Object
 	 * @return string DER key or empty string if failed
 	 */
 	public static function ecPubkeyToDER(array $key, bool $compress = true): string {
+		$curve_oid = static::ecPubkeyToCurveOid($key);
+		if ($curve_oid === '') return '';
 		$key_raw = static::ecPubkeyToRaw($key, $compress);
 		if ($key_raw === '') return '';
-
-		// Get curve
-		switch ($key[3]) {
-			case 'ES256':
-			case self::ALG_ES256:
-				$curve = array_key_exists(-1, $key) ? $key[-1] : self::EC_P256;
-				break;
-			case 'ES384':
-			case self::ALG_ES384:
-				$curve = array_key_exists(-1, $key) ? $key[-1] : self::EC_P384;
-				break;
-			case 'ES512':
-			case self::ALG_ES512:
-				$curve = array_key_exists(-1, $key) ? $key[-1] : self::EC_P521;
-				break;
-			default:
-				return '';
-		}
-
-		// Get public key header based on curve
-		switch ($curve) {
-			case self::EC_P256:
-				$hdr = $compress ? Ecdsa::ASN1HEADER_SECP256R1_COMPRESSED : Ecdsa::ASN1HEADER_SECP256R1_UNCOMPRESSED;
-				break;
-			case self::EC_P384:
-				$hdr = $compress ? Ecdsa::ASN1HEADER_SECP384R1_COMPRESSED : Ecdsa::ASN1HEADER_SECP384R1_UNCOMPRESSED;
-				break;
-			case self::EC_P521:
-				$hdr = $compress ? Ecdsa::ASN1HEADER_SECP521R1_COMPRESSED : Ecdsa::ASN1HEADER_SECP521R1_UNCOMPRESSED;
-				break;
-			default:
-				return '';
-		}
-
-		// DER form = ASN.1 header + sign byte + raw key
-		return $hdr . "\0" . $key_raw;
+		return Ecdsa::pubkeyToDER($key_raw, $curve_oid);
 	}
 
 	public static function ecPubkeyToPEM(array $key, bool $compress = true): string {
@@ -121,38 +99,37 @@ class Cose {
 	/**
 	 * Get algorithm OpenSSL constant
 	 *
-	 * @param int $alg - COSE algorithm identifier
+	 * @param int $alg COSE algorithm identifier
 	 */
-	public static function getAlgOpenSSLConstant(int $alg) {
-		switch ($alg) {
-			case self::ALG_ES256:
-				return OPENSSL_ALGO_SHA256;
-			case self::ALG_ES384:
-				return OPENSSL_ALGO_SHA384;
-			case self::ALG_ES512:
-				return OPENSSL_ALGO_SHA512;
-			default:
-				return null;
-		}
+	public static function getAlgOpenSSLConstant(int $alg): ?int {
+		return match ($alg) {
+			self::ALG_ES256 => OPENSSL_ALGO_SHA256,
+			self::ALG_ES384 => OPENSSL_ALGO_SHA384,
+			self::ALG_ES512 => OPENSSL_ALGO_SHA512,
+			default => null,
+		};
 	}
 
 	/**
-	 * Verifies a signature against a specified algorithm
+	 * Verifies a signature against a specified algorithm and curve
 	 *
-	 * @param string $data - Data to verify the signature of
-	 * @param string $signature - Raw cryptographic signature of data (not encoded)
-	 * @param string $public_key - Public key to verify signature with, in PEM or DER form
-	 * @param int $alg - COSE algorithm constant
+	 * @param string $data Data to verify the signature of
+	 * @param string $signature Raw cryptographic signature of data (not encoded)
+	 * @param string $public_key Public key to verify signature with, in PEM or DER form
+	 * @param int $alg COSE algorithm constant
+	 * @param ?string $ecdsa_curve_oid_for_raw_key ECDSA curve OID that may optionally be specified to support $public_key in RAW form
+	 * @return ?bool null if unsupported algorithm
 	 */
-	public static function verify(string $data, string $signature, string $public_key, int $alg) {
+	public static function verify(string $data, string $signature, string $public_key, int $alg, ?string $ecdsa_curve_oid_for_raw_key = null): ?bool {
 		switch ($alg) {
-			case self::ALG_ES256:
-			case self::ALG_ES384:
-			case self::ALG_ES512:
-				$openssl_alg = static::getAlgOpenSSLConstant($alg);
-				return Ecdsa::verify($data, $signature, $public_key, $openssl_alg);
-			default:
-				return null;
+		case self::ALG_ES256:
+		case self::ALG_ES384:
+		case self::ALG_ES512:
+			$openssl_alg = static::getAlgOpenSSLConstant($alg);
+			if ($openssl_alg === null) return false;
+			return Ecdsa::verify($data, $signature, $public_key, $openssl_alg, $ecdsa_curve_oid_for_raw_key);
+		default:
+			return null;
 		}
 	}
 }

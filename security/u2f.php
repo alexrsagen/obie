@@ -3,6 +3,7 @@ use \Obie\Encoding\Pem;
 use \Obie\Encoding\Json;
 use \Obie\Encoding\Base64Url;
 use \Obie\Security\Ecdsa;
+use \Sop\CryptoTypes\AlgorithmIdentifier\Asymmetric\ECPublicKeyAlgorithmIdentifier;
 
 class U2f {
 	// https://fidoalliance.org/specs/fido-u2f-v1.2-ps-20170411/fido-u2f-javascript-api-v1.2-ps-20170411.html#idl-def-SignResponse
@@ -21,6 +22,9 @@ class U2f {
         '6073c436dcd064a48127ddbf6032ac1a66fd59a0c24434f070d4e564c124c897',
         'ca993121846c464d666096d35f13bf44c1b05af205f9b4a1e00cf6cc10c5e511'
 	];
+
+	const ECDSA_CURVE = ECPublicKeyAlgorithmIdentifier::CURVE_PRIME256V1;
+	const ECDSA_RAW_PUBLIC_KEY_LEN = 1 + (ECPublicKeyAlgorithmIdentifier::MAP_CURVE_TO_SIZE[self::ECDSA_CURVE]/8)*2;
 
 	protected static function fixSignatureUnusedBits(string $cert) {
 		if(in_array(hash('sha256', $cert), self::FIX_CERTS, true)) {
@@ -268,8 +272,8 @@ class U2f {
 		$offset = 1;
 
 		// get public key
-		$public_key_raw = substr($reg_data_raw, $offset, Ecdsa::PUBKEYLEN_SECP256R1_UNCOMPRESSED + 1);
-		$offset += Ecdsa::PUBKEYLEN_SECP256R1_UNCOMPRESSED + 1;
+		$public_key_raw = substr($reg_data_raw, $offset, self::ECDSA_RAW_PUBLIC_KEY_LEN);
+		$offset += self::ECDSA_RAW_PUBLIC_KEY_LEN;
 
 		// get key handle length
 		$key_handle_len = ord($reg_data_raw[$offset++]);
@@ -335,6 +339,6 @@ class U2f {
 			$public_key = Pem::encode($response['attCert'], Pem::LABEL_CERTIFICATE);
 		}
 
-		return Ecdsa::verify($response['signatureBase'], $response['signature'], $public_key, OPENSSL_ALGO_SHA256);
+		return Ecdsa::verify($response['signatureBase'], $response['signature'], $public_key, OPENSSL_ALGO_SHA256, self::ECDSA_CURVE);
 	}
 }
