@@ -48,7 +48,7 @@ trait BodyTrait {
 				$boundary = Multipart::generateBoundary();
 				$this->getContentType()?->setParameter('boundary', $boundary);
 			}
-			return FormData::encode($input, [], $boundary);
+			return FormData::encode($boundary, $input, []);
 		case 'application/x-www-form-urlencoded':
 			return Querystring::encode($input);
 		case 'application/json':

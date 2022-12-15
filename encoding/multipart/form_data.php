@@ -59,7 +59,7 @@ class FormData {
 		return $form_data;
 	}
 
-	public static function encode(array $fields = [], array $files = [], string $boundary): string {
+	public static function encode(string $boundary, array $fields = [], array $files = []): string {
 		$segments = [];
 
 		foreach ($fields as $k => $v) {
@@ -93,15 +93,16 @@ class FormData {
 	}
 
 	public static function fileToSegment(string $field_name, string $file_name, string $value, string|Mime|null $type = null): Segment {
-		return new Segment($value, [
-			'content-type' => $type->encode(),
-			'content-disposition' => sprintf(
-				'form-data; name=%s; filename=%s; filename*=%s',
-				QuotedString::encode($field_name, true),
-				QuotedString::encode($file_name, true),
-				Rfc8187::encode($file_name)
-			),
-			'content-transfer-encoding' => 'base64',
-		]);
+		$headers = [];
+		if (is_string($type)) $type = Mime::decode($type);
+		if ($type !== null) $headers['content-type'] = $type->encode();
+		$headers['content-disposition'] = sprintf(
+			'form-data; name=%s; filename=%s; filename*=%s',
+			QuotedString::encode($field_name, true),
+			QuotedString::encode($file_name, true),
+			Rfc8187::encode($file_name)
+		);
+		$headers['content-transfer-encoding'] = 'base64';
+		return new Segment($value, $headers);
 	}
 }
