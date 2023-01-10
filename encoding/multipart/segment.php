@@ -3,16 +3,16 @@
 class Segment {
 	use \Obie\Http\HeaderTrait;
 
-	function __construct(public string $body, array $headers = []) {
+	function __construct(public string $body, array $headers = [], public int $line_length = 76) {
 		if (!empty($headers)) $this->setHeaders($headers);
 	}
 
-	protected static function encodeBody(string $body, string $encoding) {
+	protected static function encodeBody(string $body, string $encoding, int $line_length = 76) {
 		switch ($encoding) {
 		case 'quoted-printable':
 			return quoted_printable_encode($body);
 		case 'base64':
-			return chunk_split(base64_encode($body));
+			return chunk_split(base64_encode($body), $line_length);
 		case '7bit': case '8bit': case 'binary': default:
 			return $body;
 		}
