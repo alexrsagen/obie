@@ -87,7 +87,7 @@ class QuotedString {
 		// 2. Let value be the empty string.
 		$value = '';
 		// 3. Assert: the code point at position within input is U+0022 (").
-		if ($input[$position] !== '"') return null;
+		if (substr($input, $position, 1) !== '"') return null;
 		// 4. Advance position by 1.
 		$position++;
 		// 5. While true:
