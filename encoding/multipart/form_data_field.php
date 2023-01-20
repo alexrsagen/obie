@@ -108,7 +108,7 @@ class FormDataField {
 		return new static($content, $name, $filename, $type);
 	}
 
-	public function toSegment(array $headers = [], string $disposition = 'form-data', bool $include_name = true, bool $include_filename = true, bool $include_utf8_filename = true): Segment {
+	public function toSegment(array $headers = [], string $disposition = 'form-data', bool $include_name = true, bool $include_filename = true, bool $include_utf8_filename = true, ?string $transfer_encoding = null): Segment {
 		if ($this->type !== null) $headers['content-type'] = $this->type->encode();
 		$headers['content-disposition'] = $disposition;
 		if ($include_name) {
@@ -120,7 +120,9 @@ class FormDataField {
 				$headers['content-disposition'] .= '; filename*=' . Rfc8187::encode($this->filename);
 			}
 		}
-		$headers['content-transfer-encoding'] = 'base64';
+		if ($transfer_encoding !== null) {
+			$headers['content-transfer-encoding'] = $transfer_encoding;
+		}
 		return new Segment($this->content, $headers);
 	}
 }

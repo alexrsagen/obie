@@ -36,45 +36,49 @@ class FormData {
 		return $form_data;
 	}
 
-	public function encode(): string {
+	public function encode(string $transfer_encoding = '8bit'): string {
 		$segments = [];
 		foreach ($this->fields as $field_name => $field) {
 			if ((!is_array($field) || $field === []) && !($field instanceof FormDataField)) continue;
 			if (is_array($field)) {
 				if (array_keys($field) === range(0, count($field) - 1)) {
-					$segment = static::filesToSegment($field, $field_name);
+					$segment = static::filesToSegment($field, $field_name, transfer_encoding: $transfer_encoding);
 				} else {
-					$segment = FormDataField::fromArray($field, $field_name)->toSegment();
+					$segment = FormDataField::fromArray($field, $field_name)->toSegment(transfer_encoding: $transfer_encoding);
 				}
 			} else {
-				$segment = $field->toSegment();
+				$segment = $field->toSegment(transfer_encoding: $transfer_encoding);
 			}
 			$segments[] = $segment;
 		}
 		return Multipart::encode($segments, $this->boundary);
 	}
 
-	public static function fieldToSegment(string $name, string $value, string $disposition = self::DISPOSITION_FORM_DATA): Segment {
-		return new Segment($value, [
+	public static function fieldToSegment(string $name, string $value, string $disposition = self::DISPOSITION_FORM_DATA, ?string $transfer_encoding = null): Segment {
+		$headers = [
 			'content-disposition' => sprintf(
 				'%s; name=%s',
 				$disposition,
 				QuotedString::encode($name, true),
 			)
-		]);
+		];
+		if ($transfer_encoding !== null) {
+			$headers['content-transfer-encoding'] = $transfer_encoding;
+		}
+		return new Segment($value, $headers);
 	}
 
-	public static function fileToSegment(string $field_name, string $file_name, string $value, string|Mime|null $type = null, array $headers = [], string $disposition = self::DISPOSITION_FORM_DATA): Segment {
-		return (new FormDataField($value, $file_name, $field_name, $type))->toSegment($headers, $disposition);
+	public static function fileToSegment(string $field_name, string $file_name, string $value, string|Mime|null $type = null, array $headers = [], string $disposition = self::DISPOSITION_FORM_DATA, ?string $transfer_encoding = null): Segment {
+		return (new FormDataField($value, $file_name, $field_name, $type))->toSegment($headers, $disposition, transfer_encoding: $transfer_encoding);
 	}
 
-	public static function filesToSegment(array $files, string $field_name = 'files[]', ?string $boundary = null): Segment {
+	public static function filesToSegment(array $files, string $field_name = 'files[]', ?string $boundary = null, ?string $transfer_encoding = null): Segment {
 		$boundary ??= Multipart::generateBoundary();
 		$segments = [];
 		foreach ($files as $file) {
 			if (is_array($file)) $file = FormDataField::fromArray($file);
 			if (!($file instanceof FormDataField)) continue;
-			$segments[] = $file->toSegment(disposition: self::DISPOSITION_FILE, include_name: false);
+			$segments[] = $file->toSegment(disposition: self::DISPOSITION_FILE, include_name: false, transfer_encoding: $transfer_encoding);
 		}
 		$content = Multipart::encode($segments, $boundary);
 		return new Segment($content, [
