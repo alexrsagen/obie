@@ -7,18 +7,18 @@ class Segment {
 		if (!empty($headers)) $this->setHeaders($headers);
 	}
 
-	protected static function encodeBody(string $body, string $encoding, int $line_length = 76) {
+	protected static function encodeBody(string $body, string $encoding, int $line_length = 76): string {
 		switch ($encoding) {
 		case 'quoted-printable':
 			return quoted_printable_encode($body);
 		case 'base64':
-			return chunk_split(base64_encode($body), $line_length);
+			return chunk_split(base64_encode($body), $line_length, "\r\n");
 		case '7bit': case '8bit': case 'binary': default:
 			return $body;
 		}
 	}
 
-	protected static function decodeBody(string $body, string $encoding) {
+	protected static function decodeBody(string $body, string $encoding): string|false {
 		switch ($encoding) {
 		case 'quoted-printable':
 			return quoted_printable_decode($body);
@@ -44,7 +44,7 @@ class Segment {
 
 	public function build(): string {
 		$body_encoding = $this->getHeader('content-transfer-encoding') ?? '8bit';
-		$raw = implode("\r\n", $this->getRawHeaders());
+		$raw = ltrim(implode("\r\n", $this->getRawHeaders()) . "\r\n", "\r\n");
 		$raw .= "\r\n";
 		$raw .= static::encodeBody($this->body, $body_encoding, $this->line_length);
 		return $raw;
@@ -54,20 +54,18 @@ class Segment {
 		return (new static($body, $headers))->build();
 	}
 
-	public static function decode(string $raw): ?self {
+	public static function decode(string $raw): ?static {
 		$raw_len = strlen($raw);
 		$headers = [];
 
 		$last_field_name = null;
 		$offset = 0;
-		while (
-			$offset < $raw_len &&
-			($lfpos = strpos($raw, "\n", $offset)) !== -1 &&
-			($line = substr($raw, $offset, $lfpos - $offset + 1)) !== false
-		) {
-			if ($lfpos === false) {
-				$lfpos = $raw_len - $offset;
-			}
+		$line = '';
+		while ($offset < $raw_len) {
+			$lfpos = strpos($raw, "\n", $offset);
+			if ($lfpos === false) $lfpos = strlen($raw);
+			$line = substr($raw, $offset, $lfpos - $offset + 1);
+			if ($line === false) break;
 			$line_trim = trim($line);
 
 			// parse header
@@ -92,12 +90,14 @@ class Segment {
 			$offset = $lfpos + 1;
 			$last_field_name = $field_name;
 
-			// if this line was blank, set body to next line and stop parsing
+			// if this line was blank, set body to rest of string and stop parsing
 			if ($line === "\r\n" || $line === "\n") {
 				$body_encoding = array_key_exists('content-transfer-encoding', $headers) ? $headers['content-transfer-encoding'] : '8bit';
-				return new static(static::decodeBody(substr($raw, $offset), $body_encoding), $headers);
+				$body = static::decodeBody(substr($raw, $offset), $body_encoding);
+				if ((!is_string($body) || strlen($body) === 0) && empty($headers)) return null;
+				return new static($body ?: '', $headers);
 			}
 		}
-		return null;
+		return empty($headers) ? null : new static('', $headers);
 	}
 }
