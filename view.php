@@ -29,7 +29,7 @@ class View {
 		throw new \Exception('Could not find view');
 	}
 
-	public static function render(string $name, array $vars = null) {
+	public static function render(string $name, array $vars = []) {
 		$tpl = new self($name, $vars);
 		return $tpl->getHTML();
 	}
