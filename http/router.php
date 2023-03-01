@@ -279,20 +279,21 @@ class Router {
 	public static function sendResponse($response = null, string $content_type = self::CONTENT_TYPE_HTML, string $charset = 'utf-8', bool $minify = true) {
 		if (self::$response_sent) return;
 
-		// Run deferred functions from all router instances
-		static::runDeferred();
-
-		// Send response
+		// Build response
 		$content_type = Mime::decode($content_type);
 		$content_type->setParameter('charset', $charset);
-		Response::current()
+		$res = Response::current()
 			->setContentType($content_type)
 			->setMinify($minify)
 			->setHTMLMinifyOptions(self::$html_minify_options)
 			->setHTMLSuffix(self::$html_suffix)
-			->setBody($response)
-			->send();
+			->setBody($response);
 
+		// Run deferred functions from all router instances
+		static::runDeferred();
+
+		// Send response
+		$res->send();
 		self::$response_sent = true;
 	}
 
