@@ -11,13 +11,15 @@ class BaseModel {
 		'date'
 	];
 
-	protected $_error                = null;
-	protected $_new                  = true;
-	protected $_data                 = [];
-	protected $_original_data        = [];
-	protected $_modified_columns     = [];
-	protected static $_default_db    = null;
-	protected static $_default_ro_db = null;
+	protected ?\PDOException $_error       = null;
+	protected ?string $_last_save_query    = null;
+	protected bool $_new                   = true;
+	protected array $_data                 = [];
+	protected array $_original_data        = [];
+	protected array $_modified_columns     = [];
+	protected static ?\PDO $_default_db    = null;
+	protected static ?\PDO $_default_ro_db = null;
+	protected static string $_timezone     = 'UTC';
 
 	// Model definition methods
 
@@ -71,7 +73,7 @@ class BaseModel {
 		}
 	}
 
-	public static function getPrimaryKeys() {
+	public static function getPrimaryKeys(): array {
 		static::initPrimaryKeys();
 		return static::$pk;
 	}
@@ -108,22 +110,24 @@ class BaseModel {
 		static::initSource();
 	}
 
-	public static function getSource() {
+	public static function getSource(): ?string {
 		static::initSource();
 		return static::$source;
 	}
 
-	public static function getEscapedSource() {
-		return ModelHelpers::getEscapedSource(static::getSource());
+	public static function getEscapedSource(): ?string {
+		$source = static::getSource();
+		if ($source === null) return null;
+		return ModelHelpers::getEscapedSource($source);
 	}
 
 	public static function setDatabase(\PDO $db) {
 		static::$db = $db;
 	}
 
-	public static function getDatabase() {
+	public static function getDatabase(): ?\PDO {
 		if (static::$db === null) {
-			return self::getDefaultDatabase();
+			return static::getDefaultDatabase();
 		}
 		return static::$db;
 	}
@@ -136,9 +140,12 @@ class BaseModel {
 		}
 	}
 
-	public static function getDefaultDatabase() {
-		if (property_exists(get_called_class(), '_default_db')) {
+	public static function getDefaultDatabase(): ?\PDO {
+		$parent = get_parent_class(static::class);
+		if (property_exists(static::class, '_default_db')) {
 			return static::$_default_db;
+		} elseif ($parent !== false && property_exists($parent, '_default_db') && $parent::$_default_db !== null) {
+			return $parent::$_default_db;
 		}
 		return self::$_default_db;
 	}
@@ -147,9 +154,9 @@ class BaseModel {
 		static::$ro_db = $db;
 	}
 
-	public static function getReadOnlyDatabase() {
+	public static function getReadOnlyDatabase(): ?\PDO {
 		if (static::$ro_db === null) {
-			return self::getDefaultReadOnlyDatabase();
+			return static::getDefaultReadOnlyDatabase();
 		}
 		return static::$ro_db;
 	}
@@ -162,9 +169,12 @@ class BaseModel {
 		}
 	}
 
-	public static function getDefaultReadOnlyDatabase() {
-		if (property_exists(get_called_class(), '_default_ro_db') && static::$_default_ro_db !== null) {
+	public static function getDefaultReadOnlyDatabase(): ?\PDO {
+		$parent = get_parent_class(static::class);
+		if (property_exists(static::class, '_default_ro_db') && static::$_default_ro_db !== null) {
 			return static::$_default_ro_db;
+		} elseif ($parent !== false && property_exists($parent, '_default_ro_db') && $parent::$_default_ro_db !== null) {
+			return $parent::$_default_ro_db;
 		} elseif (self::$_default_ro_db !== null) {
 			return self::$_default_ro_db;
 		}
@@ -173,150 +183,207 @@ class BaseModel {
 
 	// Statement building methods
 
-	protected static function buildSelect(array $options = []) {
+	public static function getEscapedColumn(string $column): string {
+		$column_parts = explode('.', $column);
+		if (count($column_parts) > 1) {
+			array_unshift($column_parts, static::getSource());
+			$source_escaped = '`' . implode('.', array_slice($column_parts, 0, -1)) . '`';
+		} else {
+			$source_escaped = static::getEscapedSource();
+		}
+		return $source_escaped . '.`' . $column_parts[count($column_parts)-1] . '`';
+	}
+
+	protected static function buildWhat(array &$options = []): string {
 		if (!array_key_exists('what', $options)) {
 			$options['what'] = static::getAllColumns();
 		}
+		$query = ' ';
 		if (is_array($options['what'])) {
-			$options['what'] = ModelHelpers::getEscapedList($options['what'], static::getSource());
-		}
-		if (!is_string($options['what'])) {
+			$query .= ModelHelpers::getEscapedList($options['what'], static::getSource());
+		} elseif (is_string($options['what'])) {
+			$query .= $options['what'];
+		} else {
 			throw new \InvalidArgumentException('What must be a string or array of strings');
 		}
-		$query = 'SELECT ' . $options['what'] . ' FROM ' . static::getEscapedSource();
-		if (array_key_exists('join', $options)) {
-			if (is_string($options['join'])) {
-				$options['join'] = [$options['join']];
-			}
-			if (!is_array($options['join'])) {
-				throw new \InvalidArgumentException('Join must be a string or array of strings');
-			}
-			foreach ($options['join'] as $join) {
-				$query .= ' ' . $join;
-			}
-		}
-		if (array_key_exists('with', $options)) {
-			$class_name = get_called_class();
-			if (!method_exists($class_name, 'getJoin')) {
-				throw new \InvalidArgumentException("With can only be used on models with relations. Model \"$class_name\" does not have relations.");
-			}
-			if (is_string($options['with'])) {
-				$options['with'] = [$options['with']];
-			}
-			if (!is_array($options['with'])) {
-				throw new \InvalidArgumentException('With must be a string or array of strings');
-			}
-			foreach ($options['with'] as $with) {
-				$join = static::getJoin($with);
-				if (!$join) {
-					throw new \InvalidArgumentException("Relation \"$with\" does not exist on model \"$class_name\"");
-				}
-				$query .= ' ' . $join;
-			}
-		}
-		if (array_key_exists('conditions', $options)) {
-			if (is_string($options['conditions'])) {
-				$options['conditions'] = [$options['conditions']];
-			}
-			if (!is_array($options['conditions'])) {
-				throw new \InvalidArgumentException('Conditions must be a string or array of strings');
-			}
-			if (count($options['conditions']) > 0) {
-				$non_empty_conditions = [];
-				foreach ($options['conditions'] as $condition) {
-					if (!is_string($condition)) {
-						throw new \InvalidArgumentException('Conditions must be a string or array of strings');
-					}
-					if (strlen($condition) > 0) {
-						$non_empty_conditions[] = $condition;
-					}
-				}
-				if (count($non_empty_conditions) > 0) {
-					$query .= ' WHERE ' . (count($non_empty_conditions) > 1 ? '(' : '') . '(' . implode(') AND (', $non_empty_conditions) . ')' . (count($non_empty_conditions) > 1 ? ')' : '');
-				}
-			}
-		}
-		foreach (['group', 'order'] as $expr) {
-			if (array_key_exists($expr, $options)) {
-				$query .= strtoupper($expr) . ' BY ';
-				if (is_array($options[$expr])) {
-					$is_first = true;
-					foreach ($options[$expr] as $key => $type) {
-						if (!is_string($key) && !is_int($key)) {
-							throw new \InvalidArgumentException(ucfirst($expr) . ' must be an associative array of (col_name | position) => ("ASC" | "DESC")');
-						}
-						if (!is_string($type)) {
-							throw new \InvalidArgumentException(ucfirst($expr) . ' must be an associative array of (col_name | position) => ("ASC" | "DESC")');
-						}
-						$type = strtoupper($type);
-						if ($type !== 'ASC' && $type !== 'DESC') {
-							throw new \InvalidArgumentException(ucfirst($expr) . ' must be an associative array of (col_name | position) => ("ASC" | "DESC")');
-						}
-						if (!$is_first) {
-							$query .= ',';
-						}
-						if (is_int($key)) {
-							$query .= (string)$key . ' ' . $type;
-						} else {
-							$query .= static::getEscapedSource() . '.`' . $key . '` ' . $type;
-						}
-						$is_first = false;
-					}
-				} elseif (is_string($options[$expr])) {
-					$query .= $options[$expr];
-				} else {
-					throw new \InvalidArgumentException(ucfirst($expr) . ' must be an associative array of (col_name | position) => ("ASC" | "DESC")');
-				}
-			}
-		}
-		if (array_key_exists('limit', $options)) {
-			if (!is_int($options['limit'])) {
-				throw new \InvalidArgumentException('Limit must be an int');
-			}
-			$query .= ' LIMIT ';
-			if (array_key_exists('offset', $options)) {
-				if (!is_int($options['offset'])) {
-					throw new \InvalidArgumentException('Offset must be an int');
-				}
-				$query .= (string)$options['offset'] . ',';
-			}
-			$query .= (string)$options['limit'];
-		}
-		if (array_key_exists('for', $options) && is_array($options['for'])) {
-			foreach (['update', 'share'] as $for_type) {
-				if (array_key_exists($for_type, $options['for'])) {
-					if (is_string($options['for'][$for_type])) {
-						$options['for'][$for_type] = [$options['for'][$for_type]];
-					}
-					if (!is_array($options['for'][$for_type]) && !is_bool($options['for'][$for_type])) {
-						throw new \InvalidArgumentException(ucfirst($for_type) . ' must be an indexed array of table names or a boolean');
-					}
-					if (is_bool($options['for'][$for_type]) && $options['for'][$for_type] || is_array($options['for'][$for_type]) && count($options['for'][$for_type]) > 0) {
-						if (is_bool($options['for'][$for_type]) && $for_type === 'share') {
-							$query .= ' LOCK IN SHARE MODE';
-						} else {
-							$query .= ' FOR ' . strtoupper($for_type);
-							if (is_array($options['for'][$for_type]) && count($options['for'][$for_type]) > 0) {
-								$query .= ' OF `' . implode('`,`') . '`';
-							}
-							if (array_key_exists('nowait', $options['for'])) {
-								if (!is_bool($options['for']['nowait'])) {
-									throw new \InvalidArgumentException('Nowait must be a boolean');
-								}
-								if ($options['for']['nowait']) {
-									$query .= ' NOWAIT';
-								}
-							}
-						}
-					}
-				}
-			}
-		}
-
 		return $query;
 	}
 
-	protected static function buildStatement(string $query, array $options) {
+	protected static function buildFrom(array &$options = []): string {
+		return ' FROM ' . static::getEscapedSource();
+	}
+
+	protected static function buildJoin(array &$options = []): string {
+		if (!array_key_exists('join', $options)) return '';
+		if (is_string($options['join'])) {
+			$options['join'] = [$options['join']];
+		}
+		if (!is_array($options['join'])) {
+			throw new \InvalidArgumentException('Join must be a string or array of strings');
+		}
+		$query = '';
+		foreach ($options['join'] as $join) {
+			$query .= ' ' . $join;
+		}
+		return $query;
+	}
+
+	protected static function buildConditions(array &$options = []): string {
+		if (!array_key_exists('conditions', $options)) return '';
+		if (is_string($options['conditions'])) {
+			$options['conditions'] = [$options['conditions']];
+		}
+		if (!is_array($options['conditions'])) {
+			throw new \InvalidArgumentException('Conditions must be a string or array of strings');
+		}
+		if (count($options['conditions']) === 0) return '';
+		$query = '';
+		$non_empty_conditions = [];
+		foreach ($options['conditions'] as $condition) {
+			if (!is_string($condition)) {
+				throw new \InvalidArgumentException('Conditions must be a string or array of strings');
+			}
+			if (strlen($condition) > 0) {
+				$non_empty_conditions[] = $condition;
+			}
+		}
+		if (count($non_empty_conditions) > 0) {
+			$query .= ' WHERE ' . (count($non_empty_conditions) > 1 ? '(' : '') . '(' . implode(') AND (', $non_empty_conditions) . ')' . (count($non_empty_conditions) > 1 ? ')' : '');
+		}
+		return $query;
+	}
+
+	protected static function buildGroup(array &$options = []): string {
+		if (!array_key_exists('group', $options)) return '';
+		$query = ' GROUP BY ';
+		if (is_array($options['group'])) {
+			$is_first = true;
+			foreach ($options['group'] as $key => $column) {
+				if (!is_int($key) || !is_string($column) && !is_int($column)) {
+					throw new \InvalidArgumentException('Group must be a sequential array of (col_name | position)');
+				}
+				if (!$is_first) {
+					$query .= ',';
+				}
+				if (is_int($column)) {
+					$query .= (string)$column;
+				} else {
+					$column_escaped = static::getEscapedColumn($column);
+					$query .= $column_escaped;
+				}
+				$is_first = false;
+			}
+		} elseif (is_string($options['group'])) {
+			$query .= $options['group'];
+		} else {
+			throw new \InvalidArgumentException('Group must be a sequential array of (col_name | position)');
+		}
+		return $query;
+	}
+
+	protected static function buildOrder(array &$options = []): string {
+		if (!array_key_exists('order', $options)) return '';
+		$query = ' ORDER BY ';
+		if (is_array($options['order'])) {
+			$is_first = true;
+			foreach ($options['order'] as $column => $type) {
+				if (!is_string($column) && !is_int($column)) {
+					throw new \InvalidArgumentException('Order must be an associative array of (col_name | position) => ("ASC" | "DESC")');
+				}
+				if (!is_string($type)) {
+					throw new \InvalidArgumentException('Order must be an associative array of (col_name | position) => ("ASC" | "DESC")');
+				}
+				$type = strtoupper($type);
+				if ($type !== 'ASC' && $type !== 'DESC') {
+					throw new \InvalidArgumentException('Order must be an associative array of (col_name | position) => ("ASC" | "DESC")');
+				}
+				if (!$is_first) {
+					$query .= ',';
+				}
+				if (is_int($column)) {
+					$query .= (string)$column . ' ' . $type;
+				} else {
+					$column_escaped = static::getEscapedColumn($column);
+					$type_inv = $type === 'ASC' ? 'DESC' : 'ASC';
+					$query .= $column_escaped . ' IS NULL ' . $type_inv . ',';
+					$query .= $column_escaped . ' ' . $type;
+				}
+				$is_first = false;
+			}
+		} elseif (is_string($options['order'])) {
+			$query .= $options['order'];
+		} else {
+			throw new \InvalidArgumentException('Order must be an associative array of (col_name | position) => ("ASC" | "DESC")');
+		}
+		return $query;
+	}
+
+	protected static function buildLimit(array &$options = []): string {
+		if (!array_key_exists('limit', $options)) return '';
+		if (!is_int($options['limit'])) {
+			throw new \InvalidArgumentException('Limit must be an int');
+		}
+		$query = ' LIMIT ';
+		if (array_key_exists('offset', $options)) {
+			if (!is_int($options['offset'])) {
+				throw new \InvalidArgumentException('Offset must be an int');
+			}
+			$query .= (string)$options['offset'] . ',';
+		}
+		$query .= (string)$options['limit'];
+		return $query;
+	}
+
+	protected static function buildFor(array &$options = []): string {
+		if (!array_key_exists('for', $options) || !is_array($options['for'])) return '';
+
+		$query = '';
+		foreach (['update', 'share'] as $for_type) {
+			if (array_key_exists($for_type, $options['for'])) {
+				if (is_string($options['for'][$for_type])) {
+					$options['for'][$for_type] = [$options['for'][$for_type]];
+				}
+				if (!is_array($options['for'][$for_type]) && !is_bool($options['for'][$for_type])) {
+					throw new \InvalidArgumentException(ucfirst($for_type) . ' must be an indexed array of table names or a boolean');
+				}
+				if (is_bool($options['for'][$for_type]) && $options['for'][$for_type] || is_array($options['for'][$for_type]) && count($options['for'][$for_type]) > 0) {
+					if (is_bool($options['for'][$for_type]) && $for_type === 'share') {
+						$query .= ' LOCK IN SHARE MODE';
+					} else {
+						$query .= ' FOR ' . strtoupper($for_type);
+						if (is_array($options['for'][$for_type]) && count($options['for'][$for_type]) > 0) {
+							$query .= ' OF `' . implode('`,`') . '`';
+						}
+						if (array_key_exists('nowait', $options['for'])) {
+							if (!is_bool($options['for']['nowait'])) {
+								throw new \InvalidArgumentException('Nowait must be a boolean');
+							}
+							if ($options['for']['nowait']) {
+								$query .= ' NOWAIT';
+							}
+						}
+					}
+				}
+			}
+		}
+		return $query;
+	}
+
+	protected static function buildSelect(array $options = []): string {
+		$query = 'SELECT';
+		$query .= static::buildWhat($options);
+		$query .= static::buildFrom($options);
+		$query .= static::buildJoin($options);
+		$query .= static::buildConditions($options);
+		$query .= static::buildGroup($options);
+		$query .= static::buildOrder($options);
+		$query .= static::buildLimit($options);
+		$query .= static::buildFor($options);
+		return $query;
+	}
+
+	protected static function buildStatement(string $query, array $options): \PDOStatement {
+		static::$last_query = $query;
 		$db   = array_key_exists('read_only', $options) && $options['read_only'] ? static::getReadOnlyDatabase() : static::getDatabase();
 		$stmt = $db->prepare($query);
 		if (array_key_exists('bind', $options)) {
@@ -332,6 +399,10 @@ class BaseModel {
 			}
 		}
 		return $stmt;
+	}
+
+	public static function getLastQuery(): ?string {
+		return static::$last_query;
 	}
 
 	// Initializers
@@ -361,9 +432,9 @@ class BaseModel {
 		$options['read_only'] = true;
 
 		// Build and execute statement
-		$stmt = static::buildStatement(static::buildSelect($options), $options);
 		static::$find_error = null;
 		try {
+			$stmt = static::buildStatement(static::buildSelect($options), $options);
 			$stmt->execute();
 		} catch (\PDOException $e) {
 			static::$find_error = $e;
@@ -404,9 +475,9 @@ class BaseModel {
 		$options['read_only'] = true;
 
 		// Build and execute statement
-		$stmt = static::buildStatement(static::buildSelect($options), $options);
 		static::$find_error = null;
 		try {
+			$stmt = static::buildStatement(static::buildSelect($options), $options);
 			$stmt->execute();
 		} catch (\PDOException $e) {
 			static::$find_error = $e;
@@ -437,6 +508,10 @@ class BaseModel {
 		return $models;
 	}
 
+	public static function getLastFindError() {
+		return static::$find_error;
+	}
+
 	public static function count(array $options = []) {
 		// Enforce read only option
 		$options['read_only'] = true;
@@ -445,20 +520,32 @@ class BaseModel {
 		$options['what'] = 'COUNT(' . ModelHelpers::getEscapedList(static::getPrimaryKeys(), static::getSource()) . ') AS `rowcount`';
 
 		// Build and execute statement which gets row count efficiently with given options
-		$stmt = static::buildStatement(static::buildSelect($options), $options);
-		$stmt->execute();
-		$count = $stmt->fetch(\PDO::FETCH_ASSOC)['rowcount'];
-		if (is_string($count)) $count = (int)$count;
-		return $count;
+		static::$count_error = null;
+		try {
+			$stmt = static::buildStatement(static::buildSelect($options), $options);
+			$stmt->execute();
+		} catch (\PDOException $e) {
+			static::$count_error = $e;
+			return false;
+		}
+		$res = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+		if (count($res) === 0) return 0;
+		if (array_key_exists('group', $options) && !empty($options['group'])) {
+			if (count($res) === 1 && (int)$res[0]['rowcount'] === 0) {
+				return 0;
+			}
+			return count($res);
+		}
+		return (int)$res[0]['rowcount'];
 	}
 
-	public static function getLastFindError() {
-		return static::$find_error;
+	public static function getLastCountError() {
+		return static::$count_error;
 	}
 
 	// Database interaction methods
 
-	public function load() {
+	public function load(): bool {
 		// Run pre-load hooks
 		foreach ($this->getHooks('beforeLoad') as $name) {
 			if ($this->{$name}()) return true;
@@ -500,7 +587,7 @@ class BaseModel {
 		return true;
 	}
 
-	public function save() {
+	public function save(): bool {
 		// Run pre-save hooks
 		foreach ($this->getHooks('beforeSave') as $name) {
 			if ($this->{$name}()) return true;
@@ -524,14 +611,16 @@ class BaseModel {
 		return $retval;
 	}
 
-	public function create() {
+	public function create(): bool {
 		// Run pre-create hooks
 		foreach ($this->getHooks('beforeCreate') as $name) {
 			if ($this->{$name}()) return true;
 		}
 
 		// Update database
-		$stmt = static::getDatabase()->prepare('INSERT INTO ' . static::getEscapedSource() . ' SET ' . ModelHelpers::getEscapedSet($this->_modified_columns, static::getSource()));
+		$query = 'INSERT INTO ' . static::getEscapedSource() . ' SET ' . ModelHelpers::getEscapedSet($this->_modified_columns, static::getSource());
+		$this->_last_save_query = $query;
+		$stmt = static::getDatabase()->prepare($query);
 		$this->bindValues($stmt, $this->_modified_columns);
 		$this->_error = null;
 		try {
@@ -567,7 +656,9 @@ class BaseModel {
 		return $retval;
 	}
 
-	public function update() {
+	public function update(): bool {
+		if (!$this->modified()) return true;
+
 		// Run pre-update hooks
 		foreach ($this->getHooks('beforeUpdate') as $name) {
 			if ($this->{$name}()) return true;
@@ -575,7 +666,9 @@ class BaseModel {
 
 		// Update database
 		$pk_list = static::getPrimaryKeys();
-		$stmt = static::getDatabase()->prepare('UPDATE ' . static::getEscapedSource() . ' SET ' . ModelHelpers::getEscapedSet($this->_modified_columns, static::getSource()) . ' WHERE ' . ModelHelpers::getEscapedWhere($pk_list, static::getSource()) . ' LIMIT 1');
+		$query = 'UPDATE ' . static::getEscapedSource() . ' SET ' . ModelHelpers::getEscapedSet($this->_modified_columns, static::getSource()) . ' WHERE ' . ModelHelpers::getEscapedWhere($pk_list, static::getSource()) . ' LIMIT 1';
+		$this->_last_save_query = $query;
+		$stmt = static::getDatabase()->prepare($query);
 		$i = $this->bindValues($stmt, $this->_modified_columns);
 		$this->bindValues($stmt, $pk_list, $i);
 		$this->_error = null;
@@ -598,7 +691,7 @@ class BaseModel {
 		return $retval;
 	}
 
-	public function delete() {
+	public function delete(): bool {
 		foreach ($this->getHooks('beforeDelete') as $name) {
 			if ($this->{$name}()) return true;
 		}
@@ -652,7 +745,7 @@ class BaseModel {
 		$stmt->bindValue($key, $val, $type);
 	}
 
-	public function forceCleanState() {
+	public function forceCleanState(): static {
 		$this->_new = false;
 		$this->_original_data  = [];
 		$this->_modified_columns = [];
@@ -661,6 +754,10 @@ class BaseModel {
 
 	public function getLastError() {
 		return $this->_error;
+	}
+
+	public function getLastSaveQuery() {
+		return $this->_last_save_query;
 	}
 
 	// Data methods
@@ -675,11 +772,11 @@ class BaseModel {
 		return $hooks;
 	}
 
-	public function modified() {
+	public function modified(): bool {
 		return !empty($this->_modified_columns);
 	}
 
-	public function modifiedColumns() {
+	public function modifiedColumns(): array {
 		return $this->_modified_columns;
 	}
 
@@ -689,17 +786,31 @@ class BaseModel {
 				$class_name = get_called_class();
 				throw new \Exception("Column $key is not defined in model $class_name");
 			}
-			return array_key_exists($key, $this->_original_data) ? $this->_original_data[$key] : $this->_data[$key];
+			return array_key_exists($key, $this->_original_data) ? $this->_original_data[$key] : (array_key_exists($key, $this->_data) ? $this->_data[$key] : null);
 		}
 		return array_merge($this->_data, $this->_original_data);
 	}
 
-	public function undoModifications() {
+	public function undoModifications(): static {
 		$this->_data = $this->originalData();
+		return $this;
 	}
 
 	public function toArray() {
-		return $this->_data;
+		$data = [];
+		foreach (static::getAllColumns() as $column) {
+			$type = static::$columns[$column];
+			if ($type === 'date') {
+				$data[$column] = $this->get($column, false)?->format(\DateTime::RFC3339);
+			} else {
+				$data[$column] = $this->get($column);
+			}
+		}
+		return $data;
+	}
+
+	public function modifiedDataToArray(): array {
+		return array_intersect_key($this->toArray(), array_flip($this->modifiedColumns()));
 	}
 
 	public function get(string $key, bool $hooks = true) {
@@ -722,43 +833,61 @@ class BaseModel {
 		return $this->get($key);
 	}
 
-	public function set(string $key, $value, bool $hooks = true) {
+	public function set(string $key, $value, bool $hooks = true): static {
+		// Get column metadata
 		if (!static::columnExists($key)) {
 			$class_name = get_called_class();
 			throw new \Exception("Column $key is not defined in model $class_name");
 		}
 		$type = static::$columns[$key];
+
+		// Get current column data (before change)
+		$current_value = $this->get($key, false);
+
+		// Run beforeSet* hooks
+		$new_value = $value;
 		if ($hooks) {
 			foreach ($this->getHooks('beforeSet') as $name) {
-				$value = $this->{$name}($key, $value, $type);
+				$new_value = $this->{$name}($key, $new_value, $type);
 			}
 		}
-		$original_data = $this->get($key, false);
-		if ($value === null) {
-			$this->_data[$key] = null;
-		} elseif ($type === 'date') {
-			if ($value instanceof \DateTime) {
-				$this->_data[$key] = $value;
-			} elseif (is_string($value)) {
-				$this->_data[$key] = \DateTime::createFromFormat('Y-m-d H:i:s', $value);
-			} elseif (is_int($value)) {
-				$this->_data[$key] = (new \DateTime)->setTimestamp($value);
+
+		// Transform value
+		if ($new_value !== null) {
+			if ($type === 'date') {
+				if (is_string($new_value)) {
+					$new_value = \DateTime::createFromFormat('Y-m-d H:i:s', $new_value, new \DateTimeZone(static::$_timezone));
+				} elseif (is_int($new_value)) {
+					$new_value = (new \DateTime)->setTimestamp($new_value);
+				} elseif (!($new_value instanceof \DateTime)) {
+					throw new \InvalidArgumentException('Date values must be an instance of DateTime, a string or an int');
+				}
 			} else {
-				throw new \InvalidArgumentException('Date values must be an instance of DateTime, a string or an int');
+				settype($new_value, $type);
 			}
-		} else {
-			settype($value, $type);
-			$this->_data[$key] = $value;
 		}
+
+		// Return if value is loaded and new value matches current value
+		if (array_key_exists($key, $this->_data) && $new_value === $current_value) {
+			return $this;
+		}
+
+		// Store new value
+		$this->_data[$key] = $new_value;
+
+		// Store original value
 		if (!in_array($key, $this->_modified_columns)) {
-			$this->_original_data[$key] = $original_data;
+			$this->_original_data[$key] = $current_value;
 			$this->_modified_columns[] = $key;
 		}
+
+		// Run afterSet* hooks
 		if ($hooks) {
 			foreach ($this->getHooks('afterSet') as $name) {
-				$this->{$name}($key, $value, $type);
+				$this->{$name}($key, $new_value, $type);
 			}
 		}
+
 		return $this;
 	}
 

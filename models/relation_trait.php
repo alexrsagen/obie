@@ -1,5 +1,6 @@
 <?php namespace Obie\Models;
-use \Obie\Formatters\EnglishNoun;
+use Obie\Formatters\EnglishNoun;
+use Obie\Log;
 
 trait RelationTrait {
 	protected static $relations = [];
@@ -19,6 +20,63 @@ trait RelationTrait {
 
 	protected static function canGetOrSet(string $name): bool {
 		return static::columnExists($name) || static::relationExists($name);
+	}
+
+	protected static function buildJoin(array &$options = []): string {
+		$query = parent::buildJoin($options);
+		if (array_key_exists('with', $options) && is_string($options['with'])) {
+			$options['with'] = [$options['with']];
+		}
+		if (array_key_exists('with', $options) && !is_array($options['with'])) {
+			throw new \InvalidArgumentException('With must be a string or array of strings');
+		}
+		if (array_key_exists('group', $options) && is_array($options['group'])) {
+			foreach ($options['group'] as $column) {
+				if (is_string($column)) {
+					$parts = explode('.', $column);
+					if (count($parts) > 1) {
+						if (!array_key_exists('with', $options)) {
+							$options['with'] = [];
+						}
+						$options['with'][] = implode('.', array_slice($parts, 0, -1));
+					}
+				}
+			}
+		}
+		if (array_key_exists('order', $options) && is_array($options['order'])) {
+			foreach ($options['order'] as $column => $type) {
+				if (is_string($column)) {
+					$parts = explode('.', $column);
+					if (count($parts) > 1) {
+						if (!array_key_exists('with', $options)) {
+							$options['with'] = [];
+						}
+						$options['with'][] = implode('.', array_slice($parts, 0, -1));
+					}
+				}
+			}
+		}
+		if (array_key_exists('with', $options)) {
+			$query .= static::buildJoinWith($options);
+		}
+		return $query;
+	}
+
+	protected static function buildJoinWith(array &$options = []): string {
+		if (!array_key_exists('with', $options)) return '';
+		$with_tree = [];
+		foreach ($options['with'] as $with) {
+			$parts = explode('.', $with);
+			$cur = &$with_tree;
+			foreach ($parts as $part) {
+				if (!array_key_exists($part, $cur)) {
+					$cur[$part] = [];
+				}
+				$cur = &$cur[$part];
+			}
+			unset($cur);
+		}
+		return static::getJoinFromWithTree($with_tree);
 	}
 
 	public function get(string $key, bool $hooks = true) {
@@ -46,16 +104,13 @@ trait RelationTrait {
 			}
 			return $value;
 		}
-		$class_name = get_called_class();
+		$class_name = static::class;
 		throw new \Exception("Column $key is not defined in model $class_name");
 	}
 
-	public function getRelated(string $relation_name, array $options = [], bool $count = false) {
+	public function getRelated(string $relation_name, string|array $options = [], bool $count = false) {
 		if (is_string($options)) {
 			$options = ['conditions' => $options];
-		}
-		if (!is_array($options)) {
-			throw new \InvalidArgumentException('Options must be a string of conditions or an array of options');
 		}
 		if (!array_key_exists($relation_name, static::$relations)) {
 			return false;
@@ -69,25 +124,7 @@ trait RelationTrait {
 			'bind'       => []
 		];
 
-		switch ($relation['type']) {
-		case RelationModel::TYPE_BELONGS_TO_ONE:
-		case RelationModel::TYPE_BELONGS_TO_MANY:
-		case RelationModel::TYPE_HAS_ONE:
-		case RelationModel::TYPE_HAS_MANY:
-			$relation_options['conditions'][] = ModelHelpers::getEscapedWhere($relation['target_fields']);
-			break;
-
-		case RelationModel::TYPE_BELONGS_TO_MANY_TO_MANY:
-		case RelationModel::TYPE_HAS_MANY_TO_MANY:
-			$intermediate = $relation['intermediate_model'];
-			$relation_options['conditions'][] = ModelHelpers::getEscapedWhere($relation['intermediate_source_fields'], $intermediate::getSource());
-			$relation_options['join'] = 'LEFT JOIN ' . $intermediate::getEscapedSource() .
-				' ON ' . ModelHelpers::getEscapedOn(
-					$relation['intermediate_target_fields'], $intermediate::getSource(),
-					$relation['target_fields'], $target::getSource());
-			break;
-		}
-
+		$relation_options['conditions'][] = ModelHelpers::getEscapedWhere($relation['target_fields'], $target::getSource());
 		if (array_key_exists('conditions', $options)) {
 			if (is_string($options['conditions'])) {
 				$options['conditions'] = [$options['conditions']];
@@ -103,7 +140,13 @@ trait RelationTrait {
 		$options['conditions'] = $relation_options['conditions'];
 
 		foreach ($relation['source_fields'] as $key) {
-			$relation_options['bind'][] = $this->{$key};
+			if (is_object($key)) {
+				$relation_options['bind'][] = $key->bindTo($this, $this)();
+			} elseif (method_exists($this, $key)) {
+				$relation_options['bind'][] = $this->{$key}();
+			} else {
+				$relation_options['bind'][] = $this->{$key};
+			}
 		}
 		if (array_key_exists('bind', $options)) {
 			$relation_options['bind'] = array_merge($relation_options['bind'], $options['bind']);
@@ -116,17 +159,29 @@ trait RelationTrait {
 		switch ($relation['type']) {
 		case RelationModel::TYPE_BELONGS_TO_ONE:
 		case RelationModel::TYPE_HAS_ONE:
-			return $count ? 1 : $target::findFirst($options);
+			$options['limit'] = 1;
+			break;
+		}
+
+		if ($count) {
+			$target_count = $target::count($options);
+			if ($target_count === false && $target::getLastCountError()) {
+				Log::error($target::getLastCountError(), ['prefix' => 'BaseModel: Could get count of model "' . $target . '" due to database error: ']);
+				Log::debug($target::getLastQuery(), ['prefix' => 'Last SQL query that failed: ']);
+				return false;
+			}
+			return $target_count;
+		}
+
+		switch ($relation['type']) {
+		case RelationModel::TYPE_BELONGS_TO_ONE:
+		case RelationModel::TYPE_HAS_ONE:
+			return $target::findFirst($options);
 
 		case RelationModel::TYPE_BELONGS_TO_MANY:
 		case RelationModel::TYPE_HAS_MANY:
-			return $count ? $target::count($options) : $target::find($options);
-
-		case RelationModel::TYPE_BELONGS_TO_MANY_TO_MANY:
-		case RelationModel::TYPE_HAS_MANY_TO_MANY:
-			return $count ? $target::count($options) : $target::find($options);
+			return $target::find($options);
 		}
-
 		return false;
 	}
 
@@ -141,64 +196,65 @@ trait RelationTrait {
 		return static::$relations;
 	}
 
-	public static function getJoin(string $relation_name, string $kind = 'LEFT', string $intermediate_kind = 'LEFT') {
+	public static function getJoin(string $relation_name, string $kind = 'LEFT', string $relation_alias = '', string $alias = '') {
 		$relation = static::getRelation($relation_name);
 		if (!$relation) return false;
 
-		$relation_source = ModelHelpers::getEscapedSource($relation_name);
+		if (empty($relation_alias)) {
+			$relation_alias = $relation_name;
+		}
+		if (empty($alias)) {
+			$alias = static::getSource();
+		}
+
 		$target = $relation['target_model'];
 		switch ($relation['type']) {
-			case RelationModel::TYPE_BELONGS_TO_ONE:
-			case RelationModel::TYPE_BELONGS_TO_MANY:
-			case RelationModel::TYPE_HAS_ONE:
-			case RelationModel::TYPE_HAS_MANY:
-				return $kind . ' JOIN ' . $target::getEscapedSource() .
-					' AS ' . $relation_source .
-					' ON ' . ModelHelpers::getEscapedOn(
-						$relation['target_fields'], $relation_name,
-						$relation['source_fields'], static::getSource());
-
-			case RelationModel::TYPE_BELONGS_TO_MANY_TO_MANY:
-			case RelationModel::TYPE_HAS_MANY_TO_MANY:
-				$intermediate = $relation['intermediate_model'];
-				return $intermediate_kind . ' JOIN ' . $intermediate::getEscapedSource() .
-					' ON ' . ModelHelpers::getEscapedOn(
-						$relation['intermediate_source_fields'], $intermediate::getSource(),
-						$relation['source_fields'], static::getSource()) .
-					$kind . ' JOIN ' . $target::getEscapedSource() .
-					' AS ' . $relation_source .
-					' ON ' . ModelHelpers::getEscapedOn(
-							$relation['target_fields'], $relation_name,
-							$relation['intermediate_target_fields'], $intermediate::getSource());
+		case RelationModel::TYPE_BELONGS_TO_ONE:
+		case RelationModel::TYPE_BELONGS_TO_MANY:
+		case RelationModel::TYPE_HAS_ONE:
+		case RelationModel::TYPE_HAS_MANY:
+			return $kind . ' JOIN ' . $target::getEscapedSource() .
+				' AS ' . ModelHelpers::getEscapedSource($relation_alias) .
+				' ON ' . ModelHelpers::getEscapedOn(
+					$relation['target_fields'], $relation_alias,
+					$relation['source_fields'], $alias);
 		}
 
 		return false;
 	}
 
-	public static function belongsTo(
-		$source_fields,
-		$target_model,
-		$target_fields,
-		string $relation_name = null,
-		array $default_options = []
-	) {
+	public static function getJoinFromWithTree(array $with, ?string $parent_relation_name = null): string {
+		if ($parent_relation_name === null) $parent_relation_name = static::getSource();
+		$join = '';
+		foreach ($with as $relation_name => $with_tree) {
+			$relation = static::getRelation($relation_name);
+			if (!$relation) {
+				$class_name = static::class;
+				throw new \InvalidArgumentException("Relation \"$relation_name\" does not exist on model \"$class_name\"");
+			}
+			$relation_alias = (!empty($parent_relation_name) ? $parent_relation_name . '.' : '') . $relation_name;
+			$join .= ' ' . static::getJoin($relation_name, relation_alias: $relation_alias, alias: $parent_relation_name);
+			$join .= $relation['target_model']::getJoinFromWithTree($with_tree, $relation_alias);
+		}
+		return $join;
+	}
+
+	public static function addRelation(int $relation_type, string|array|callable $source_fields, $target_model, string|array|callable $target_fields, string $relation_name = null, array $default_options = []) {
 		if (is_string($source_fields)) {
 			$source_fields = [$source_fields];
-		}
-		if (!is_array($source_fields)) {
-			throw new \InvalidArgumentException('Source field(s) must be string or array');
 		}
 		if (is_string($target_fields)) {
 			$target_fields = [$target_fields];
 		}
-		if (!is_array($target_fields)) {
-			throw new \InvalidArgumentException('Target field(s) must be string or array');
-		}
 		if ($relation_name === null) {
-			$relation_name = EnglishNoun::classNameToSingular($target_model);
+			if ($relation_type === RelationModel::TYPE_HAS_ONE || $relation_type === RelationModel::TYPE_BELONGS_TO_ONE) {
+				$relation_name = EnglishNoun::classNameToSingular($target_model);
+			} else {
+				$relation_name = EnglishNoun::classNameToPlural($target_model);
+			}
 		}
 		static::$relations[$relation_name] = [
-			'type' => RelationModel::TYPE_BELONGS_TO_ONE,
+			'type' => $relation_type,
 			'source_fields' => $source_fields,
 			'target_model' => $target_model,
 			'target_fields' => $target_fields,
@@ -206,194 +262,19 @@ trait RelationTrait {
 		];
 	}
 
-	public static function belongsToMany(
-		$source_fields,
-		$target_model,
-		$target_fields,
-		string $relation_name = null,
-		array $default_options = []
-	) {
-		if (is_string($source_fields)) {
-			$source_fields = [$source_fields];
-		}
-		if (!is_array($source_fields)) {
-			throw new \InvalidArgumentException('Source field(s) must be string or array');
-		}
-		if (is_string($target_fields)) {
-			$target_fields = [$target_fields];
-		}
-		if (!is_array($target_fields)) {
-			throw new \InvalidArgumentException('Target field(s) must be string or array');
-		}
-		if ($relation_name === null) {
-			$relation_name = EnglishNoun::toPlural(EnglishNoun::classNameToSingular($target_model));
-		}
-		static::$relations[$relation_name] = [
-			'type' => RelationModel::TYPE_BELONGS_TO_MANY,
-			'source_fields' => $source_fields,
-			'target_model' => $target_model,
-			'target_fields' => $target_fields,
-			'default_options' => $default_options
-		];
+	public static function belongsTo(string|array|callable $source_fields, $target_model, string|array|callable $target_fields, string $relation_name = null, array $default_options = []) {
+		return static::addRelation(RelationModel::TYPE_BELONGS_TO_ONE, $source_fields, $target_model, $target_fields, $relation_name, $default_options);
 	}
 
-	public static function belongsToManyToMany(
-		$source_fields,
-		$intermediate_model,
-		$intermediate_source_fields,
-		$intermediate_target_fields,
-		$target_model,
-		$target_fields,
-		string $relation_name = null,
-		array $default_options = []
-	) {
-		if (is_string($source_fields)) {
-			$source_fields = [$source_fields];
-		}
-		if (!is_array($source_fields)) {
-			throw new \InvalidArgumentException('Source field(s) must be string or array');
-		}
-		if (is_string($intermediate_source_fields)) {
-			$intermediate_source_fields = [$intermediate_source_fields];
-		}
-		if (!is_array($intermediate_source_fields)) {
-			throw new \InvalidArgumentException('Intermediate source field(s) must be string or array');
-		}
-		if (is_string($intermediate_target_fields)) {
-			$intermediate_target_fields = [$intermediate_target_fields];
-		}
-		if (!is_array($intermediate_target_fields)) {
-			throw new \InvalidArgumentException('Intermediate target field(s) must be string or array');
-		}
-		if (is_string($target_fields)) {
-			$target_fields = [$target_fields];
-		}
-		if (!is_array($target_fields)) {
-			throw new \InvalidArgumentException('Target field(s) must be string or array');
-		}
-		if ($relation_name === null) {
-			$relation_name = EnglishNoun::toPlural(EnglishNoun::classNameToSingular($target_model));
-		}
-		static::$relations[$relation_name] = [
-			'type' => RelationModel::TYPE_BELONGS_TO_MANY_TO_MANY,
-			'source_fields' => $source_fields,
-			'intermediate_model' => $intermediate_model,
-			'intermediate_source_fields' => $intermediate_source_fields,
-			'intermediate_target_fields' => $intermediate_target_fields,
-			'target_model' => $target_model,
-			'target_fields' => $target_fields,
-			'default_options' => $default_options
-		];
+	public static function belongsToMany(string|array|callable $source_fields, $target_model, string|array|callable $target_fields, string $relation_name = null, array $default_options = []) {
+		return static::addRelation(RelationModel::TYPE_BELONGS_TO_MANY, $source_fields, $target_model, $target_fields, $relation_name, $default_options);
 	}
 
-	public static function hasOne(
-		$source_fields,
-		$target_model,
-		$target_fields,
-		string $relation_name = null,
-		array $default_options = []
-	) {
-		if (is_string($source_fields)) {
-			$source_fields = [$source_fields];
-		}
-		if (!is_array($source_fields)) {
-			throw new \InvalidArgumentException('Source field(s) must be string or array');
-		}
-		if (is_string($target_fields)) {
-			$target_fields = [$target_fields];
-		}
-		if (!is_array($target_fields)) {
-			throw new \InvalidArgumentException('Target field(s) must be string or array');
-		}
-		if ($relation_name === null) {
-			$relation_name = EnglishNoun::classNameToSingular($target_model);
-		}
-		static::$relations[$relation_name] = [
-			'type' => RelationModel::TYPE_HAS_ONE,
-			'source_fields' => $source_fields,
-			'target_model' => $target_model,
-			'target_fields' => $target_fields,
-			'default_options' => $default_options
-		];
+	public static function hasOne(string|array|callable $source_fields, $target_model, string|array|callable $target_fields, string $relation_name = null, array $default_options = []) {
+		return static::addRelation(RelationModel::TYPE_HAS_ONE, $source_fields, $target_model, $target_fields, $relation_name, $default_options);
 	}
 
-	public static function hasMany(
-		$source_fields,
-		$target_model,
-		$target_fields,
-		string $relation_name = null,
-		array $default_options = []
-	) {
-		if (is_string($source_fields)) {
-			$source_fields = [$source_fields];
-		}
-		if (!is_array($source_fields)) {
-			throw new \InvalidArgumentException('Source field(s) must be string or array');
-		}
-		if (is_string($target_fields)) {
-			$target_fields = [$target_fields];
-		}
-		if (!is_array($target_fields)) {
-			throw new \InvalidArgumentException('Target field(s) must be string or array');
-		}
-		if ($relation_name === null) {
-			$relation_name = EnglishNoun::toPlural(EnglishNoun::classNameToSingular($target_model));
-		}
-		static::$relations[$relation_name] = [
-			'type' => RelationModel::TYPE_HAS_MANY,
-			'source_fields' => $source_fields,
-			'target_model' => $target_model,
-			'target_fields' => $target_fields,
-			'default_options' => $default_options
-		];
-	}
-
-	public static function hasManyToMany(
-		$source_fields,
-		$intermediate_model,
-		$intermediate_source_fields,
-		$intermediate_target_fields,
-		$target_model,
-		$target_fields,
-		string $relation_name = null,
-		array $default_options = []
-	) {
-		if (is_string($source_fields)) {
-			$source_fields = [$source_fields];
-		}
-		if (!is_array($source_fields)) {
-			throw new \InvalidArgumentException('Source field(s) must be string or array');
-		}
-		if (is_string($intermediate_source_fields)) {
-			$intermediate_source_fields = [$intermediate_source_fields];
-		}
-		if (!is_array($intermediate_source_fields)) {
-			throw new \InvalidArgumentException('Intermediate source field(s) must be string or array');
-		}
-		if (is_string($intermediate_target_fields)) {
-			$intermediate_target_fields = [$intermediate_target_fields];
-		}
-		if (!is_array($intermediate_target_fields)) {
-			throw new \InvalidArgumentException('Intermediate target field(s) must be string or array');
-		}
-		if (is_string($target_fields)) {
-			$target_fields = [$target_fields];
-		}
-		if (!is_array($target_fields)) {
-			throw new \InvalidArgumentException('Target field(s) must be string or array');
-		}
-		if ($relation_name === null) {
-			$relation_name = EnglishNoun::toPlural(EnglishNoun::classNameToSingular($target_model));
-		}
-		static::$relations[$relation_name] = [
-			'type' => RelationModel::TYPE_HAS_MANY_TO_MANY,
-			'source_fields' => $source_fields,
-			'intermediate_model' => $intermediate_model,
-			'intermediate_source_fields' => $intermediate_source_fields,
-			'intermediate_target_fields' => $intermediate_target_fields,
-			'target_model' => $target_model,
-			'target_fields' => $target_fields,
-			'default_options' => $default_options
-		];
+	public static function hasMany(string|array|callable $source_fields, $target_model, string|array|callable $target_fields, string $relation_name = null, array $default_options = []) {
+		return static::addRelation(RelationModel::TYPE_HAS_MANY, $source_fields, $target_model, $target_fields, $relation_name, $default_options);
 	}
 }
