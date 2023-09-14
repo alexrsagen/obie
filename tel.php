@@ -1,5 +1,4 @@
 <?php namespace Obie;
-use \Obie\Encoding\Querystring;
 
 class Tel {
 	const FMT_NUM = 'num'; // Just the number, no prefix or calling code
@@ -128,6 +127,199 @@ class Tel {
 		return $num_len;
 	}
 
+	protected static function extractPossibleCallingCodes(string $num, ?string $fallback_cc = null, bool $raw_guess_cc = false): string|array {
+		// build calling code list from largest to smallest
+		static $calling_code_list = null;
+		if ($calling_code_list === null) {
+			$calling_code_list = array_keys(self::METADATA);
+			rsort($calling_code_list, SORT_NUMERIC);
+			$calling_code_list = array_map('strval', $calling_code_list);
+		}
+
+		// find calling code
+		$slice = '';
+		$num_no_cc = '';
+		$calling_code_matches = []; // (string)$calling_code => (int)$score
+		foreach ($calling_code_list as $calling_code) {
+			// update slice when needed, as cc gets shorter
+			if (strlen($slice) !== strlen($calling_code)) {
+				$slice = substr($num, 0, strlen($calling_code));
+			}
+
+			// update num_no_cc (remove cc from num)
+			if (substr($num, 0, strlen($calling_code)) === $calling_code) {
+				$num_no_cc = substr($num, strlen($calling_code));
+			} else {
+				$num_no_cc = $num;
+			}
+
+			// increase score if calling code matches
+			if ($slice === $calling_code) {
+				// initialize calling code matches
+				if (!array_key_exists($calling_code, $calling_code_matches)) {
+					$calling_code_matches[$calling_code] = 0;
+				}
+				$calling_code_matches[$calling_code]++;
+			}
+		}
+
+		// guess calling code (if no exact match found)
+		if ($raw_guess_cc && count($calling_code_matches) === 0) {
+			$slice = '';
+			$num_no_cc = '';
+			foreach ($calling_code_list as $calling_code) {
+				// update slice when needed, as cc gets shorter
+				if (strlen($slice) !== strlen($calling_code)) {
+					$slice = substr($num, 0, strlen($calling_code));
+				}
+
+				// update num_no_cc (remove cc from num)
+				if (substr($num, 0, strlen($calling_code)) === $calling_code) {
+					$num_no_cc = substr($num, strlen($calling_code));
+				} else {
+					$num_no_cc = $num;
+				}
+
+				// check that number matches the pattern of a country having
+				// the current calling code
+				foreach (self::METADATA[$calling_code]['countries'] as $country_code => $country) {
+					if ($country['pattern'] === null) continue;
+
+					// skip numbers not matching national number pattern
+					if (
+						preg_match($country['pattern'], $num_no_cc) !== 1 &&
+						preg_match($country['pattern'], $num) !== 1
+					) continue;
+
+					// initialize calling code matches
+					if (!array_key_exists($calling_code, $calling_code_matches)) {
+						$calling_code_matches[$calling_code] = 0;
+					}
+
+					// attempt to match up to one usage type pattern
+					foreach ($country['patterns'] as $typ => $pattern) {
+						if ($pattern['pattern'] === null) continue;
+						if (
+							count($pattern['lengths']['national']) > 0 &&
+							!in_array(strlen($num_no_cc), $pattern['lengths']['national'], true) &&
+							!in_array(strlen($num), $pattern['lengths']['national'], true)
+						) continue;
+
+						// skip numbers not matching usage-specific number pattern
+						if (
+							preg_match($pattern['pattern'], $num_no_cc) !== 1 &&
+							preg_match($pattern['pattern'], $num) !== 1
+						) continue;
+
+						// add points for usage-specific number pattern matches
+						$calling_code_matches[$calling_code]++;
+						break;
+					}
+				}
+			}
+		}
+
+		// prefer fallback calling code, increase its score (if found)
+		if ($fallback_cc !== null && array_key_exists($fallback_cc, $calling_code_matches)) {
+			$calling_code_matches[$fallback_cc]++;
+		}
+
+		// return early if no calling codes match
+		if (count($calling_code_matches) === 0) return [];
+
+		$calling_code_matches_max_score = array_map('strval', array_keys($calling_code_matches, max($calling_code_matches)));
+		if (count($calling_code_matches_max_score) === 1) {
+			// return calling code with highest score, if exactly one found
+			return $calling_code_matches_max_score[0];
+		}
+
+		// could not find one calling code with max score, return
+		// list of all possible calling codes sorted by score
+		$calling_codes_by_score_desc = array_keys($calling_code_matches);
+		usort($calling_codes_by_score_desc, function($a, $b) use($calling_code_matches) {
+			return $calling_code_matches[$a] <=> $calling_code_matches[$b];
+		});
+		return $calling_codes_by_score_desc;
+	}
+
+	protected static function findCountryCode(string $calling_code, string $num_no_cc): string|array {
+		$country_code_matches = []; // (string)$country_code => (int)$score
+		if (!array_key_exists($calling_code, self::METADATA)) return [];
+		foreach (self::METADATA[$calling_code]['countries'] as $country_code => $country) {
+			if ($country['pattern'] === null) continue;
+
+			// skip numbers not matching national number pattern
+			if (preg_match($country['pattern'], $num_no_cc) !== 1) continue;
+
+			// initialize calling code matches
+			if (!array_key_exists($country_code, $country_code_matches)) {
+				$country_code_matches[$country_code] = 0;
+			}
+
+			// attempt to match up to one usage type pattern
+			foreach ($country['patterns'] as $typ => $pattern) {
+				if ($pattern['pattern'] === null) continue;
+				if (
+					count($pattern['lengths']['national']) > 0 &&
+					!in_array(strlen($num_no_cc), $pattern['lengths']['national'], true)
+				) continue;
+
+				// skip numbers not matching usage-specific number pattern
+				if (preg_match($pattern['pattern'], $num_no_cc) !== 1) continue;
+
+				// add points for usage-specific number pattern matches
+				$country_code_matches[$country_code]++;
+				break;
+			}
+		}
+
+		// return early if no country codes match
+		if (count($country_code_matches) === 0) return [];
+
+		$country_code_matches_max_score = array_keys($country_code_matches, max($country_code_matches));
+		if (count($country_code_matches_max_score) === 1) {
+			// return country code with highest score, if exactly one found
+			return $country_code_matches_max_score[0];
+		} elseif (in_array(self::METADATA[$calling_code]['main_country'], $country_code_matches_max_score, true)) {
+			// return main country for calling code, if matched
+			return self::METADATA[$calling_code]['main_country'];
+		}
+
+		// could not find one country code with max score, return
+		// list of all possible country codes sorted by score
+		$country_codes_by_score_desc = array_keys($country_code_matches);
+		usort($country_codes_by_score_desc, function($a, $b) use($country_code_matches) {
+			return $country_code_matches[$a] <=> $country_code_matches[$b];
+		});
+		return $country_codes_by_score_desc;
+	}
+
+	protected static function findType(string $calling_code, string $country_code, string $num_no_cc): ?string {
+		if (!array_key_exists($calling_code, self::METADATA)) return null;
+		if (!array_key_exists($country_code, self::METADATA[$calling_code]['countries'])) return null;
+		$country = self::METADATA[$calling_code]['countries'][$country_code];
+		if ($country['pattern'] === null) return null;
+
+		// return early if number doesn't match national number pattern
+		if (preg_match($country['pattern'], $num_no_cc) !== 1) return null;
+
+		// return first usage type which pattern matches number
+		foreach ($country['patterns'] as $typ => $pattern) {
+			if ($pattern['pattern'] === null) continue;
+			if (
+				count($pattern['lengths']['national']) > 0 &&
+				!in_array(strlen($num_no_cc), $pattern['lengths']['national'], true)
+			) continue;
+
+			// skip numbers not matching usage-specific number pattern
+			if (preg_match($pattern['pattern'], $num_no_cc) !== 1) continue;
+
+			return $typ;
+		}
+
+		return null;
+	}
+
 	public static function parse(string $number, ?string $fallback_cc = null, bool $raw_guess_cc = false): static {
 		$res = new static;
 		if (strlen($number) === 0) return $res;
@@ -169,123 +361,9 @@ class Tel {
 		// extracted number contains fallback calling code,
 		// or guessing calling code was enabled
 		if (strlen($res->int) !== 0 || $raw_guess_cc) {
-			// build calling code list from largest to smallest
-			static $calling_code_list = null;
-			if ($calling_code_list === null) {
-				$calling_code_list = array_keys(self::METADATA);
-				rsort($calling_code_list, SORT_NUMERIC);
-				$calling_code_list = array_map('strval', $calling_code_list);
-			}
-
-			// find calling code
-			$slice = '';
-			$num_no_cc = '';
-			$calling_code_matches = []; // (string)$calling_code => (int)$score
-			$country_code_matches = []; // (string)$calling_code => (string)$country_code => (int)$score
-			$country_code_typ = []; // (string)$country_code => (string)$typ
-			foreach ($calling_code_list as $calling_code) {
-				// update slice when needed, as cc gets shorter
-				if (strlen($slice) !== strlen($calling_code)) {
-					$slice = substr($num, 0, strlen($calling_code));
-				}
-
-				// update num_no_cc (remove cc from num)
-				if (substr($num, 0, strlen($calling_code)) === $calling_code) {
-					$num_no_cc = substr($num, strlen($calling_code));
-				} else {
-					$num_no_cc = $num;
-				}
-
-				// increase score if calling code matches
-				if ($slice === $calling_code) {
-					// initialize calling code matches
-					if (!array_key_exists($calling_code, $calling_code_matches)) {
-						$calling_code_matches[$calling_code] = 0;
-						$country_code_matches[$calling_code] = [];
-					}
-					$calling_code_matches[$calling_code]++;
-				} elseif (!$raw_guess_cc) {
-					// skip non-matching calling codes if not guessing
-					continue;
-				}
-
-				// check that number matches the pattern of a country having
-				// the current calling code
-				foreach (self::METADATA[$calling_code]['countries'] as $country_code => $country) {
-					if ($country['pattern'] === null) continue;
-
-					// skip numbers not matching national number pattern
-					if (
-						preg_match($country['pattern'], $num_no_cc) !== 1 &&
-						preg_match($country['pattern'], $num) !== 1
-					) continue;
-
-					// initialize calling code matches
-					if (!array_key_exists($calling_code, $calling_code_matches)) {
-						$calling_code_matches[$calling_code] = 0;
-						$country_code_matches[$calling_code] = [];
-					}
-					// initialize country code matches
-					if (!array_key_exists($country_code, $country_code_matches)) {
-						$country_code_matches[$calling_code][$country_code] = 0;
-					}
-
-					// attempt to match up to one usage type pattern
-					foreach ($country['patterns'] as $typ => $pattern) {
-						if ($pattern['pattern'] === null) continue;
-						if (
-							count($pattern['lengths']['national']) > 0 &&
-							!in_array(strlen($num_no_cc), $pattern['lengths']['national'], true) &&
-							!in_array(strlen($num), $pattern['lengths']['national'], true)
-						) continue;
-
-						// skip numbers not matching usage-specific number pattern
-						if (
-							preg_match($pattern['pattern'], $num_no_cc) !== 1 &&
-							preg_match($pattern['pattern'], $num) !== 1
-						) continue;
-
-						// register usage type for country code
-						$country_code_typ[$country_code] = $typ;
-
-						// add points for usage-specific number pattern matches
-						$calling_code_matches[$calling_code]++;
-						$country_code_matches[$calling_code][$country_code]++;
-						break;
-					}
-				}
-			}
-
-			// prefer fallback calling code, increase its score (if found)
-			if ($fallback_cc !== null && array_key_exists($fallback_cc, $calling_code_matches)) {
-				$calling_code_matches[$fallback_cc]++;
-			}
-
-			// find matched calling code, by highest score
-			if (count($calling_code_matches) > 0) {
-				$calling_code_matches_max_score = array_map('strval', array_keys($calling_code_matches, max($calling_code_matches)));
-				if (count($calling_code_matches_max_score) > 1) {
-					// XXX: more than one calling code matched, unable to pick one
-				} else {
-					$res->calling_code = $calling_code_matches_max_score[0];
-				}
-			}
-
-			// find matched country code, by highest score
-			if (array_key_exists($res->calling_code, $country_code_matches) && count($country_code_matches[$res->calling_code]) > 0) {
-				$country_code_matches_max_score = array_keys($country_code_matches[$res->calling_code], max($country_code_matches[$res->calling_code]));
-				if (count($country_code_matches_max_score) > 1) {
-					if (in_array(self::METADATA[$res->calling_code]['main_country'], $country_code_matches_max_score, true)) {
-						$res->country_code = self::METADATA[$res->calling_code]['main_country'];
-					} else {
-						// XXX: more than one country code matched, unable to pick one
-					}
-				} else {
-					$res->country_code = $country_code_matches_max_score[0];
-				}
-				if (array_key_exists($res->country_code, $country_code_typ)) {
-					$res->typ = $country_code_typ[$res->country_code];
-				}
+			$calling_code = static::extractPossibleCallingCodes($num, $fallback_cc, $raw_guess_cc);
+			if (is_string($calling_code)) {
+				$res->calling_code = $calling_code;
 			}
 		}
 
@@ -301,6 +379,21 @@ class Tel {
 			} else {
 				$num_no_cc = $num;
 			}
+
+			if (strlen($res->country_code) === 0) {
+				$country_code = static::findCountryCode($res->calling_code, $num_no_cc);
+				if (is_string($country_code)) {
+					$res->country_code = $country_code;
+				}
+			}
+
+			if (strlen($res->country_code) > 0) {
+				$typ = static::findType($res->calling_code, $res->country_code, $num_no_cc);
+				if (is_string($typ)) {
+					$res->typ = $typ;
+				}
+			}
+
 			if (array_key_exists($res->calling_code, self::METADATA) && array_key_exists($res->country_code, self::METADATA[$res->calling_code]['countries'])) {
 				$country = self::METADATA[$res->calling_code]['countries'][$res->country_code];
 				$num_is_raw = (
