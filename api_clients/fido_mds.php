@@ -1,7 +1,7 @@
 <?php namespace Obie\ApiClients;
-use \Obie\Encoding\Uuid;
-use \Obie\Encoding\Json;
-use \Obie\Validation\SimpleValidator;
+use Obie\Encoding\Uuid;
+use Obie\Encoding\Json;
+use Obie\Validation\SimpleValidator;
 
 /**
  * FIDO Metadata Service client

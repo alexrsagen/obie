@@ -1,5 +1,5 @@
 <?php namespace Obie\Http;
-use \Obie\Vars\VarCollection;
+use Obie\Vars\VarCollection;
 
 class RouterInstance {
 	const OK              = 1;

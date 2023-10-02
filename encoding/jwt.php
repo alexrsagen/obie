@@ -1,5 +1,5 @@
 <?php namespace Obie\Encoding;
-use \Obie\Log;
+use Obie\Log;
 
 class Jwt {
 	const TYP_JWT = 'JWT';

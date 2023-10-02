@@ -2,12 +2,12 @@
 
 use Obie\Encoding\Asn1;
 use Obie\Encoding\Exception\Asn1Exception;
-use \Obie\Encoding\Pem;
-use \Sop\CryptoTypes\Asymmetric\PublicKeyInfo;
-use \Sop\CryptoTypes\AlgorithmIdentifier\AlgorithmIdentifier;
-use \Sop\CryptoTypes\AlgorithmIdentifier\Asymmetric\ECPublicKeyAlgorithmIdentifier;
+use Obie\Encoding\Pem;
+use Sop\CryptoTypes\Asymmetric\PublicKeyInfo;
+use Sop\CryptoTypes\AlgorithmIdentifier\AlgorithmIdentifier;
+use Sop\CryptoTypes\AlgorithmIdentifier\Asymmetric\ECPublicKeyAlgorithmIdentifier;
 use Sop\CryptoTypes\Asymmetric\EC\ECPrivateKey;
-use \Sop\CryptoTypes\Asymmetric\EC\ECPublicKey;
+use Sop\CryptoTypes\Asymmetric\EC\ECPublicKey;
 use Sop\CryptoTypes\Asymmetric\PrivateKeyInfo;
 
 class Ecdsa {

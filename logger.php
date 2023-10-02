@@ -1,14 +1,14 @@
 <?php namespace Obie;
-use \Obie\Encoding\Json;
-use \Obie\Encoding\Url;
-use \Monolog\Handler\StreamHandler;
-use \Monolog\Formatter\LineFormatter;
+use Obie\Encoding\Json;
+use Obie\Encoding\Url;
+use Monolog\Handler\StreamHandler;
+use Monolog\Formatter\LineFormatter;
 
 class Logger extends \Monolog\Logger {
 	public static $logs_dir = '';
 	protected $default_context = [];
 
-	function __construct(string $name, ?string $format = null, array $handlers = [], array $processors = [], ?DateTimeZone $timezone = null) {
+	function __construct(string $name, ?string $format = null, array $handlers = [], array $processors = [], ?\DateTimeZone $timezone = null) {
 		parent::__construct($name, $handlers, $processors, $timezone);
 		$this->setFormat($format);
 	}

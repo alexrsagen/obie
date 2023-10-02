@@ -1,9 +1,9 @@
 <?php namespace Obie\Http;
-use \Obie\Encoding\Querystring;
-use \Obie\Encoding\Multipart;
-use \Obie\Encoding\Multipart\FormData;
-use \Obie\Encoding\Json;
-use \Obie\Minify;
+use Obie\Encoding\Querystring;
+use Obie\Encoding\Multipart;
+use Obie\Encoding\Multipart\FormData;
+use Obie\Encoding\Json;
+use Obie\Minify;
 
 trait BodyTrait {
 	protected string $body = '';

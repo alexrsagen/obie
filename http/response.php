@@ -1,5 +1,5 @@
 <?php namespace Obie\Http;
-use \Obie\Encoding\Json;
+use Obie\Encoding\Json;
 
 class Response {
 	use HeaderTrait;

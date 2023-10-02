@@ -1,7 +1,7 @@
 <?php namespace Obie;
-use \Obie\Vars\VarTrait;
-use \Obie\Encoding\Json;
-use \Obie\Vars\VarCollection;
+use Obie\Vars\VarTrait;
+use Obie\Encoding\Json;
+use Obie\Vars\VarCollection;
 
 class Config {
     use VarTrait;

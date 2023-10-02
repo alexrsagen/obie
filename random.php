@@ -1,5 +1,5 @@
 <?php namespace Obie;
-use \Obie\Encoding\Uuid;
+use Obie\Encoding\Uuid;
 
 class Random {
 	public static function int(int $min, int $max): int {

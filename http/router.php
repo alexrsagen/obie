@@ -1,6 +1,6 @@
 <?php namespace Obie\Http;
-use \Obie\App;
-use \Obie\Vars\VarCollection;
+use Obie\App;
+use Obie\Vars\VarCollection;
 
 class Router {
 	// Constants

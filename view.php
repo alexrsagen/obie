@@ -1,6 +1,6 @@
 <?php namespace Obie;
-use \Obie\Vars\VarTrait;
-use \Obie\Vars\VarCollection;
+use Obie\Vars\VarTrait;
+use Obie\Vars\VarCollection;
 
 class View {
 	use VarTrait;

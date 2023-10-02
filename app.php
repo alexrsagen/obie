@@ -1,7 +1,7 @@
 <?php namespace Obie;
-use \Obie\Http\Router;
-use \Obie\Http\Request;
-use \Obie\Http\Response;
+use Obie\Http\Router;
+use Obie\Http\Request;
+use Obie\Http\Response;
 
 class App {
 	public static $app = self::class;
@@ -531,14 +531,11 @@ class App {
 		}
 	}
 
-	public static function sendMail($recipients, string $subject, string $body, bool $is_html = false) {
+	public static function sendMail(string|array $recipients, string $subject, string $body, bool $is_html = false) {
 		if (!self::$app::initConfig()) return false;
 
 		if (is_string($recipients)) {
 			$recipients = [$recipients];
-		}
-		if (!is_array($recipients)) {
-			throw new \TypeError('Recipients must be string or array');
 		}
 		if (!self::$config->get('mail', 'enable')) {
 			throw new \Exception('Mail is not enabled in the server configuration');

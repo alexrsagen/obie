@@ -1,7 +1,7 @@
 <?php namespace Obie\Http;
-use \Obie\Encoding\Querystring;
-use \Obie\Encoding\Url;
-use \Obie\Log;
+use Obie\Encoding\Querystring;
+use Obie\Encoding\Url;
+use Obie\Log;
 
 class Request {
 	use HeaderTrait;

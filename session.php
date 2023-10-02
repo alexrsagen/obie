@@ -1,7 +1,7 @@
 <?php namespace Obie;
-use \Obie\Http\Router;
-use \Obie\Log;
-use \Obie\Vars\StaticVarTrait;
+use Obie\Http\Router;
+use Obie\Log;
+use Obie\Vars\StaticVarTrait;
 
 class Session {
 	use StaticVarTrait;

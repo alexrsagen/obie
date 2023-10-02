@@ -1,6 +1,6 @@
 <?php namespace Obie\Formatters;
-use \DateTime;
-use \DateTimeZone;
+use DateTime;
+use DateTimeZone;
 
 class Time {
 	public static function toTimestamp(int|string|DateTime|null $input): ?int {

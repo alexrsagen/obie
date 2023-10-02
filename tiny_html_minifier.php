@@ -1,5 +1,5 @@
 <?php namespace Obie;
-use \Obie\Encoding\Json;
+use Obie\Encoding\Json;
 
 // Originally sourced from: https://github.com/jenstornell/tiny-html-minifier
 //

@@ -1,6 +1,6 @@
 <?php namespace Obie\Security;
-use \Obie\Encoding\Pem;
-use \Sop\CryptoTypes\AlgorithmIdentifier\Asymmetric\ECPublicKeyAlgorithmIdentifier;
+use Obie\Encoding\Pem;
+use Sop\CryptoTypes\AlgorithmIdentifier\Asymmetric\ECPublicKeyAlgorithmIdentifier;
 
 class Cose {
 	const KTY_RESERVED = 0; // This value is reserved

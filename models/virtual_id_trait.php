@@ -1,6 +1,6 @@
 <?php namespace Obie\Models;
-use \Obie\Random;
-use \Obie\Encoding\ArbitraryBase;
+use Obie\Random;
+use Obie\Encoding\ArbitraryBase;
 
 trait VirtualIdTrait {
 	protected static $_use_short_virtual_id  = false;

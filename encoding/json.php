@@ -1,5 +1,5 @@
 <?php namespace Obie\Encoding;
-use \Obie\Log;
+use Obie\Log;
 
 class Json {
 	public static function encode($input, int $options = 0): string {

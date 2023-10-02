@@ -1,6 +1,6 @@
 <?php namespace Obie\Encoding;
-use \CBOR\CBOREncoder;
-use \CBOR\Types\CBORByteString;
+use CBOR\CBOREncoder;
+use CBOR\Types\CBORByteString;
 
 class Cbor {
 	public static function decode($input, &$rest = null): mixed {

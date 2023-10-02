@@ -1,6 +1,6 @@
 <?php namespace Obie\Models;
-use \Obie\Formatters\EnglishNoun;
-use \Obie\Formatters\Casing;
+use Obie\Formatters\EnglishNoun;
+use Obie\Formatters\Casing;
 
 class BaseModel {
 	const VALID_TYPES = [

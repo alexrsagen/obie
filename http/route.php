@@ -1,5 +1,5 @@
 <?php namespace Obie\Http;
-use \Obie\Vars\VarTrait;
+use Obie\Vars\VarTrait;
 
 class Route {
 	use VarTrait;
