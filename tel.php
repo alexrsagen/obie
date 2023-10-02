@@ -7,7 +7,7 @@ class Tel {
 	const FMT_RAW = 'raw'; // E.164 without international prefix
 	const FMT_INT = 'int'; // E.164 with international prefix, calling code
 	const FMT_EPP = 'epp'; // E.164 with international prefix, dot, calling code
-	const FMT_TEL = 'tel'; // RFC3966
+	const FMT_TEL = 'tel'; // RFC 3966
 
 	const TYP_FIX = 'fixedLine';
 	const TYP_MOB = 'mobile';
@@ -325,8 +325,8 @@ class Tel {
 		if (strlen($number) === 0) return $res;
 		$offset = 0;
 
-		// detect RFC3966
-		// https://tools.ietf.org/html/rfc3966#section-3
+		// detect RFC 3966 encoding
+		// https://datatracker.ietf.org/doc/html/rfc 3966#section-3
 		if (strtolower(substr($number, 0, 4)) === 'tel:') {
 			$res->fmt = self::FMT_TEL;
 			$offset += 4;
@@ -460,7 +460,7 @@ class Tel {
 			$offset += $ext_len;
 		}
 
-		// parse params if RFC3966
+		// parse params if RFC 3966
 		if ($res->fmt === self::FMT_TEL) {
 			// skip anything that isn't a semicolon (find first param)
 			for (; substr($number, $offset, 1) !== ';' && $offset < strlen($number); $offset++) {}
@@ -524,7 +524,7 @@ class Tel {
 			unset($this->params['ext']);
 		}
 
-		// add tel: prefix if format is RFC3966
+		// add tel: prefix if format is RFC 3966
 		if ($fmt === self::FMT_TEL) {
 			$res .= 'tel:';
 		}
@@ -559,15 +559,15 @@ class Tel {
 			$res .= $this->num;
 		}
 
-		// add phone number extension with tilde if format is not RFC3966
+		// add phone number extension with tilde if format is not RFC 3966
 		if (strlen($this->ext) !== 0 && $fmt !== self::FMT_TEL) {
 			$res .= '~' . $this->ext;
 		}
 
-		// add phone number params if format is RFC3966
+		// add phone number params if format is RFC 3966
 		if ($fmt === self::FMT_TEL) {
 			// rebuild array to ensure ext and isdn-subaddress always appear
-			// first, as per RFC3966 section 3
+			// first, as per RFC 3966 section 3
 			$params = [];
 			if (strlen($this->ext) !== 0) {
 				$params['ext'] = $this->ext;

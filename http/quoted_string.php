@@ -1,6 +1,11 @@
 <?php namespace Obie\Http;
 
-// QuotedString implements an RFC 7230 HTTP quoted-string encoder/decoder.
+ /**
+  * QuotedString implements an RFC 7230 compliant HTTP quoted-string encoder/decoder.
+  *
+  * @link https://datatracker.ietf.org/doc/html/rfc7230
+  * @package Obie\Http
+  */
 class QuotedString {
 	// An HTTP quoted-string token code point is U+0009 TAB, a code point in the range U+0020 SPACE to U+007E (~), inclusive, or a code point in the range U+0080 through U+00FF (ÿ), inclusive.
 	// https://mimesniff.spec.whatwg.org/#http-quoted-string-token-code-point
