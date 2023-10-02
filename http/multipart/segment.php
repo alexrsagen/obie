@@ -1,7 +1,8 @@
-<?php namespace Obie\Encoding\Multipart;
+<?php namespace Obie\Http\Multipart;
+use Obie\Http\HeaderTrait;
 
 class Segment {
-	use \Obie\Http\HeaderTrait;
+	use HeaderTrait;
 
 	function __construct(public string $body, array $headers = [], public int $line_length = 76) {
 		if (!empty($headers)) $this->setHeaders($headers);
@@ -74,7 +75,7 @@ class Segment {
 				if (preg_match('/^\s+.+$/', $line) === 1 && $last_field_name === null) {
 					$headers[$last_field_name] .= ' ' . $line_trim;
 				} else {
-					// RFC7230 section 3.2.4 states that no whitespace is allowed
+					// RFC 7230 section 3.2.4 states that no whitespace is allowed
 					// between the header field-name and colon.
 					if (preg_match('/^.*\s+:.*$/', $line) === 1) {
 						return null;

@@ -1,8 +1,17 @@
-<?php namespace Obie\Encoding\Multipart;
-use \Obie\Encoding\Multipart;
-use \Obie\Http\Mime;
-use \Obie\Http\QuotedString;
+<?php namespace Obie\Http\Multipart;
+use Obie\Http\Multipart;
+use Obie\Http\QuotedString;
+use Obie\Http\Mime;
 
+/**
+ * FormData is an RFC 2388 compliant multipart/form-data implementation
+ *
+ * @property FormDataField[] $fields
+ * @property string $boundary
+ *
+ * @link https://datatracker.ietf.org/doc/html/rfc2388
+ * @package Obie\Encoding\Multipart
+ */
 class FormData {
 	const DISPOSITION_FORM_DATA = 'form-data';
 	const DISPOSITION_FILE = 'file';
@@ -27,6 +36,7 @@ class FormData {
 		foreach ($segments as $segment) {
 			$segment_fields = FormDataField::fromSegment($segment);
 			if (!$segment_fields) continue;
+
 			if (is_array($segment_fields)) {
 				$form_data->fields = array_merge($form_data->fields, $segment_fields);
 			} else {
@@ -72,6 +82,37 @@ class FormData {
 		return (new FormDataField($value, $file_name, $field_name, $type))->toSegment($headers, $disposition, transfer_encoding: $transfer_encoding);
 	}
 
+	/**
+	 * Convert an array of FormDataField (or array in $_FILES format) to multiple segments
+	 *
+	 * @link https://www.php.net/manual/en/features.file-upload.post-method.php $_FILES array format
+	 *
+	 * @param FormDataField[] $files The files to convert into segments
+	 * @param string $field_name The segment name to use (in the Content-Disposition header)
+	 * @return Segment[]
+	 */
+	public static function filesToSegments(array $files): array {
+		$segments = [];
+		foreach ($files as $file) {
+			if (!($file instanceof FormDataField)) continue;
+
+			$segments[] = $file->toSegment(disposition: self::DISPOSITION_FILE);
+		}
+		return $segments;
+	}
+
+	/**
+	 * Convert an array of FormDataField (or array in $_FILES format) to a single multipart/mixed segment
+	 *
+	 * @link https://www.php.net/manual/en/features.file-upload.post-method.php $_FILES array format
+	 *
+	 * @param array<array|FormDataField> $files The files to include in the multipart/mixed segment
+	 * @param string $field_name The multipart/mixed segment name to use (in the Content-Disposition header)
+	 * @param null|string $boundary "Boundary" Parameter of multipart/mixed segment
+	 * @param null|string $transfer_encoding The Content-Transfer-Encoding to use for each segment in the multipart/mixed body
+	 * @return Segment
+	 * @throws \Exception
+	 */
 	public static function filesToSegment(array $files, string $field_name = 'files[]', ?string $boundary = null, ?string $transfer_encoding = null): Segment {
 		$boundary ??= Multipart::generateBoundary();
 		$segments = [];

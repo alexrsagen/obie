@@ -1,15 +1,17 @@
-<?php namespace Obie\Encoding\Multipart;
-use \Obie\Http\Mime;
-use \Obie\Http\QuotedString;
-use \Obie\Encoding\Multipart;
-use \Obie\Encoding\Rfc8187;
-use \Obie\Random;
+<?php namespace Obie\Http\Multipart;
+use Obie\Http\Mime;
+use Obie\Http\QuotedString;
+use Obie\Http\Multipart;
+use Obie\Http\ExtendedHeaderValue;
+use Obie\Random;
 
 class FormDataField {
+	const DEFAULT_FIELD_NAME = 'file';
+
 	public ?Mime $type = null;
 	function __construct(
 		public string $content,
-		public string $name = 'file',
+		public string $name = self::DEFAULT_FIELD_NAME,
 		public ?string $filename = null,
 		string|Mime|null $type = null,
 	) {
@@ -24,7 +26,17 @@ class FormDataField {
 		}
 	}
 
-	public static function fromArray(array $input, string $name_fallback = 'file'): ?static {
+	/**
+	 * Converts an array to a FormDataField
+	 *
+	 * @deprecated Ambiguous, should not be used. Use the constructor instead.
+	 * @see FormDataField::__construct()
+	 *
+	 * @param array{body: ?string, content: ?string, name: ?string, field: ?string, filename: ?string, type: ?string} $input
+	 * @param string $name_fallback Fallback field name
+	 * @return null|static Returns null if array key 'content' does not exist
+	 */
+	public static function fromArray(array $input, string $name_fallback = self::DEFAULT_FIELD_NAME): ?static {
 		$content = array_key_exists('body', $input) ? $input['body'] : null;
 		$content ??= array_key_exists('content', $input) ? $input['content'] : null;
 		if ($content === null) return null;
@@ -41,6 +53,15 @@ class FormDataField {
 		return new static($content, $name, $filename, $type);
 	}
 
+	/**
+	 * Convert a Segment to a single FormDataField or an array of FormDataField
+	 *
+	 * @param Segment $segment
+	 * @param int $max_nesting_level Max amount of nested multipart/mixed segments to explore
+	 * @param null|string $name_fallback Fixed fallback name to use if the Content-Disposition header is missing a name (a random one starting with 'unk_' will be generated if not specified)
+	 * @return static|array|null A single FormDataField, an array of FormDataField or null on failure (max nesting level exceeded, nested decoding failure)
+	 * @throws \Exception
+	 */
 	public static function fromSegment(Segment $segment, int $max_nesting_level = 1, ?string $name_fallback = null): static|array|null {
 		// parse content-disposition header
 		$disp = array_merge_recursive(...array_map(function($v) {
@@ -49,7 +70,7 @@ class FormDataField {
 			$val = count($kv) > 1 ? $kv[1] : '';
 			if (str_ends_with($key, '*')) {
 				$key = substr($key, 0, -1);
-				$val = Rfc8187::decode($val);
+				$val = ExtendedHeaderValue::decode($val);
 			} else {
 				$val = QuotedString::decode($val) ?? $val;
 			}
@@ -81,9 +102,11 @@ class FormDataField {
 		// get field(s) from segment
 		if ($type?->type === Multipart::MIME_BASETYPE && $type?->subtype === Multipart::MIME_SUBTYPE_MIXED) {
 			if ($max_nesting_level < 1) return null;
+
 			$boundary = $type?->getParameter('boundary');
 			$nested_segments = Multipart::decode($segment->getBody(), $boundary);
 			if ($nested_segments === null) return null;
+
 			$fields = [];
 			foreach ($nested_segments as $nested_segment) {
 				$nested_fields = static::fromSegment($nested_segment, $max_nesting_level - 1, $name);
@@ -94,13 +117,15 @@ class FormDataField {
 					$fields[] = $nested_fields;
 				}
 			}
+
 			if (count($fields) === 1) return $fields[0];
 			return $fields;
 		}
+
 		return new static($segment->getBody(), $name, $filename, $type);
 	}
 
-	public static function fromFile(string $file_path, string $name = 'file'): ?static {
+	public static function fromFile(string $file_path, string $name = self::DEFAULT_FIELD_NAME): ?static {
 		$filename = basename($file_path);
 		$type = Mime::getByFilename($filename);
 		$content = file_get_contents($file_path);
@@ -108,7 +133,7 @@ class FormDataField {
 		return new static($content, $name, $filename, $type);
 	}
 
-	public function toSegment(array $headers = [], string $disposition = 'form-data', bool $include_name = true, bool $include_filename = true, bool $include_utf8_filename = true, ?string $transfer_encoding = null): Segment {
+	public function toSegment(array $headers = [], string $disposition = 'form-data', bool $include_name = true, bool $include_filename = true, bool $include_utf8_filename = false, ?string $transfer_encoding = null): Segment {
 		if ($this->type !== null) $headers['content-type'] = $this->type->encode();
 		$headers['content-disposition'] = $disposition;
 		if ($include_name) {
@@ -117,7 +142,7 @@ class FormDataField {
 		if ($include_filename) {
 			$headers['content-disposition'] .= '; filename=' . QuotedString::encode($this->filename, true);
 			if ($include_utf8_filename) {
-				$headers['content-disposition'] .= '; filename*=' . Rfc8187::encode($this->filename);
+				$headers['content-disposition'] .= '; filename*=' . ExtendedHeaderValue::encode($this->filename);
 			}
 		}
 		if ($transfer_encoding !== null) {

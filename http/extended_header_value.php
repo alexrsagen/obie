@@ -1,6 +1,11 @@
-<?php namespace Obie\Encoding;
+<?php namespace Obie\Http;
 
-class Rfc8187 {
+/**
+ * ExtendedHeaderValue implements an RFC 8187 compliant HTTP ext-value encoder/decoder.
+ *
+ * @package Obie\Encoding
+ */
+class ExtendedHeaderValue {
 	public static function needsEncoding(string $input): string {
 		return preg_match('/[^!#$%&\'*+-.^_`|~0-9A-Za-z]/', $input) === 1;
 	}
@@ -17,10 +22,12 @@ class Rfc8187 {
 
 		$language_end_pos = strpos($input, "'", $charset_end_pos + 1);
 		if ($language_end_pos === false) return $input;
+		// XXX: PHP implementation of iconv does not support specifying a language
+		// TODO: Use another method of converting, which does support language-specific charsets?
 		// $language = locale_parse(substr($input, $charset_end_pos + 1, $language_end_pos));
 
 		$value = rawurldecode(substr($input, $language_end_pos + 1));
-		if (strtoupper($charset) !== 'UTF-8') {
+		if (strcasecmp($charset, 'UTF-8') !== 0) {
 			return iconv($charset, 'UTF-8', $value) ?: $input;
 		}
 		return $value;

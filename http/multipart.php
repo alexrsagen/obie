@@ -1,5 +1,5 @@
-<?php namespace Obie\Encoding;
-use \Obie\Encoding\Multipart\Segment;
+<?php namespace Obie\Http;
+use Obie\Http\Multipart\Segment;
 
 class Multipart {
 	const MIME_BASETYPE = 'multipart';
@@ -15,6 +15,13 @@ class Multipart {
 	const ENC_DIGEST      = self::MIME_BASETYPE . '/' . self::MIME_SUBTYPE_DIGEST;
 	const ENC_RELATED     = self::MIME_BASETYPE . '/' . self::MIME_SUBTYPE_RELATED;
 
+	/**
+	 * Decode a multipart body into an array of segments
+	 *
+	 * @param Segment[] $segments
+	 * @param string $boundary
+	 * @return Segment[]|null Returns null on decode failure
+	 */
 	public static function decode(string $raw, ?string $boundary = null): ?array {
 		// guess boundary if not provided
 		$boundary ??= static::findBoundary($raw);
@@ -44,6 +51,13 @@ class Multipart {
 		return $segments;
 	}
 
+	/**
+	 * Encode an array of segments into a multipart body
+	 *
+	 * @param Segment[] $segments Ignores any item that is not a Segment
+	 * @param string $boundary
+	 * @return string
+	 */
 	public static function encode(array $segments, string $boundary): string {
 		$raw = '';
 		foreach ($segments as $segment) {
