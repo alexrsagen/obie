@@ -1,6 +1,14 @@
 <?php namespace Obie\Encoding\Spf1;
 
+/**
+ * @property string[] $modifiers
+ * @property Directive[] $directives
+ *
+ * @package Obie\Encoding\Spf1
+ */
 class Record {
-	public array $modifiers = [];
-	public array $directives = [];
+	function __construct(
+		public array $modifiers = [],
+		public array $directives = [],
+	) {}
 }
