@@ -6,8 +6,8 @@ class Mime {
 		public string $subtype = '',
 		public array $parameters = [],
 	) {
-		$this->type = strtolower(ltrim($type, "\n\r\t "));
-		$this->subtype = strtolower(rtrim($subtype, "\n\r\t "));
+		$this->type = strtolower(trim($type, "\n\r\t "));
+		$this->subtype = strtolower(trim($subtype, "\n\r\t "));
 	}
 
 	const EXT_TYPES = [
@@ -951,20 +951,6 @@ class Mime {
 	const KIND_VIDEO = 'video';
 	const KIND_FILE = 'file';
 
-	// token := 1*<any (US-ASCII) CHAR except SPACE, CTLs, or tspecials>
-	const TOKEN_CODEPOINT = [
-		"!", "#", "$", "%", "&", "'", "*", "+",
-		"-", ".", "^", "_", "`", "|", "~", "0",
-		"1", "2", "3", "4", "5", "6", "7", "8",
-		"9", "A", "B", "C", "D", "E", "F", "G",
-		"H", "I", "J", "K", "L", "M", "N", "O",
-		"P", "Q", "R", "S", "T", "U", "V", "W",
-		"X", "Y", "Z", "a", "b", "c", "d", "e",
-		"f", "g", "h", "i", "j", "k", "l", "m",
-		"n", "o", "p", "q", "r", "s", "t", "u",
-		"v", "w", "x", "y", "z",
-	];
-
 	public static function getKindByExtension(string $ext): string {
 		return array_key_exists($ext, static::EXT_KINDS) ? static::EXT_KINDS[$ext] : self::KIND_FILE;
 	}
@@ -992,15 +978,6 @@ class Mime {
 		return static::getByExtension($ext);
 	}
 
-	protected static function isHttpToken(string $input): bool {
-		for ($i = 0; $i < strlen($input); $i++) {
-			if (!in_array($input[$i], self::TOKEN_CODEPOINT, true)) {
-				return false;
-			}
-		}
-		return true;
-	}
-
 	public static function decode(string $input): ?static {
 		// https://mimesniff.spec.whatwg.org/#parsing-a-mime-type
 		// 4.4.1: Remove any leading and trailing HTTP whitespace from input.
@@ -1013,7 +990,7 @@ class Mime {
 			$type .= $input[$position];
 		}
 		// 4.4.4: If type is the empty string or does not solely contain HTTP token code points, then return failure.
-		if (strlen($type) === 0 || !static::isHttpToken($type)) return null;
+		if (strlen($type) === 0 || !Token::isValidToken($type)) return null;
 		// 4.4.5: If position is past the end of input, then return failure.
 		if ($position >= strlen($input)) return null;
 		// 4.4.6: Advance position by 1. (This skips past U+002F (/).)
@@ -1026,7 +1003,7 @@ class Mime {
 		// 4.4.8: Remove any trailing HTTP whitespace from subtype.
 		$subtype = rtrim($subtype, "\n\r\t ");
 		// 4.4.9: If subtype is the empty string or does not solely contain HTTP token code points, then return failure.
-		if (strlen($subtype) === 0 || !static::isHttpToken($subtype)) return null;
+		if (strlen($subtype) === 0 || !Token::isValidToken($subtype)) return null;
 		// 4.4.10: Let mimeType be a new MIME type record whose type is type, in ASCII lowercase, and subtype is subtype, in ASCII lowercase.
 		$mime_type = new static(strtolower($type), strtolower($subtype));
 		// 4.4.11: While position is not past the end of input:
@@ -1079,15 +1056,15 @@ class Mime {
 				if (strlen($parameter_value) === 0) continue;
 			}
 
-			// 4.4.11.10: If all of the following are true then set mimeType’s parameters[parameterName] to parameterValue.
+			// 4.4.11.10: If all of the following are true then set mimeType's parameters[parameterName] to parameterValue.
 			if (
 				// parameterName is not the empty string
 				$parameter_value !== null && strlen($parameter_value) !== 0 &&
-				// parameterName solely contains HTTP token code points
-				static::isHttpToken($parameter_name) &&
+				// parameterName solely contains RFC 8187 attr-char code points
+				Token::isValidParamName($parameter_name) &&
 				// parameterValue solely contains HTTP quoted-string token code points
 				QuotedString::isValid($parameter_value, true) &&
-				// mimeType’s parameters[parameterName] does not exist
+				// mimeType's parameters[parameterName] does not exist
 				!array_key_exists($parameter_name, $mime_type->parameters)
 			) {
 				$mime_type->parameters[$parameter_name] = $parameter_value;
@@ -1100,9 +1077,9 @@ class Mime {
 
 	public function encode(): string {
 		// https://mimesniff.spec.whatwg.org/#serializing-a-mime-type
-		// 4.5.1: Let serialization be the concatenation of mimeType’s type, U+002F (/), and mimeType’s subtype.
+		// 4.5.1: Let serialization be the concatenation of mimeType's type, U+002F (/), and mimeType's subtype.
 		$serialization = $this->getType();
-		// 4.5.2: For each name → value of mimeType’s parameters:
+		// 4.5.2: For each name → value of mimeType's parameters:
 		foreach ($this->parameters as $name => $value) {
 			// 4.5.2.1. Append U+003B (;) to serialization.
 			$serialization .= ';';
@@ -1111,7 +1088,7 @@ class Mime {
 			// 4.5.2.3: Append U+003D (=) to serialization.
 			$serialization .= '=';
 			// 4.5.2.4: If value does not solely contain HTTP token code points or value is the empty string, then:
-			if (strlen($value) === 0 || !static::isHttpToken($value)) {
+			if (strlen($value) === 0 || !Token::isValidToken($value)) {
 				// 4.5.2.4.1: Precede each occurence of U+0022 (") or U+005C (\) in value with U+005C (\).
 				// 4.5.2.4.2: Prepend U+0022 (") to value.
 				// 4.5.2.4.3: Append U+0022 (") to value.

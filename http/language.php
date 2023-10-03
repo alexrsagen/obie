@@ -8,29 +8,6 @@ class Language {
 		$this->locale = locale_canonicalize($locale) ?? '';
 	}
 
-	// token := 1*<any (US-ASCII) CHAR except SPACE, CTLs, or tspecials>
-	const TOKEN_CODEPOINT = [
-		"!", "#", "$", "%", "&", "'", "*", "+",
-		"-", ".", "^", "_", "`", "|", "~", "0",
-		"1", "2", "3", "4", "5", "6", "7", "8",
-		"9", "A", "B", "C", "D", "E", "F", "G",
-		"H", "I", "J", "K", "L", "M", "N", "O",
-		"P", "Q", "R", "S", "T", "U", "V", "W",
-		"X", "Y", "Z", "a", "b", "c", "d", "e",
-		"f", "g", "h", "i", "j", "k", "l", "m",
-		"n", "o", "p", "q", "r", "s", "t", "u",
-		"v", "w", "x", "y", "z",
-	];
-
-	protected static function isHttpToken(string $input): bool {
-		for ($i = 0; $i < strlen($input); $i++) {
-			if (!in_array($input[$i], self::TOKEN_CODEPOINT, true)) {
-				return false;
-			}
-		}
-		return true;
-	}
-
 	public static function decode(string $input): ?static {
 		// https://mimesniff.spec.whatwg.org/#parsing-a-mime-type
 		// (modified for Accept-Language header format)
@@ -47,7 +24,7 @@ class Language {
 		// 4.4.8 (modified): Remove any trailing HTTP whitespace from locale.
 		$locale = rtrim($locale, "\n\r\t ");
 		// 4.4.9 (modified): If locale is the empty string or does not solely contain HTTP token code points, then return failure.
-		if (strlen($locale) === 0 || !static::isHttpToken($locale)) return null;
+		if (strlen($locale) === 0 || !Token::isValidToken($locale)) return null;
 		// 4.4.10 (modified): Let language be a new language record whose locale is an RFC 5646 canonicalized form of the locale.
 		$language = new static($locale);
 		// 4.4.11: While position is not past the end of input:
@@ -96,8 +73,8 @@ class Language {
 				}
 				// 4.4.11.9.2: Remove any trailing HTTP whitespace from parameterValue.
 				$parameter_value = rtrim($parameter_value, "\n\r\t ");
-				// 4.4.11.9.3: If parameterValue is the empty string, then continue.
-				if (strlen($parameter_value) === 0) continue;
+				// 4.4.11.9.3 (modified): If parameterValue is the empty string or does not solely contain RFC 8187 value-chars, then continue.
+				if (strlen($parameter_value) === 0 || !Token::isValidParamValue($parameter_value)) continue;
 			}
 
 			// 4.4.11.10 (modified): If all of the following are true then set language’s parameters[parameterName] to parameterValue.
@@ -105,7 +82,7 @@ class Language {
 				// parameterName is not the empty string
 				$parameter_value !== null && strlen($parameter_value) !== 0 &&
 				// parameterName solely contains HTTP token code points
-				static::isHttpToken($parameter_name) &&
+				Token::isValidToken($parameter_name) &&
 				// parameterValue solely contains HTTP quoted-string token code points
 				QuotedString::isValid($parameter_value, true) &&
 				// (modified) language’s parameters[parameterName] does not exist
@@ -132,7 +109,7 @@ class Language {
 			// 4.5.2.3: Append U+003D (=) to serialization.
 			$serialization .= '=';
 			// 4.5.2.4: If value does not solely contain HTTP token code points or value is the empty string, then:
-			if (strlen($value) === 0 || !static::isHttpToken($value)) {
+			if (strlen($value) === 0 || !Token::isValidToken($value)) {
 				// 4.5.2.4.1: Precede each occurence of U+0022 (") or U+005C (\) in value with U+005C (\).
 				// 4.5.2.4.2: Prepend U+0022 (") to value.
 				// 4.5.2.4.3: Append U+0022 (") to value.

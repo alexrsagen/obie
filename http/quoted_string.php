@@ -56,14 +56,15 @@ class QuotedString {
 
 	public static function encode(string $input, bool $strip_invalid = false): ?string {
 		$position = static::getOffset($input) ?? 0;
-		$is_encoded = static::extract($input, $position) !== null;
-		if ($is_encoded) return $input;
+		$extracted = static::extract($input, $position);
+		if ($extracted !== null && static::isValid($input)) {
+			return $input;
+		}
 		if ($strip_invalid) {
 			$input = preg_replace('/[^\x09\x20-\x7E\x80-\xFF]/', '', $input);
 		}
 		$input = sprintf('"%s"', str_replace(['\\', '"'], ['\\\\', '\\"'], $input));
-		if (!static::isValid($input)) return null;
-		return $input;
+		return static::isValid($input) ? $input : null;
 	}
 
 	public static function decode(string $input, bool $extract_value = true): ?string {
