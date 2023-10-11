@@ -96,8 +96,12 @@ class FormDataField {
 		}
 
 		$cd = new ContentDispositionHeader($disposition);
-		if ($include_name) $cd->parameters['name'] = $this->name;
-		if ($include_filename) $cd->parameters['filename'] = $this->filename;
+		if ($include_name && strlen($this->name) > 0) {
+			$cd->parameters['name'] = $this->name;
+		}
+		if ($include_filename && is_string($this->filename) && strlen($this->filename) > 0) {
+			$cd->parameters['filename'] = $this->filename;
+		}
 		$headers['content-disposition'] = $cd->encode(extended_header_value: $include_utf8_filename);
 
 		if ($transfer_encoding !== null) {
