@@ -1,4 +1,4 @@
-<?php namespace Obie\Encoding\U2f;
+<?php namespace Obie\Security\U2f;
 
 class SignResponse {
 	function __construct(

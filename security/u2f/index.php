@@ -4,10 +4,10 @@ use Obie\Encoding\Pem;
 use Obie\Encoding\Json;
 use Obie\Encoding\Base64Url;
 use Obie\Encoding\Exception\Asn1Exception;
-use Obie\Encoding\Exception\U2fException;
-use Obie\Encoding\U2f\ClientData;
-use Obie\Encoding\U2f\SignResponse;
-use Obie\Encoding\U2f\RegisterResponse;
+use Obie\Security\U2f\Exception;
+use Obie\Security\U2f\ClientData;
+use Obie\Security\U2f\SignResponse;
+use Obie\Security\U2f\RegisterResponse;
 use Sop\CryptoTypes\AlgorithmIdentifier\Asymmetric\ECPublicKeyAlgorithmIdentifier;
 
 /**
@@ -76,7 +76,7 @@ class U2f {
 	 * @link https://fidoalliance.org/specs/fido-u2f-v1.2-ps-20170411/fido-u2f-raw-message-formats-v1.2-ps-20170411.html#idl-def-ClientData
 	 * @param string $client_data_json
 	 * @return ClientData
-	 * @throws U2fException
+	 * @throws Exception
 	 */
 	public static function decodeClientDataJSON(string|array $client_data_json, string $rp_id): ClientData {
 		if (is_string($client_data_json)) {
@@ -88,15 +88,15 @@ class U2f {
 			!array_key_exists('challenge', $client_data_json) || !is_string($client_data_json['challenge']) ||
 			!array_key_exists('origin', $client_data_json) || !is_string($client_data_json['origin'])
 		) {
-			throw new U2fException('Invalid ClientData', U2fException::ERR_INVALID_CLIENT_DATA);
+			throw new Exception('Invalid ClientData', Exception::ERR_INVALID_CLIENT_DATA);
 		}
 		if ($client_data_json['origin'] !== $rp_id) {
-			throw new U2fException('Relying Party (RP) ID mismatch in ClientData', U2fException::ERR_RP_ID_MISMATCH);
+			throw new Exception('Relying Party (RP) ID mismatch in ClientData', Exception::ERR_RP_ID_MISMATCH);
 		}
 		// decode challenge
 		$challenge = Base64Url::decode($client_data_json['challenge']);
 		if (!is_string($challenge)) {
-			throw new U2fException('Invalid ClientData: challenge is not a valid base64url string', U2fException::ERR_INVALID_CLIENT_DATA);
+			throw new Exception('Invalid ClientData: challenge is not a valid base64url string', Exception::ERR_INVALID_CLIENT_DATA);
 		}
 		return new ClientData(
 			typ: $client_data_json['typ'],
@@ -112,12 +112,12 @@ class U2f {
 	 *
 	 * @link https://fidoalliance.org/specs/fido-u2f-v1.2-ps-20170411/fido-u2f-javascript-api-v1.2-ps-20170411.html#idl-def-SignResponse
 	 * @param SignResponse The u2f.SignResponse object obtained from the client JS API
-	 * @throws U2fException
+	 * @throws Exception
 	 */
 	public static function decodeSignResponse(array $sign_response, string $rp_id): SignResponse {
 		// return immediately if client errored
 		if (array_key_exists('errorCode', $sign_response) && is_int($sign_response['errorCode']) && $sign_response['errorCode'] !== self::ERROR_CODE_OK) {
-			throw new U2fException('U2F client error', U2fException::ERR_CLIENT_ERROR, client_error_code: $sign_response['errorCode']);
+			throw new Exception('U2F client error', Exception::ERR_CLIENT_ERROR, client_error_code: $sign_response['errorCode']);
 		}
 
 		// validate input
@@ -126,25 +126,25 @@ class U2f {
 			!array_key_exists('clientData', $sign_response) || !is_string($sign_response['clientData']) ||
 			!array_key_exists('signatureData', $sign_response) || !is_string($sign_response['signatureData'])
 		) {
-			throw new U2fException('Invalid SignResponse data', U2fException::ERR_INVALID_DATA);
+			throw new Exception('Invalid SignResponse data', Exception::ERR_INVALID_DATA);
 		}
 
 		// get key handle from result
 		$key_handle = Base64Url::decode($sign_response['keyHandle']);
 		if (!is_string($key_handle)) {
-			throw new U2fException('Invalid SignResponse data: keyHandle not a valid base64url string', U2fException::ERR_INVALID_DATA);
+			throw new Exception('Invalid SignResponse data: keyHandle not a valid base64url string', Exception::ERR_INVALID_DATA);
 		}
 
 		// get client data from result
 		$client_data_json = Base64Url::decode($sign_response['clientData']);
 		if (!is_string($client_data_json)) {
-			throw new U2fException('Invalid SignResponse data: clientData not a valid base64url string', U2fException::ERR_INVALID_DATA);
+			throw new Exception('Invalid SignResponse data: clientData not a valid base64url string', Exception::ERR_INVALID_DATA);
 		}
 
 		// get signature data from result
 		$signature_data = Base64Url::decode($sign_response['signatureData']);
 		if (!is_string($signature_data)) {
-			throw new U2fException('Invalid SignResponse data: signatureData not a valid base64url string', U2fException::ERR_INVALID_DATA);
+			throw new Exception('Invalid SignResponse data: signatureData not a valid base64url string', Exception::ERR_INVALID_DATA);
 		}
 
 		// decode and validate clientData
@@ -163,7 +163,7 @@ class U2f {
 		try {
 			$signature_length = Asn1::sequenceLength(substr($signature_data, 5));
 		} catch (Asn1Exception $e) {
-			throw new U2fException('Signature (ASN.1 BER/DER SEQUENCE) is not valid', U2fException::ERR_INVALID_SIGNATURE_LENGTH);
+			throw new Exception('Signature (ASN.1 BER/DER SEQUENCE) is not valid', Exception::ERR_INVALID_SIGNATURE_LENGTH);
 		}
 
 		// get signature
@@ -171,7 +171,7 @@ class U2f {
 
 		// verify raw signature data length
 		if (strlen($signature_data) !== 5 + $signature_length) {
-			throw new U2fException('Signature (ASN.1 BER/DER SEQUENCE) is not valid: Value does not match expected length', U2fException::ERR_INVALID_SIGNATURE_LENGTH);
+			throw new Exception('Signature (ASN.1 BER/DER SEQUENCE) is not valid: Value does not match expected length', Exception::ERR_INVALID_SIGNATURE_LENGTH);
 		}
 
 		// get signature base
@@ -197,12 +197,12 @@ class U2f {
 	 *
 	 * @link https://fidoalliance.org/specs/fido-u2f-v1.2-ps-20170411/fido-u2f-javascript-api-v1.2-ps-20170411.html#idl-def-RegisterResponse
 	 * @param RegisterResponse The u2f.RegisterResponse object obtained from the client JS API
-	 * @throws U2fException
+	 * @throws Exception
 	 */
 	public static function decodeRegisterResponse(array $reg_response, string $rp_id): RegisterResponse {
 		// return immediately if client errored
 		if (array_key_exists('errorCode', $reg_response) && is_int($reg_response['errorCode']) && $reg_response['errorCode'] !== self::ERROR_CODE_OK) {
-			throw new U2fException('U2F client error', U2fException::ERR_CLIENT_ERROR, client_error_code: $reg_response['errorCode']);
+			throw new Exception('U2F client error', Exception::ERR_CLIENT_ERROR, client_error_code: $reg_response['errorCode']);
 		}
 
 		// validate input
@@ -213,25 +213,25 @@ class U2f {
 			!array_key_exists('challenge', $reg_response) || !is_string($reg_response['challenge']) ||
 			!array_key_exists('clientData', $reg_response) || !is_string($reg_response['clientData'])
 		) {
-			throw new U2fException('Invalid RegisterResponse data', U2fException::ERR_INVALID_DATA);
+			throw new Exception('Invalid RegisterResponse data', Exception::ERR_INVALID_DATA);
 		}
 		if ($reg_response['version'] !== self::VERSION_V2) {
-			throw new U2fException('RegisterResponse version not supported', U2fException::ERR_VERSION_NOT_SUPPORTED);
+			throw new Exception('RegisterResponse version not supported', Exception::ERR_VERSION_NOT_SUPPORTED);
 		}
 		if ($reg_response['appId'] !== $rp_id) {
-			throw new U2fException('Relying Party (RP) ID mismatch', U2fException::ERR_RP_ID_MISMATCH);
+			throw new Exception('Relying Party (RP) ID mismatch', Exception::ERR_RP_ID_MISMATCH);
 		}
 
 		// get client data from result
 		$client_data_json = Base64Url::decode($reg_response['clientData']);
 		if (!is_string($client_data_json)) {
-			throw new U2fException('Invalid RegisterResponse data: clientData not a valid base64url string', U2fException::ERR_INVALID_DATA);
+			throw new Exception('Invalid RegisterResponse data: clientData not a valid base64url string', Exception::ERR_INVALID_DATA);
 		}
 
 		// get challenge from result
 		$challenge = Base64Url::decode($reg_response['challenge']);
 		if (!is_string($challenge)) {
-			throw new U2fException('Invalid RegisterResponse data: challenge not a valid base64url string', U2fException::ERR_INVALID_DATA);
+			throw new Exception('Invalid RegisterResponse data: challenge not a valid base64url string', Exception::ERR_INVALID_DATA);
 		}
 
 		// decode and validate clientData
@@ -241,7 +241,7 @@ class U2f {
 		$client_data_hash = hash('sha256', $client_data_json, true);
 
 		if ($challenge !== $client_data->challenge) {
-			throw new U2fException('Challenge mismatch', U2fException::ERR_CHALLENGE_MISMATCH);
+			throw new Exception('Challenge mismatch', Exception::ERR_CHALLENGE_MISMATCH);
 		}
 
 		// parse registration data
@@ -264,7 +264,7 @@ class U2f {
 		try {
 			$att_cert_len = Asn1::sequenceLength($att_cert);
 		} catch (Asn1Exception $e) {
-			throw new U2fException('Attestation certificate (ASN.1 BER/DER SEQUENCE) is not valid', U2fException::ERR_INVALID_DATA);
+			throw new Exception('Attestation certificate (ASN.1 BER/DER SEQUENCE) is not valid', Exception::ERR_INVALID_DATA);
 		}
 		$att_cert = static::fixSignatureUnusedBits(substr($att_cert, 0, $att_cert_len));
 		$offset += $att_cert_len;

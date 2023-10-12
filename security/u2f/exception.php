@@ -1,8 +1,7 @@
-<?php namespace Obie\Encoding\Exception;
-
+<?php namespace Obie\Security\U2f;
 use Obie\Security\U2f;
 
-class U2fException extends \Exception {
+class Exception extends \Exception {
 	const ERR_CHALLENGE_MISMATCH       = -1;
 	const ERR_RP_ID_MISMATCH           = -2;
 	const ERR_CLIENT_ERROR             = -3;

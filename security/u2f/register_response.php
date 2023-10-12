@@ -1,4 +1,4 @@
-<?php namespace Obie\Encoding\U2f;
+<?php namespace Obie\Security\U2f;
 
 class RegisterResponse {
 	function __construct(
