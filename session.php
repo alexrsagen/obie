@@ -9,37 +9,39 @@ class Session {
 	protected static function _applyHmac(): void {
 		$data = self::get();
 		unset($data['_real']);
-		self::$vars->set('_real', hash_hmac('sha256', serialize($data), App::getConfig()->get('sessions', 'secret')));
+		self::$vars->set('_real', hash_hmac('sha256', serialize($data), App::$app::getConfig()->get('sessions', 'secret')));
 	}
 
 	protected static function _verifyHmac(): bool {
 		$data = self::get();
 		unset($data['_real']);
-		return hash_equals(hash_hmac('sha256', serialize($data), App::getConfig()->get('sessions', 'secret')), self::get('_real'));
+		return hash_equals(hash_hmac('sha256', serialize($data), App::$app::getConfig()->get('sessions', 'secret')), self::get('_real'));
 	}
 
-	public static function set(...$v) {
+	public static function set(...$v): void {
 		self::_init_vars();
 		self::$vars->set(...$v);
 		static::_applyHmac(); // generate new session integrity HMAC
 	}
 
-	public static function unset(...$v) {
+	public static function unset(...$v): void {
 		self::_init_vars();
 		self::$vars->unset(...$v);
 		static::_applyHmac(); // generate new session integrity HMAC
 	}
 
-	public static function generateNewID() {
-		session_id(Random::string(64, 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789,-'));
+	public static function generateNewID(): string {
+		$new_session_id = Random::string(64, 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789,-');
+		session_id($new_session_id);
+		return $new_session_id;
 	}
 
 	public static function getName(): string {
-		return (string)(App::getConfig()->get('sessions', 'name') ?? 'session');
+		return (string)(App::$app::getConfig()->get('sessions', 'name') ?? 'session');
 	}
 
 	public static function getID(): ?string {
-		$config = App::getConfig();
+		$config = App::$app::getConfig();
 		$only_cookie = (bool)($config->get('sessions', 'use_only_cookies') ?? true);
 		if (isset($_COOKIE[static::getName()]) && !empty(isset($_COOKIE[static::getName()]))) {
 			return $_COOKIE[static::getName()];
@@ -48,7 +50,7 @@ class Session {
 		return Router::getPost(static::getName()) ?? Router::getQuery(static::getName());
 	}
 
-	public static function new() {
+	public static function new(): void {
 		// destroy any existing session
 		if (static::started()) static::destroy();
 
@@ -59,7 +61,7 @@ class Session {
 		static::_start(true);
 	}
 
-	protected static function _start(bool $new = false) {
+	protected static function _start(bool $new = false): void {
 		// set session ID
 		session_id(static::getID());
 
@@ -76,14 +78,14 @@ class Session {
 		self::set('_lastactive', time());
 	}
 
-	public static function start() {
+	public static function start(): void {
 		// ensure sessions are enabled in PHP configuration
 		if (session_status() === PHP_SESSION_DISABLED) {
 			throw new \Exception('Sessions are disabled in PHP configuration');
 		}
 
 		// get app configuration
-		$config = App::getConfig();
+		$config = App::$app::getConfig();
 
 		// ensure redis module is loaded if configured save handler is redis
 		if ($config->get('sessions', 'save_handler') === 'redis' && !extension_loaded('redis')) {
@@ -136,22 +138,22 @@ class Session {
 
 		// verify last active timestamp
 		$last_active = self::get('_lastactive');
-		if ($last_active !== null && time() - $last_active > (int)App::getConfig()->get('sessions', 'lifetime')) {
+		if ($last_active !== null && time() - $last_active > (int)App::$app::getConfig()->get('sessions', 'lifetime')) {
 			Log::info('New session: Lifetime expired');
 			static::new();
 		}
 	}
 
-	public static function started() {
+	public static function started(): bool {
 		return session_status() === PHP_SESSION_ACTIVE && !empty(session_id());
 	}
 
-	public static function reset() {
+	public static function reset(): void {
 		if (!static::started()) return;
 		session_reset();
 	}
 
-	public static function destroy() {
+	public static function destroy(): void {
 		if (static::started()) {
 			session_unset();
 			session_destroy();
@@ -159,7 +161,7 @@ class Session {
 		self::$vars = null;
 	}
 
-	public static function end() {
+	public static function end(): void {
 		// ensure a session has been started
 		if (!static::started()) return;
 

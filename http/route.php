@@ -10,16 +10,16 @@ class Route {
 	const EINVALID_METHOD   = -1;
 	const EINVALID_PATH     = -2;
 
-	protected $patterns = [];
-	protected $methods = [];
-	protected $handlers = [];
-	protected $handler_args = [];
-	protected $route = '';
-	protected $content_type = Router::CONTENT_TYPE_HTML;
-	protected $charset = Router::CHARSET_UTF8;
-	protected $minify = true;
+	protected array $patterns = [];
+	protected array $methods = [];
+	protected array $handlers = [];
+	protected array $handler_args = [];
+	protected string $route = '';
+	protected string $content_type = Router::CONTENT_TYPE_HTML;
+	protected string $charset = Router::CHARSET_UTF8;
+	protected bool $minify = true;
 
-	public function __construct(array $methods, string $route, ...$handlers) {
+	public function __construct(array $methods, string $route, callable ...$handlers) {
 		$this->_init_vars();
 		$this->methods = $methods;
 		$this->route = $route;
@@ -31,7 +31,7 @@ class Route {
 		}
 	}
 
-	public function getRouterInstance() {
+	public function getRouterInstance(): ?RouterInstance {
 		if (count($this->handlers) === 0) return null;
 		$last_handler = $this->handlers[count($this->handlers)-1];
 		if ($last_handler instanceof RouterInstance) {
@@ -40,11 +40,11 @@ class Route {
 		return null;
 	}
 
-	public function isRouteCatchall() {
+	public function isRouteCatchall(): bool {
 		return $this->route === '*';
 	}
 
-	public function isMethodCatchall() {
+	public function isMethodCatchall(): bool {
 		foreach ($this->methods as $method) {
 			if ($method === Router::METHOD_USE || $method === Router::METHOD_ANY) {
 				return true;
@@ -53,21 +53,31 @@ class Route {
 		return false;
 	}
 
+	/**
+	 * Register a regex pattern for one of the named match groups in the route
+	 *
+	 * @param string $part_name Named match group
+	 * @param string $pattern Regular expression pattern
+	 * @return static
+	 */
 	public function where(string $part_name, string $pattern): static {
 		$this->patterns[$part_name] = $pattern;
 		return $this;
 	}
 
-	public function execute(string $method = null, string $path = null) {
+	/**
+	 * Check if the request method and path matches. If matching, call
+	 * Route::apply() with all the handlers registered in the constructor.
+	 *
+	 * @param string|null $method Defaults to the current request method
+	 * @param string|null $path Defaults to the current request path
+	 * @return int One of the status codes defined as constants of this class
+	 */
+	public function execute(?string $method = null, ?string $path = null): int {
 		// Default values
-		if ($method === null) {
-			$method = Router::getMethod();
-		} else {
-			$method = strtoupper($method);
-		}
-		if ($path === null) {
-			$path = Router::getPath();
-		}
+		$method ??= Request::current()?->getMethod();
+		$method = strtoupper($method);
+		$path ??= Request::current()?->getPath();
 
 		if (!$this->isRouteCatchall()) {
 			// Process custom route format into plain regex
@@ -88,7 +98,7 @@ class Route {
 						if (array_key_exists($part_name, $this->patterns)) {
 							$regex .= '(' . $this->patterns[$part_name] . ')';
 						} else {
-							$regex .= '([^[\][\/\\$&+,:;=?@ "\'{}|^~`]+)';
+							$regex .= '([^\[\]\/\\$&+,:;=?@ "\'{}|^~`]+)';
 						}
 					} else {
 						$regex .= substr($this->route, $offset, $part_end - $offset);
@@ -117,24 +127,68 @@ class Route {
 		return $this->apply(...$this->handlers);
 	}
 
-	protected function setContentType(string $content_type = Router::CONTENT_TYPE_HTML): static {
+	/**
+	 * Set the content type of any response sent as a result
+	 * of calling Route::apply
+	 *
+	 * @param string $content_type The content type of responses
+	 * @return static
+	 */
+	public function setContentType(string $content_type = Router::CONTENT_TYPE_HTML): static {
 		$this->content_type = $content_type;
 		return $this;
 	}
 
-	protected function setCharset(string $charset = Router::CHARSET_UTF8): static {
+	/**
+	 * Set the charset of any response sent as a result
+	 * of calling Route::apply
+	 *
+	 * @param string $charset The charset of responses
+	 * @return static
+	 */
+	public function setCharset(string $charset = Router::CHARSET_UTF8): static {
 		$this->charset = $charset;
 		return $this;
 	}
 
-	protected function setMinify(bool $minify = true): static {
+	/**
+	 * Set the Minify of any response sent as a result
+	 * of calling Route::apply
+	 *
+	 * @param bool $minify Whether to minify response (if the content type is supported by \Obie\Minify)
+	 * @return static
+	 */
+	public function setMinify(bool $minify = true): static {
 		$this->minify = $minify;
 		return $this;
 	}
 
-	protected function apply(\Closure ...$handlers) {
+	/**
+	 * Execute all the handlers in sequence, terminating on the first one
+	 * that returns a non-null value.
+	 *
+	 * Any non-null value returned is passed to Router::sendResponse.
+	 *
+	 * Closure handlers are bound to the context of this Route instance and
+	 * passed all matches from the regex capture groups in the path as
+	 * their arguments.
+	 *
+	 * Other callable handlers are passed this Route instance as the first
+	 * argument. The second argument then contains all matches from the regex
+	 * capture groups as an array.
+	 *
+	 * The entire path is not one of the matches.
+	 *
+	 * @param callable[] $handlers The request handlers to execute
+	 * @return int One of the status codes defined as constants of this class
+	 */
+	public function apply(callable ...$handlers) {
 		foreach ($handlers as $i => $handler) {
-			$response = $handler->bindTo($this, $this)(...$this->handler_args);
+			if ($handler instanceof \Closure) {
+				$response = $handler->bindTo($this, $this)(...$this->handler_args);
+			} else {
+				$response = $handler($this, $this->handler_args);
+			}
 			if ($response !== null) {
 				Router::sendResponse($response, $this->content_type, $this->charset, $this->minify);
 			}

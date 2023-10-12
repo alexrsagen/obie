@@ -177,34 +177,92 @@ class Router {
 
 	// Mapping of static methods of Router to RouterInstance methods
 
-	protected static $global_instance = null;
+	protected static ?RouterInstance $global_instance = null;
 
-	protected static function init() {
+	protected static function init(): void {
 		if (self::$global_instance === null) {
 			self::$global_instance = new RouterInstance(new VarCollection());
 		}
 	}
 
-	public static function __callStatic(string $method_name, array $args) {
-		self::init();
-		if (is_callable([self::getInstance(), $method_name])) {
-			return call_user_func_array([self::getInstance(), $method_name], $args);
-		}
+	/** @see RouterInstance::defer() */
+	public static function defer(): void {
+		static::getInstance()->defer();
+	}
+	/** @see RouterInstance::runDeferred() */
+	public static function runDeferred(): bool {
+		return static::getInstance()->runDeferred();
+	}
+	/** @see RouterInstance::execute() */
+	public static function execute(): int {
+		return static::getInstance()->execute();
+	}
+	/** @see RouterInstance::route() */
+	public static function route(string $method_str, string $route_str, callable ...$handlers): Route {
+		return static::getInstance()->route($method_str, $route_str, ...$handlers);
+	}
+	/** @see RouterInstance::get() */
+	public static function get(string $route_str, callable ...$handlers): Route {
+		return static::getInstance()->get($route_str, ...$handlers);
+	}
+	/** @see RouterInstance::head() */
+	public static function head(string $route_str, callable ...$handlers): Route {
+		return static::getInstance()->head($route_str, ...$handlers);
+	}
+	/** @see RouterInstance::post() */
+	public static function post(string $route_str, callable ...$handlers): Route {
+		return static::getInstance()->post($route_str, ...$handlers);
+	}
+	/** @see RouterInstance::put() */
+	public static function put(string $route_str, callable ...$handlers): Route {
+		return static::getInstance()->put($route_str, ...$handlers);
+	}
+	/** @see RouterInstance::delete() */
+	public static function delete(string $route_str, callable ...$handlers): Route {
+		return static::getInstance()->delete($route_str, ...$handlers);
+	}
+	/** @see RouterInstance::options() */
+	public static function options(string $route_str, callable ...$handlers): Route {
+		return static::getInstance()->options($route_str, ...$handlers);
+	}
+	/** @see RouterInstance::patch() */
+	public static function patch(string $route_str, callable ...$handlers): Route {
+		return static::getInstance()->patch($route_str, ...$handlers);
+	}
+	/** @see RouterInstance::use() */
+	public static function use(string $route_str, callable ...$handlers): Route {
+		return static::getInstance()->use($route_str, ...$handlers);
+	}
+	/** @see RouterInstance::any() */
+	public static function any(string $route_str, callable ...$handlers): Route {
+		return static::getInstance()->any($route_str, ...$handlers);
 	}
 
-	public static function getInstance() {
+	/**
+	 * Returns the global RouterInstance
+	 *
+	 * @return RouterInstance
+	 */
+	public static function getInstance(): RouterInstance {
 		self::init();
 		return self::$global_instance->getInstance();
 	}
 
 	// Global utility methods
 
-	public static $strict               = true;
-	public static $html_suffix          = '';
-	public static $html_minify_options  = [];
-	protected static $response_sent     = false;
+	public static bool $strict               = true;
+	public static string $html_suffix        = '';
+	public static array $html_minify_options = [];
+	protected static bool $response_sent     = false;
 
-	public static function stripTrailingSlash() {
+	/**
+	 * Checks for a trailing slash in the current path. If a trailing slash
+	 * is present, sends a redirect response to the current path
+	 * and query string, without any trailing slash.
+	 *
+	 * @return bool Whether a redirect response was sent
+	 */
+	public static function stripTrailingSlash(): bool {
 		$path = static::getPath();
 		$qs = static::getQueryString();
 		if (substr($path, -1) === '/' && strlen($path) > 1) {
@@ -214,53 +272,137 @@ class Router {
 		return false;
 	}
 
-	public static function getPost(?string $key = null, string $type = 'raw', mixed $fallback = null) {
+	/**
+	 * @deprecated
+	 * @see Request::getBody()
+	 *
+	 * @param null|string $key
+	 * @param string $type
+	 * @param mixed $fallback
+	 * @return mixed
+	 */
+	public static function getPost(?string $key = null, string $type = 'raw', mixed $fallback = null): mixed {
 		return Request::current()?->getBody($key, $type, $fallback);
 	}
 
-	public static function getPostBool(string $key) {
+	/**
+	 * @deprecated
+	 * @see Request::getBody()
+	 *
+	 * @param string $key
+	 * @return bool
+	 */
+	public static function getPostBool(string $key): bool {
 		return Request::current()?->getBody($key, 'bool', false);
 	}
 
-	public static function getQuery(?string $key = null, string $type = 'raw', mixed $fallback = null) {
+	/**
+	 * @deprecated
+	 * @see Request::getQuery()
+	 *
+	 * @param null|string $key
+	 * @param string $type
+	 * @param mixed $fallback
+	 * @return mixed
+	 */
+	public static function getQuery(?string $key = null, string $type = 'raw', mixed $fallback = null): mixed {
 		return Request::current()?->getQuery($key, $type, $fallback);
 	}
 
-	public static function getQueryBool(string $key) {
+	/**
+	 * @deprecated
+	 * @see Request::getQuery()
+	 *
+	 * @param string $key
+	 * @return bool
+	 */
+	public static function getQueryBool(string $key): bool {
 		return Request::current()?->getQuery($key, 'bool', false);
 	}
 
-	public static function getRequestHeader(?string $key = null) {
+	/**
+	 * @deprecated
+	 * @see Request::getHeader()
+	 *
+	 * @param null|string $key
+	 * @return string
+	 */
+	public static function getRequestHeader(?string $key = null): string {
 		return Request::current()?->getHeader($key);
 	}
 
-	public static function getMethod() {
+	/**
+	 * @deprecated
+	 * @see Request::getMethod()
+	 *
+	 * @return string The empty string is returned if there is no active request (for example when running as a script).
+	 */
+	public static function getMethod(): string {
 		return Request::current()?->getMethod();
 	}
 
-	public static function getRemoteAddress(bool $pack = false, bool $allow_x_forwarded_for = true) {
+	/**
+	 * @deprecated
+	 * @see Request::getRemoteAddress()
+	 *
+	 * @param bool $pack
+	 * @param bool $allow_x_forwarded_for
+	 * @return null|string
+	 */
+	public static function getRemoteAddress(bool $pack = false, bool $allow_x_forwarded_for = true): ?string {
 		return Request::current()?->getRemoteAddress($allow_x_forwarded_for ? 'x-forwarded-for' : null, $pack);
 	}
 
+	/**
+	 * @deprecated
+	 * @see Request::getRemotePort()
+	 *
+	 * @return int 0 is returned if there is no active request (for example when running as a script).
+	 */
 	public static function getRemotePort(): int {
-		return Request::current()?->getRemotePort();
+		return Request::current()?->getRemotePort() ?? 0;
 	}
 
-	public static function getPath() {
-		return Request::current()?->getPath();
+	/**
+	 * @deprecated
+	 * @see Request::getPath()
+	 *
+	 * @return string The empty string is returned if there is no active request (for example when running as a script).
+	 */
+	public static function getPath(): string {
+		return Request::current()?->getPath() ?? '';
 	}
 
-	public static function getQueryString() {
+	/**
+	 * @deprecated
+	 * @see Request::getQueryString()
+	 *
+	 * @return string The empty string is returned if there is no active request (for example when running as a script) or if there is no query string.
+	 */
+	public static function getQueryString(): string {
 		$qs = Request::current()?->getQueryString();
 		if (empty($qs)) return '';
 		return '?' . $qs;
 	}
 
-	public static function getScheme() {
+	/**
+	 * @deprecated
+	 * @see Request::getScheme()
+	 *
+	 * @return string
+	 */
+	public static function getScheme(): string {
 		return Request::current()?->getScheme();
 	}
 
-	public static function getHost(bool $validate_strict = false) {
+	/**
+	 * @deprecated
+	 * @see Request::getHost()
+	 *
+	 * @param bool $validate_strict
+	 * @return null|string
+	 */
+	public static function getHost(bool $validate_strict = false): string {
 		$host = Request::current()?->getHost();
 		if ($validate_strict && filter_var($host, FILTER_VALIDATE_DOMAIN, FILTER_FLAG_HOSTNAME) === false) {
 			return null;
@@ -268,7 +410,18 @@ class Router {
 		return $host;
 	}
 
-	public static function parseRequestHeader(string $key, string $delimiter = ',', string $endchar = ';') {
+	/**
+	 * @deprecated Dangerous method, may not always return correct data for any given header
+	 * @see \Obie\AcceptHeader
+	 * @see \Obie\AcceptLanguageHeader
+	 * @see \Obie\ContentDispositionHeader
+	 *
+	 * @param string $key
+	 * @param string $delimiter
+	 * @param string $endchar
+	 * @return array
+	 */
+	public static function parseRequestHeader(string $key, string $delimiter = ',', string $endchar = ';'): array {
 		$val = static::getRequestHeader($key);
 		if ($val === null) return [];
 		$end = strpos($val, $endchar);
@@ -276,8 +429,19 @@ class Router {
 		return array_map('trim', explode($delimiter, substr($val, 0, $end)));
 	}
 
-	public static function sendResponse($response = null, string $content_type = self::CONTENT_TYPE_HTML, string $charset = 'utf-8', bool $minify = true) {
-		if (self::$response_sent) return;
+	/**
+	 * Check if a response is already sent. If a response is not already sent,
+	 * send a response.
+	 *
+	 * @param mixed $response The response body to send
+	 * @param string $content_type The content type of the response body
+	 * @param string $charset The character set of the response body
+	 * @param bool $minify Whether to minify the response body (if the content type is supported by \Obie\Minify)
+	 * @return bool Whether a response was sent (Router will only send one response)
+	 */
+	public static function sendResponse($response = null, string $content_type = self::CONTENT_TYPE_HTML, string $charset = 'utf-8', bool $minify = true): bool {
+		if (self::$response_sent) return false;
+		self::$response_sent = true;
 
 		// Build response
 		$content_type = Mime::decode($content_type);
@@ -294,60 +458,139 @@ class Router {
 
 		// Send response
 		$res->send();
-		self::$response_sent = true;
+		return true;
 	}
 
-	public static function sendJSON($input) {
-		static::sendResponse($input, self::CONTENT_TYPE_JSON);
+	/**
+	 * Shorthand for Router::sendResponse()
+	 *
+	 * @param mixed $input
+	 * @return bool Whether a response was sent (Router will only send one response)
+	 */
+	public static function sendJSON($input): bool {
+		return static::sendResponse($input, self::CONTENT_TYPE_JSON);
 	}
 
+	/**
+	 * @return false
+	 */
 	public static function isResponseSent() {
 		return self::$response_sent;
 	}
 
-	public static function redirectOut(string $location, int $code = self::HTTP_FOUND) {
+	/**
+	 * @param string $location
+	 * @param int $code
+	 * @return void
+	 */
+	public static function redirectOut(string $location, int $code = self::HTTP_FOUND): void {
 		if (self::$response_sent) return;
 		static::setResponseHeader('location', str_replace(array(';', "\r", "\n"), '', $location));
 		static::setResponseCode($code);
 		static::sendResponse();
 	}
 
-	public static function redirect(string $location, int $code = self::HTTP_FOUND) {
-		static::redirectOut(rtrim(App::getConfig()->get('url'), '/') . '/' . ltrim($location, '/'), $code);
+	/**
+	 * @param string $location
+	 * @param int $code
+	 * @return void
+	 */
+	public static function redirect(string $location, int $code = self::HTTP_FOUND): void {
+		static::redirectOut(rtrim(App::$app::getConfig()->get('url'), '/') . '/' . ltrim($location, '/'), $code);
 	}
 
+	/**
+	 * @deprecated
+	 * @see Response::setCode()
+	 *
+	 * @param int $response_code
+	 * @return void
+	 */
 	public static function setResponseCode(int $response_code) {
 		Response::current()?->setCode($response_code);
 	}
 
+	/**
+	 * @deprecated
+	 * @see Response::getCode()
+	 *
+	 * @return int 0 is returned if there is no active request (for example when running as a script).
+	 */
 	public static function getResponseCode(): int {
-		return Response::current()?->getCode();
+		return Response::current()?->getCode() ?? 0;
 	}
 
+	/**
+	 * @deprecated
+	 * @see Response::getCodeText()
+	 *
+	 * @return string The empty string is returned if there is no active request (for example when running as a script).
+	 */
 	public static function getResponseCodeText(): string {
 		return Response::current()?->getCodeText() ?? '';
 	}
 
-	public static function getResponseHeader(?string $name = null) {
+	/**
+	 * @deprecated
+	 * @see Response::getHeader()
+	 *
+	 * @param null|string $name
+	 * @return string
+	 */
+	public static function getResponseHeader(?string $name = null): string {
 		return Response::current()?->getHeader($name);
 	}
 
+	/**
+	 * @deprecated
+	 * @see Response::setHeader()
+	 *
+	 * @param string $name
+	 * @param string $value
+	 * @return void
+	 */
 	public static function setResponseHeader(string $name, string $value) {
 		Response::current()?->setHeader($name, $value);
 	}
 
+	/**
+	 * @deprecated
+	 * @see Response::setHeaders()
+	 *
+	 * @param array $headers
+	 * @return void
+	 */
 	public static function setResponseHeaders(array $headers) {
 		Response::current()?->setHeaders($headers);
 	}
 
+	/**
+	 * @deprecated
+	 * @see Response::unsetHeader()
+	 *
+	 * @param string $name
+	 * @return void
+	 */
 	public static function unsetResponseHeader(string $name) {
 		Response::current()?->unsetHeader($name);
 	}
 
+	/**
+	 * @deprecated
+	 * @see Response::unsetHeaders()
+	 *
+	 * @param array $names
+	 * @return void
+	 */
 	public static function unsetResponseHeaders(array $names) {
 		Response::current()?->unsetHeaders($names);
 	}
 
+	/**
+	 * Returns the VarCollection of the global RouterInstance
+	 *
+	 * @return VarCollection
+	 */
 	public static function vars(): VarCollection {
 		return self::getInstance()->vars;
 	}

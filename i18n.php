@@ -23,8 +23,8 @@ class I18n {
 	}
 
 	public static function new(?string $translations_dir = null, ?string $default_locale = null): static {
-		$translations_dir ??= App::getConfig()->get('paths', 'translations_dir') ?? OBIE_APP_DIR . DIRECTORY_SEPARATOR . 'translations';
-		$default_locale ??= App::getConfig()->get('lang') ?? 'en';
+		$translations_dir ??= App::$app::getConfig()->get('paths', 'translations_dir') ?? OBIE_APP_DIR . DIRECTORY_SEPARATOR . 'translations';
+		$default_locale ??= App::$app::getConfig()->get('lang') ?? 'en';
 		return new static($translations_dir, $default_locale);
 	}
 
@@ -86,7 +86,7 @@ class I18n {
 		return $str;
 	}
 
-	public function translate(string $str, ...$args) {
+	public function translate(string $str, ...$args): string {
 		$str = $this->getTranslation($str);
 		if (count($args) === 1 && is_array($args[0])) $args = $args[0];
 

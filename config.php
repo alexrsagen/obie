@@ -20,7 +20,7 @@ class Config {
         return new static(Json::decode($json, true, $depth, $options));
     }
 
-    public static function setGlobal(self $config) {
+    public static function setGlobal(self $config): void {
         self::$global_config = $config;
     }
 

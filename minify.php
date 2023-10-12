@@ -2,12 +2,12 @@
 use MatthiasMullie\Minify as MMM;
 
 class Minify {
-	public static function HTML(string $input, array $options = []) {
+	public static function HTML(string $input, array $options = []): string {
 		$m = new TinyHtmlMinifier($options);
 		return $m->minify($input);
 	}
 
-	public static function CSS(string $input) {
+	public static function CSS(string $input): string {
 		if (!class_exists('MMM\CSS')) {
 			return $input;
 		}
@@ -15,7 +15,7 @@ class Minify {
 		return $m->minify();
 	}
 
-	public static function JS(string $input) {
+	public static function JS(string $input): string {
 		if (!class_exists('MMM\JS')) {
 			return $input;
 		}

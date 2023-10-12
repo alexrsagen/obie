@@ -14,11 +14,14 @@ class Logger extends \Monolog\Logger {
 	}
 
 	protected static function stringifyMessage($message): string {
-		if (is_string($message)) return $message;
-		return Json::encode($message);
+		if (is_string($message) || is_object($message) && in_array(\Stringable::class, class_implements($message))) {
+			return $message;
+		} else {
+			return Json::encode($message);
+		}
 	}
 
-	protected function createLineFormatter(string $format = null) {
+	protected function createLineFormatter(?string $format = null): LineFormatter {
 		return new LineFormatter($format, null, true, true);
 	}
 
@@ -34,16 +37,16 @@ class Logger extends \Monolog\Logger {
 	}
 
 	protected function getLogLevel(): int {
-		$config = App::getConfig();
+		$config = App::$app::getConfig();
 		if (!$config) return \Monolog\Logger::DEBUG;
 		return static::toMonologLevel($config->get('log_level'));
 	}
 
 	protected function populateContext(array $context): array {
-		return array_merge($this->default_context, $context);
+		return array_merge(Log::$global_context, $this->default_context, $context);
 	}
 
-	public function setFormat(string $format = null): void {
+	public function setFormat(?string $format = null): void {
 		$handlers = $this->getHandlers();
 		foreach ($handlers as $handler) {
 			if ($handler instanceof StreamHandler) {
@@ -64,38 +67,47 @@ class Logger extends \Monolog\Logger {
 		$this->default_context = $context;
 	}
 
+	/** @see \Monolog\Handler\AbstractHandler::log() */
 	public function log($level, $message, array $context = []): void {
 		parent::log($level, static::stringifyMessage($message), $this->populateContext($context));
 	}
 
+	/** @see \Monolog\Handler\AbstractHandler::debug() */
 	public function debug($message, array $context = []): void {
 		parent::debug(static::stringifyMessage($message), $this->populateContext($context));
 	}
 
+	/** @see \Monolog\Handler\AbstractHandler::info() */
 	public function info($message, array $context = []): void {
 		parent::info(static::stringifyMessage($message), $this->populateContext($context));
 	}
 
+	/** @see \Monolog\Handler\AbstractHandler::notice() */
 	public function notice($message, array $context = []): void {
 		parent::notice(static::stringifyMessage($message), $this->populateContext($context));
 	}
 
+	/** @see \Monolog\Handler\AbstractHandler::warning() */
 	public function warning($message, array $context = []): void {
 		parent::warning(static::stringifyMessage($message), $this->populateContext($context));
 	}
 
+	/** @see \Monolog\Handler\AbstractHandler::error() */
 	public function error($message, array $context = []): void {
 		parent::error(static::stringifyMessage($message), $this->populateContext($context));
 	}
 
+	/** @see \Monolog\Handler\AbstractHandler::critical() */
 	public function critical($message, array $context = []): void {
 		parent::critical(static::stringifyMessage($message), $this->populateContext($context));
 	}
 
+	/** @see \Monolog\Handler\AbstractHandler::alert() */
 	public function alert($message, array $context = []): void {
 		parent::alert(static::stringifyMessage($message), $this->populateContext($context));
 	}
 
+	/** @see \Monolog\Handler\AbstractHandler::emergency() */
 	public function emergency($message, array $context = []): void {
 		parent::emergency(static::stringifyMessage($message), $this->populateContext($context));
 	}

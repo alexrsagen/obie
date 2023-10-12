@@ -9,7 +9,7 @@ if (version_compare(phpversion(), '8.0.0', '<')) {
 require __DIR__ . DIRECTORY_SEPARATOR . 'autoload.php';
 
 // Initialize app
-if (!App::init()) {
+if (!App::$app::init()) {
 	return false;
 }
 

@@ -1,8 +1,8 @@
 <?php namespace Obie\Validation;
 
 class PasswordValidator implements IValidator {
-	protected $email_parts = [];
-	protected $message = null;
+	protected array $email_parts = [];
+	protected ?string $message = null;
 
 	public function __construct(string $email) {
 		$email_parts = explode('@', $email);

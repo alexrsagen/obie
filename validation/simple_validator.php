@@ -30,10 +30,10 @@ class SimpleValidator implements IValidator {
 	const REGEX_JWT = '/^' . self::REGEX_BASE64URL_PART . '(\.' . self::REGEX_BASE64URL_PART . ')*$/';
 	const REGEX_BASE16 = '/^[a-fA-F0-9]*$/';
 
-	protected $type = self::TYPE_CUSTOM;
-	protected $cv = null;
+	protected int $type = self::TYPE_CUSTOM;
+	protected ?IValidator $cv = null;
 
-	public function __construct(int $type, IValidator $cv = null) {
+	public function __construct(int $type, ?IValidator $cv = null) {
 		$this->type = $type;
 		$this->cv = $cv;
 	}
@@ -42,7 +42,7 @@ class SimpleValidator implements IValidator {
 		return static::isValid($input, $this->type, $this->cv);
 	}
 
-	public static function isValid($input, int $type, IValidator $cv = null) {
+	public static function isValid($input, int $type, ?IValidator $cv = null) {
 		switch ($type) {
 			case self::TYPE_CUSTOM:
 				if ($cv === null) return false;

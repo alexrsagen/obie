@@ -2,31 +2,36 @@
 use Obie\Http\Router;
 use Obie\Http\Request;
 use Obie\Http\Response;
+use Obie\Http\RouterInstance;
+use Obie\ApiClients\FidoMds;
 
+/**
+ * @property self $app
+ */
 class App {
-	public static $app = self::class;
-	protected static $config = null;
-	protected static $router = null;
-	protected static $db = null;
-	protected static $ro_db = null;
+	public static string $app = self::class;
+	protected static ?Config $config = null;
+	protected static ?RouterInstance $router = null;
+	protected static ?\PDO $db = null;
+	protected static ?\PDO $ro_db = null;
 
-	public static function getConfig() {
+	public static function getConfig(): ?Config {
 		return self::$config;
 	}
 
-	public static function getRouter() {
+	public static function getRouter(): ?RouterInstance {
 		return self::$router;
 	}
 
-	public static function getDB() {
+	public static function getDB(): ?\PDO {
 		return self::$db;
 	}
 
-	public static function getReadonlyDB() {
+	public static function getReadonlyDB(): ?\PDO {
 		return self::$ro_db;
 	}
 
-	public static function register() {
+	public static function register(): void {
 		self::$app = static::class;
 	}
 
@@ -422,8 +427,8 @@ class App {
 	/**
 	 * Init database
 	 */
-	public static function initDatabase(): bool {
-		if (self::$db !== null && self::$ro_db !== null) return true;
+	public static function initDatabase(bool $force = false): bool {
+		if (!$force && self::$db !== null && self::$ro_db !== null) return true;
 		if (!self::$app::initConfig()) return false;
 		if (!self::$config->get('db', 'enable')) return true;
 		if (!extension_loaded('pdo')) {
@@ -477,11 +482,11 @@ class App {
 		return true;
 	}
 
-	public static function errorHandler($errno, $errstr, $errfile, $errline) {
+	public static function errorHandler($errno, $errstr, $errfile, $errline): void {
 		if (!(error_reporting() & $errno)) {
 			// This error code is not included in error_reporting, so let it fall
 			// through to the standard PHP error handler
-			return false;
+			return;
 		}
 
 		$typestr = match ($errno) {
@@ -508,7 +513,7 @@ class App {
 
 		if (self::$app::initConfig()) {
 			if (self::$config->get('errors', 'mail')) {
-				App::sendMail(self::$config->get('errors', 'mail_address'), 'Internal server error on ' . self::$config->get('site_name'), $error_html, true);
+				self::$app::sendMail(self::$config->get('errors', 'mail_address'), 'Internal server error on ' . self::$config->get('site_name'), $error_html, true);
 			}
 
 			if (self::$app::initRouter()) {
@@ -523,7 +528,7 @@ class App {
 		exit;
 	}
 
-	public static function shutdownHandler() {
+	public static function shutdownHandler(): void {
 		// Handle fatal errors
 		$error = error_get_last();
 		if ($error && ($error['type'] & (E_ERROR | E_USER_ERROR | E_PARSE | E_CORE_ERROR | E_COMPILE_ERROR | E_RECOVERABLE_ERROR))){
@@ -531,7 +536,7 @@ class App {
 		}
 	}
 
-	public static function sendMail(string|array $recipients, string $subject, string $body, bool $is_html = false) {
+	public static function sendMail(string|array $recipients, string $subject, string $body, bool $is_html = false): bool {
 		if (!self::$app::initConfig()) return false;
 
 		if (is_string($recipients)) {
@@ -559,11 +564,19 @@ class App {
 		}
 	}
 
-	protected static $i18n = null;
+	protected static ?I18n $i18n = null;
 	public static function getI18n(): I18n {
 		if (static::$i18n === null) {
 			static::$i18n = I18n::new();
 		}
 		return static::$i18n;
+	}
+
+	protected static ?FidoMds $fido_mds = null;
+	public static function getFidoMds(): FidoMds {
+		if (static::$fido_mds === null) {
+			static::$fido_mds = new FidoMds();
+		}
+		return static::$fido_mds;
 	}
 }
