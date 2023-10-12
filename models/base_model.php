@@ -14,8 +14,6 @@ abstract class BaseModel {
 		'date'
 	];
 
-	use BaseModelTrait;
-
 	protected ?\PDOException $_error            = null;
 	protected ?string $_last_save_query         = null;
 	protected bool $_new                        = true;
