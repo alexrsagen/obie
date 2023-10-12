@@ -75,16 +75,14 @@ abstract class BaseModel {
 			$columns = static::getAllColumns();
 
 			static::$pk = [];
-			$stmt = static::buildStatement('SHOW KEYS FROM ' . static::getEscapedSource() . ' WHERE `Key_name` = \'PRIMARY\'', ['read_only' => true]);
-			if (static::executeFindOrCountStatementRetry($stmt, static::$find_error)) {
-				foreach ($stmt->fetchAll() as $row) {
-					// Ensure that primary key exists as a public variable of this model
-					if (!in_array($row['Column_name'], $columns)) {
-						throw new \Exception("Primary key \"{$row['Column_name']}\" not defined in model \"$class_name\"");
-					}
-
-					static::$pk[] = $row['Column_name'];
+			if (!($stmt = static::executeQueryRetry('SHOW KEYS FROM ' . static::getEscapedSource() . ' WHERE `Key_name` = \'PRIMARY\'', ['read_only' => true], static::$find_error))) return;
+			foreach ($stmt->fetchAll() as $row) {
+				// Ensure that primary key exists as a public variable of this model
+				if (!in_array($row['Column_name'], $columns)) {
+					throw new \Exception("Primary key \"{$row['Column_name']}\" not defined in model \"$class_name\"");
 				}
+
+				static::$pk[] = $row['Column_name'];
 			}
 		}
 	}
@@ -463,8 +461,7 @@ abstract class BaseModel {
 		$options['read_only'] = true;
 
 		// Build and execute statement
-		$stmt = static::buildStatement(static::buildSelect($options), $options);
-		if (!static::executeFindOrCountStatementRetry($stmt, static::$find_error)) return false;
+		if (!($stmt = static::executeQueryRetry(static::buildSelect($options), $options, static::$find_error))) return false;
 		$result = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 		if (count($result) === 0) return false;
 
@@ -500,8 +497,7 @@ abstract class BaseModel {
 		$options['read_only'] = true;
 
 		// Build and execute statement
-		$stmt = static::buildStatement(static::buildSelect($options), $options);
-		if (!static::executeFindOrCountStatementRetry($stmt, static::$find_error)) return false;
+		if (!($stmt = static::executeQueryRetry(static::buildSelect($options), $options, static::$find_error))) return false;
 		$result = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 		if (count($result) === 0) return false;
 
@@ -539,8 +535,7 @@ abstract class BaseModel {
 		$options['what'] = 'COUNT(' . ModelHelpers::getEscapedList(static::getPrimaryKeys(), static::getSource()) . ') AS `rowcount`';
 
 		// Build and execute statement which gets row count efficiently with given options
-		$stmt = static::buildStatement(static::buildSelect($options), $options);
-		if (!static::executeFindOrCountStatementRetry($stmt, static::$count_error)) return false;
+		if (!($stmt = static::executeQueryRetry(static::buildSelect($options), $options, static::$count_error))) return false;
 		$res = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 		if (count($res) === 0) return 0;
 		if (array_key_exists('group', $options) && !empty($options['group'])) {
@@ -558,13 +553,18 @@ abstract class BaseModel {
 
 	// Database interaction methods
 
-	protected static function executeFindOrCountStatementRetry(\PDOStatement $stmt, ?string &$error = null): bool {
-		$error = null;
+	protected static function executeQueryRetry(string $query, array $options = [], ?string &$error = null): ?\PDOStatement {
 		for ($i = 0; $i < static::$max_connect_retries; $i++) {
 			if ($i > 0) sleep(static::$connect_interval_seconds);
+
+			// Build statement
+			$stmt = static::buildStatement($query, $options);
+
+			// Execute statement
+			$error = null;
 			try {
 				$stmt->execute();
-				break;
+				return $stmt;
 			} catch (\PDOException $e) {
 				// retry on connection error
 				if (
@@ -579,21 +579,63 @@ abstract class BaseModel {
 
 				// abort on any other error
 				$error = $e;
-				return false;
 			}
+			break;
 		}
-		return true;
+		return null;
 	}
 
-	protected function executeStatementRetry(\PDOStatement $stmt, ?string &$error = null): bool {
-		$error = null;
+	protected function executeActionRetry(string $action): ?\PDOStatement {
+		$stmt = null;
 		for ($i = 0; $i < static::$max_connect_retries; $i++) {
 			if ($i > 0) {
 				sleep(static::$connect_interval_seconds);
 				App::$app::initDatabase(force: true);
 			}
+
+			// Build statement depending on action
+			switch ($action) {
+			case 'load':
+				$pk_list = static::getPrimaryKeys();
+				$options = [
+					'conditions' => ModelHelpers::getEscapedWhere($pk_list, static::getSource()),
+					'bind'       => [],
+					'read_only'  => true,
+					'limit'      => 1,
+				];
+				foreach ($pk_list as $key) {
+					$options['bind'][] = $this->get($key, false);
+				}
+				$stmt = static::buildStatement(static::buildSelect($options), $options);
+				break;
+			case 'create':
+				$query = 'INSERT INTO ' . static::getEscapedSource() . ' SET ' . ModelHelpers::getEscapedSet($this->_modified_columns, static::getSource());
+				$this->_last_save_query = $query;
+				$stmt = static::buildStatement($query);
+				$this->bindValues($stmt, $this->_modified_columns);
+				break;
+			case 'update':
+				$pk_list = static::getPrimaryKeys();
+				$query = 'UPDATE ' . static::getEscapedSource() . ' SET ' . ModelHelpers::getEscapedSet($this->_modified_columns, static::getSource()) . ' WHERE ' . ModelHelpers::getEscapedWhere($pk_list, static::getSource()) . ' LIMIT 1';
+				$this->_last_save_query = $query;
+				$stmt = static::buildStatement($query);
+				$i = $this->bindValues($stmt, $this->_modified_columns);
+				$this->bindValues($stmt, $pk_list, $i);
+				break;
+			case 'delete':
+				$pk_list = static::getPrimaryKeys();
+				$stmt = static::buildStatement('DELETE FROM ' . static::getEscapedSource() . ' WHERE ' . ModelHelpers::getEscapedWhere($pk_list, static::getSource()) . ' LIMIT 1');
+				$this->bindValues($stmt, $pk_list);
+				break;
+			default:
+				return null;
+			}
+
+			// Execute statement
+			$this->_error = null;
 			try {
-				return $stmt->execute();
+				$stmt->execute();
+				return $stmt;
 			} catch (\PDOException $e) {
 				// retry on connection error
 				if (
@@ -607,11 +649,11 @@ abstract class BaseModel {
 				}
 
 				// abort on any other error
-				$error = $e;
-				return false;
+				$this->_error = $e;
 			}
+			break;
 		}
-		return true;
+		return null;
 	}
 
 	public function load(): bool {
@@ -620,20 +662,7 @@ abstract class BaseModel {
 			if ($this->{$name}()) return true;
 		}
 
-		// Build query options
-		$pk_list = static::getPrimaryKeys();
-		$options = [
-			'conditions' => ModelHelpers::getEscapedWhere($pk_list, static::getSource()),
-			'bind'       => [],
-			'read_only'  => true
-		];
-		foreach ($pk_list as $key) {
-			$options['bind'][] = $this->get($key, false);
-		}
-
-		// Build and execute statement
-		$stmt = static::buildStatement(static::buildSelect($options), $options);
-		if (!$this->executeStatementRetry($stmt, $this->_error)) return false;
+		if (!($stmt = $this->executeActionRetry('load'))) return false;
 		$result = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 		if (count($result) === 0) return false;
 
@@ -681,36 +710,29 @@ abstract class BaseModel {
 		}
 
 		// Update database
-		$query = 'INSERT INTO ' . static::getEscapedSource() . ' SET ' . ModelHelpers::getEscapedSet($this->_modified_columns, static::getSource());
-		$this->_last_save_query = $query;
-		$stmt = static::buildStatement($query);
-		$this->bindValues($stmt, $this->_modified_columns);
-		$retval = $this->executeStatementRetry($stmt, $this->_error);
+		if (!($stmt = $this->executeActionRetry('create'))) return false;
 		$id = static::getDatabase()?->lastInsertId();
 
-		if ($retval) {
-			// Set primary key value to last insert ID
-			if (count(static::getPrimaryKeys()) === 1) {
-				$primary_key = static::getPrimaryKeys()[0];
-				if (
-					$id !== false &&
-					$id !== 0 &&
-					static::columnExists($primary_key) &&
-					in_array(static::$columns[$primary_key], ['int', 'integer'], true)
-				) {
-					$this->set($primary_key, $id, false);
-				}
+		// Set primary key value to last insert ID
+		if (count(static::getPrimaryKeys()) === 1) {
+			$primary_key = static::getPrimaryKeys()[0];
+			if (
+				$id !== false &&
+				$id !== 0 &&
+				static::columnExists($primary_key) &&
+				in_array(static::$columns[$primary_key], ['int', 'integer'], true)
+			) {
+				$this->set($primary_key, $id, false);
 			}
-
-			// Run post-create hooks
-			foreach ($this->getHooks('afterCreate') as $name) {
-				$this->{$name}();
-			}
-
-			$this->forceCleanState();
 		}
 
-		return $retval;
+		// Run post-create hooks
+		foreach ($this->getHooks('afterCreate') as $name) {
+			$this->{$name}();
+		}
+
+		$this->forceCleanState();
+		return true;
 	}
 
 	public function update(): bool {
@@ -722,13 +744,7 @@ abstract class BaseModel {
 		}
 
 		// Update database
-		$pk_list = static::getPrimaryKeys();
-		$query = 'UPDATE ' . static::getEscapedSource() . ' SET ' . ModelHelpers::getEscapedSet($this->_modified_columns, static::getSource()) . ' WHERE ' . ModelHelpers::getEscapedWhere($pk_list, static::getSource()) . ' LIMIT 1';
-		$this->_last_save_query = $query;
-		$stmt = static::buildStatement($query);
-		$i = $this->bindValues($stmt, $this->_modified_columns);
-		$this->bindValues($stmt, $pk_list, $i);
-		$retval = $this->executeStatementRetry($stmt, $this->_error);
+		$retval = $this->executeActionRetry('update');
 
 		if ($retval) {
 			// Run post-update hooks
@@ -747,10 +763,7 @@ abstract class BaseModel {
 			if ($this->{$name}()) return true;
 		}
 
-		$pk_list = static::getPrimaryKeys();
-		$stmt = static::buildStatement('DELETE FROM ' . static::getEscapedSource() . ' WHERE ' . ModelHelpers::getEscapedWhere($pk_list, static::getSource()) . ' LIMIT 1');
-		$this->bindValues($stmt, $pk_list);
-		$retval = $this->executeStatementRetry($stmt, $this->_error);
+		$retval = $this->executeActionRetry('delete');
 
 		if ($retval) {
 			// Run post-delete hooks
