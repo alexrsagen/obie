@@ -27,6 +27,7 @@
         "matthiasmullie/minify": "^1.3",
         "2tvenom/cborencode": "^1.0",
         "monolog/monolog": "^2.1",
+        "sop/asn1": "^4.0.0",
         "sop/crypto-types": "^0.3.0"
     },
     "require-dev": {
