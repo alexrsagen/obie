@@ -1,7 +1,5 @@
 <?php namespace Obie\Security;
-
 use Obie\Encoding\Asn1;
-use Obie\Encoding\Exception\Asn1Exception;
 use Obie\Encoding\Pem;
 use Sop\CryptoTypes\Asymmetric\PublicKeyInfo;
 use Sop\CryptoTypes\AlgorithmIdentifier\AlgorithmIdentifier;
@@ -23,15 +21,6 @@ class Ecdsa {
 		return $info->publicKeyData();
 	}
 
-	protected static function isDERSequence(string $input): bool {
-		try {
-			$len = Asn1::sequenceLength($input);
-			return strlen($input) >= $len;
-		} catch (Asn1Exception $e) {
-			return false;
-		}
-	}
-
 	public static function getCompressedPrefixForY(string $y): string {
 		return ord(substr($y, -1)) % 2 === 0 ? self::PREFIX_EVEN : self::PREFIX_ODD;
 	}
@@ -48,7 +37,7 @@ class Ecdsa {
 	}
 
 	public static function pubkeyIsDER(string $key): bool {
-		return static::isDERSequence($key);
+		return Asn1::isSequence($key);
 	}
 
 	public static function pubkeyToRaw(string $key): ?string {
@@ -63,14 +52,11 @@ class Ecdsa {
 		if (static::pubkeyIsDER($key)) return $key;
 		// handle PEM input
 		if (Pem::isEncoded($key)) {
-			$label = Pem::decodeLabel($key);
-			if ($label === Pem::LABEL_CERTIFICATE) {
-				$key_res = openssl_pkey_get_public($key);
-				if ($key_res === false) return null;
-				$key_details = openssl_pkey_get_details($key_res);
-				if (!is_array($key_details) || !array_key_exists('ec', $key_details)) return null;
-				$key = $key_details['key'];
-			}
+			$key_res = openssl_pkey_get_public($key);
+			if ($key_res === false) return null;
+			$key_details = openssl_pkey_get_details($key_res);
+			if (!is_array($key_details) || !array_key_exists('ec', $key_details)) return null;
+			$key = $key_details['key'];
 			return Pem::decode($key);
 		}
 		// handle RAW input
@@ -93,7 +79,7 @@ class Ecdsa {
 	}
 
 	public static function privkeyIsDER(string $key): bool {
-		return static::isDERSequence($key);
+		return Asn1::isSequence($key);
 	}
 
 	public static function privkeyToDER(string $key, ?string $curve_oid_for_raw_key = null): ?string {
