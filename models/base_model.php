@@ -551,7 +551,7 @@ abstract class BaseModel {
 
 	// Database interaction methods
 
-	protected static function executeQueryRetry(string $query, array $options = [], ?string &$error = null): ?\PDOStatement {
+	public static function executeQueryRetry(string $query, array $options = [], ?string &$error = null): ?\PDOStatement {
 		for ($i = 0; $i < static::$max_connect_retries; $i++) {
 			if ($i > 0) sleep(static::$connect_interval_seconds);
 
@@ -742,18 +742,15 @@ abstract class BaseModel {
 		}
 
 		// Update database
-		$retval = $this->executeActionRetry('update');
+		if (!($stmt = $this->executeActionRetry('update'))) return false;
 
-		if ($retval) {
-			// Run post-update hooks
-			foreach ($this->getHooks('afterUpdate') as $name) {
-				$this->{$name}();
-			}
-
-			$this->forceCleanState();
+		// Run post-update hooks
+		foreach ($this->getHooks('afterUpdate') as $name) {
+			$this->{$name}();
 		}
 
-		return $retval;
+		$this->forceCleanState();
+		return true;
 	}
 
 	public function delete(): bool {
@@ -761,19 +758,16 @@ abstract class BaseModel {
 			if ($this->{$name}()) return true;
 		}
 
-		$retval = $this->executeActionRetry('delete');
+		if (!($stmt = $this->executeActionRetry('delete'))) return false;
 
-		if ($retval) {
-			// Run post-delete hooks
-			foreach ($this->getHooks('afterDelete') as $name) {
-				$this->{$name}();
-			}
-
-			$this->forceCleanState();
-			$this->_new = true;
+		// Run post-delete hooks
+		foreach ($this->getHooks('afterDelete') as $name) {
+			$this->{$name}();
 		}
 
-		return $retval;
+		$this->forceCleanState();
+		$this->_new = true;
+		return true;
 	}
 
 	protected function bindValues(\PDOStatement $stmt, array $keys, int $i = 1): int {
