@@ -3,6 +3,7 @@ use Obie\Encoding\Querystring;
 use Obie\Encoding\Json;
 use Obie\Http\Multipart;
 use Obie\Http\Multipart\FormData;
+use Obie\Http\Multipart\FormDataField;
 use Obie\Minify;
 
 trait BodyTrait {
@@ -48,7 +49,15 @@ trait BodyTrait {
 				$boundary = Multipart::generateBoundary();
 				$this->getContentType()?->setParameter('boundary', $boundary);
 			}
-			return FormData::encode($boundary, $input, []);
+			$fields = [];
+			foreach ($input as $key => $value) {
+				if ($value instanceof FormDataField) {
+					$fields[] = $value;
+				} elseif (is_string($key) && is_string($value)) {
+					$fields[] = new FormDataField($value, $key);
+				}
+			}
+			return (new FormData($fields, $boundary))->encode();
 		case 'application/x-www-form-urlencoded':
 			return Querystring::encode($input);
 		case 'application/json':
@@ -56,6 +65,17 @@ trait BodyTrait {
 		case 'text/html':
 			if ($this->minify) {
 				return Minify::HTML((string)$input, $this->html_minify_options);
+			}
+			break;
+		case 'text/css':
+			if ($this->minify) {
+				return Minify::CSS((string)$input);
+			}
+			break;
+		case 'application/javascript':
+		case 'text/javascript':
+			if ($this->minify) {
+				return Minify::JS((string)$input);
 			}
 			break;
 		}
