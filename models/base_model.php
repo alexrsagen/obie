@@ -1,8 +1,11 @@
 <?php namespace Obie\Models;
+
+use InvalidArgumentException;
 use Obie\Formatters\EnglishNoun;
 use Obie\Formatters\Casing;
+use Obie\App;
 
-class BaseModel {
+abstract class BaseModel {
 	const VALID_TYPES = [
 		'int', 'integer',
 		'bool', 'boolean',
@@ -11,19 +14,31 @@ class BaseModel {
 		'date'
 	];
 
-	protected ?\PDOException $_error       = null;
-	protected ?string $_last_save_query    = null;
-	protected bool $_new                   = true;
-	protected array $_data                 = [];
-	protected array $_original_data        = [];
-	protected array $_modified_columns     = [];
-	protected static ?\PDO $_default_db    = null;
-	protected static ?\PDO $_default_ro_db = null;
-	protected static string $_timezone     = 'UTC';
+	use BaseModelTrait;
+
+	protected ?\PDOException $_error            = null;
+	protected ?string $_last_save_query         = null;
+	protected bool $_new                        = true;
+	protected array $_data                      = [];
+	protected array $_original_data             = [];
+	protected array $_modified_columns          = [];
+	protected static ?\PDO $_default_db         = null;
+	protected static ?\PDO $_default_ro_db      = null;
+	protected static string $_timezone          = 'UTC';
+	public static int $max_connect_retries      = 5;
+	public static int $connect_interval_seconds = 5;
 
 	// Model definition methods
 
-	public static function define($column, string $type = null) {
+	/**
+	 * Define one or more columns on this table.
+	 *
+	 * @param mixed $column If $type is not null, a string specifying a column name or an array of column names. Otherwise an array of "column" => "type".
+	 * @param string|null $type The type to use for all columns specified. To specify a unique type for each column, leave as null and specify $column as an array of "column" => "type".
+	 * @return void
+	 * @throws InvalidArgumentException If invalid arguments specified
+	 */
+	public static function define(string|array $column, ?string $type = null): void {
 		if ($type !== null) {
 			if (is_string($column)) {
 				$column = [$column];
@@ -54,21 +69,22 @@ class BaseModel {
 		}
 	}
 
-	protected static function initPrimaryKeys() {
+	protected static function initPrimaryKeys(): void {
 		if (count(static::$pk) === 0) {
 			$class_name = get_called_class();
 			$columns = static::getAllColumns();
 
 			static::$pk = [];
-			$stmt = static::getReadOnlyDatabase()->prepare('SHOW KEYS FROM ' . static::getEscapedSource() . ' WHERE `Key_name` = \'PRIMARY\'');
-			$stmt->execute();
-			foreach ($stmt->fetchAll() as $row) {
-				// Ensure that primary key exists as a public variable of this model
-				if (!in_array($row['Column_name'], $columns)) {
-					throw new \Exception("Primary key \"{$row['Column_name']}\" not defined in model \"$class_name\"");
-				}
+			$stmt = static::buildStatement('SHOW KEYS FROM ' . static::getEscapedSource() . ' WHERE `Key_name` = \'PRIMARY\'', ['read_only' => true]);
+			if (static::executeFindOrCountStatementRetry($stmt, static::$find_error)) {
+				foreach ($stmt->fetchAll() as $row) {
+					// Ensure that primary key exists as a public variable of this model
+					if (!in_array($row['Column_name'], $columns)) {
+						throw new \Exception("Primary key \"{$row['Column_name']}\" not defined in model \"$class_name\"");
+					}
 
-				static::$pk[] = $row['Column_name'];
+					static::$pk[] = $row['Column_name'];
+				}
 			}
 		}
 	}
@@ -94,7 +110,7 @@ class BaseModel {
 		return static::columnExists($name);
 	}
 
-	protected static function initSource() {
+	protected static function initSource(): void {
 		if (static::$source === null) {
 			static::$source_singular = EnglishNoun::classNameToSingular(get_called_class());
 			static::$source = EnglishNoun::toPlural(static::$source_singular);
@@ -104,7 +120,7 @@ class BaseModel {
 		}
 	}
 
-	public static function setSource(string $source, string $source_singular = null) {
+	public static function setSource(string $source, string $source_singular = null): void {
 		static::$source = $source;
 		static::$source_singular = $source_singular;
 		static::initSource();
@@ -121,7 +137,7 @@ class BaseModel {
 		return ModelHelpers::getEscapedSource($source);
 	}
 
-	public static function setDatabase(\PDO $db) {
+	public static function setDatabase(\PDO $db): void {
 		static::$db = $db;
 	}
 
@@ -132,7 +148,7 @@ class BaseModel {
 		return static::$db;
 	}
 
-	public static function setDefaultDatabase(\PDO $db) {
+	public static function setDefaultDatabase(\PDO $db): void {
 		if (property_exists(get_called_class(), '_default_db')) {
 			static::$_default_db = $db;
 		} else {
@@ -150,7 +166,7 @@ class BaseModel {
 		return self::$_default_db;
 	}
 
-	public static function setReadOnlyDatabase(\PDO $db) {
+	public static function setReadOnlyDatabase(\PDO $db): void {
 		static::$ro_db = $db;
 	}
 
@@ -161,7 +177,7 @@ class BaseModel {
 		return static::$ro_db;
 	}
 
-	public static function setDefaultReadOnlyDatabase(\PDO $db) {
+	public static function setDefaultReadOnlyDatabase(\PDO $db): void {
 		if (property_exists(get_called_class(), '_default_ro_db')) {
 			static::$_default_ro_db = $db;
 		} else {
@@ -382,10 +398,24 @@ class BaseModel {
 		return $query;
 	}
 
-	protected static function buildStatement(string $query, array $options): \PDOStatement {
+	protected static function buildStatement(string $query, array $options = []): \PDOStatement {
 		static::$last_query = $query;
-		$db   = array_key_exists('read_only', $options) && $options['read_only'] ? static::getReadOnlyDatabase() : static::getDatabase();
-		$stmt = $db->prepare($query);
+
+		$stmt = false;
+		for ($i = 0; $i < static::$max_connect_retries; $i++) {
+			$db = array_key_exists('read_only', $options) && $options['read_only'] ? static::getReadOnlyDatabase() : static::getDatabase();
+			if ($i > 0) sleep(static::$connect_interval_seconds);
+			if ($db === null || $i > 0) App::$app::initDatabase(force: true);
+
+			$stmt = $db?->prepare($query);
+			if ($stmt instanceof \PDOStatement) break;
+
+			App::$app::initDatabase(force: true);
+		}
+		if ($stmt === false) {
+			throw new \Exception('Not connected to database');
+		}
+
 		if (array_key_exists('bind', $options)) {
 			if (!is_array($options['bind'])) {
 				throw new \InvalidArgumentException('Bind must be an indexed array');
@@ -398,6 +428,7 @@ class BaseModel {
 				static::bindValue($stmt, $key, $val);
 			}
 		}
+
 		return $stmt;
 	}
 
@@ -413,7 +444,7 @@ class BaseModel {
 		}
 	}
 
-	public static function findFirst($options = null) {
+	public static function findFirst($options = null): static|false {
 		if (is_string($options)) {
 			$options = ['conditions' => $options];
 		}
@@ -432,14 +463,8 @@ class BaseModel {
 		$options['read_only'] = true;
 
 		// Build and execute statement
-		static::$find_error = null;
-		try {
-			$stmt = static::buildStatement(static::buildSelect($options), $options);
-			$stmt->execute();
-		} catch (\PDOException $e) {
-			static::$find_error = $e;
-			return false;
-		}
+		$stmt = static::buildStatement(static::buildSelect($options), $options);
+		if (!static::executeFindOrCountStatementRetry($stmt, static::$find_error)) return false;
 		$result = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 		if (count($result) === 0) return false;
 
@@ -460,7 +485,7 @@ class BaseModel {
 		return $model;
 	}
 
-	public static function find($options = null) {
+	public static function find($options = null): ModelCollection|false {
 		if (is_string($options)) {
 			$options = ['conditions' => $options];
 		}
@@ -475,14 +500,8 @@ class BaseModel {
 		$options['read_only'] = true;
 
 		// Build and execute statement
-		static::$find_error = null;
-		try {
-			$stmt = static::buildStatement(static::buildSelect($options), $options);
-			$stmt->execute();
-		} catch (\PDOException $e) {
-			static::$find_error = $e;
-			return false;
-		}
+		$stmt = static::buildStatement(static::buildSelect($options), $options);
+		if (!static::executeFindOrCountStatementRetry($stmt, static::$find_error)) return false;
 		$result = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 		if (count($result) === 0) return false;
 
@@ -508,11 +527,11 @@ class BaseModel {
 		return $models;
 	}
 
-	public static function getLastFindError() {
+	public static function getLastFindError(): ?\PDOException {
 		return static::$find_error;
 	}
 
-	public static function count(array $options = []) {
+	public static function count(array $options = []): int {
 		// Enforce read only option
 		$options['read_only'] = true;
 
@@ -520,14 +539,8 @@ class BaseModel {
 		$options['what'] = 'COUNT(' . ModelHelpers::getEscapedList(static::getPrimaryKeys(), static::getSource()) . ') AS `rowcount`';
 
 		// Build and execute statement which gets row count efficiently with given options
-		static::$count_error = null;
-		try {
-			$stmt = static::buildStatement(static::buildSelect($options), $options);
-			$stmt->execute();
-		} catch (\PDOException $e) {
-			static::$count_error = $e;
-			return false;
-		}
+		$stmt = static::buildStatement(static::buildSelect($options), $options);
+		if (!static::executeFindOrCountStatementRetry($stmt, static::$count_error)) return false;
 		$res = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 		if (count($res) === 0) return 0;
 		if (array_key_exists('group', $options) && !empty($options['group'])) {
@@ -539,11 +552,67 @@ class BaseModel {
 		return (int)$res[0]['rowcount'];
 	}
 
-	public static function getLastCountError() {
+	public static function getLastCountError(): ?\PDOException {
 		return static::$count_error;
 	}
 
 	// Database interaction methods
+
+	protected static function executeFindOrCountStatementRetry(\PDOStatement $stmt, ?string &$error = null): bool {
+		$error = null;
+		for ($i = 0; $i < static::$max_connect_retries; $i++) {
+			if ($i > 0) sleep(static::$connect_interval_seconds);
+			try {
+				$stmt->execute();
+				break;
+			} catch (\PDOException $e) {
+				// retry on connection error
+				if (
+					is_array($e->errorInfo) &&
+					array_key_exists(0, $e->errorInfo) &&
+					array_key_exists(1, $e->errorInfo) &&
+					$e->errorInfo[0] === 'HY000' &&
+					$e->errorInfo[1] === 2006 // 2006: MySQL server has gone away
+				) {
+					continue;
+				}
+
+				// abort on any other error
+				$error = $e;
+				return false;
+			}
+		}
+		return true;
+	}
+
+	protected function executeStatementRetry(\PDOStatement $stmt, ?string &$error = null): bool {
+		$error = null;
+		for ($i = 0; $i < static::$max_connect_retries; $i++) {
+			if ($i > 0) {
+				sleep(static::$connect_interval_seconds);
+				App::$app::initDatabase(force: true);
+			}
+			try {
+				return $stmt->execute();
+			} catch (\PDOException $e) {
+				// retry on connection error
+				if (
+					is_array($e->errorInfo) &&
+					array_key_exists(0, $e->errorInfo) &&
+					array_key_exists(1, $e->errorInfo) &&
+					$e->errorInfo[0] === 'HY000' &&
+					$e->errorInfo[1] === 2006 // 2006: MySQL server has gone away
+				) {
+					continue;
+				}
+
+				// abort on any other error
+				$error = $e;
+				return false;
+			}
+		}
+		return true;
+	}
 
 	public function load(): bool {
 		// Run pre-load hooks
@@ -564,13 +633,7 @@ class BaseModel {
 
 		// Build and execute statement
 		$stmt = static::buildStatement(static::buildSelect($options), $options);
-		$this->_error = null;
-		try {
-			$stmt->execute();
-		} catch (\PDOException $e) {
-			$this->_error = $e;
-			return false;
-		}
+		if (!$this->executeStatementRetry($stmt, $this->_error)) return false;
 		$result = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 		if (count($result) === 0) return false;
 
@@ -620,16 +683,10 @@ class BaseModel {
 		// Update database
 		$query = 'INSERT INTO ' . static::getEscapedSource() . ' SET ' . ModelHelpers::getEscapedSet($this->_modified_columns, static::getSource());
 		$this->_last_save_query = $query;
-		$stmt = static::getDatabase()->prepare($query);
+		$stmt = static::buildStatement($query);
 		$this->bindValues($stmt, $this->_modified_columns);
-		$this->_error = null;
-		try {
-			$retval = $stmt->execute();
-		} catch (\PDOException $e) {
-			$this->_error = $e;
-			return false;
-		}
-		$id = static::getDatabase()->lastInsertId();
+		$retval = $this->executeStatementRetry($stmt, $this->_error);
+		$id = static::getDatabase()?->lastInsertId();
 
 		if ($retval) {
 			// Set primary key value to last insert ID
@@ -668,16 +725,10 @@ class BaseModel {
 		$pk_list = static::getPrimaryKeys();
 		$query = 'UPDATE ' . static::getEscapedSource() . ' SET ' . ModelHelpers::getEscapedSet($this->_modified_columns, static::getSource()) . ' WHERE ' . ModelHelpers::getEscapedWhere($pk_list, static::getSource()) . ' LIMIT 1';
 		$this->_last_save_query = $query;
-		$stmt = static::getDatabase()->prepare($query);
+		$stmt = static::buildStatement($query);
 		$i = $this->bindValues($stmt, $this->_modified_columns);
 		$this->bindValues($stmt, $pk_list, $i);
-		$this->_error = null;
-		try {
-			$retval = $stmt->execute();
-		} catch (\PDOException $e) {
-			$this->_error = $e;
-			return false;
-		}
+		$retval = $this->executeStatementRetry($stmt, $this->_error);
 
 		if ($retval) {
 			// Run post-update hooks
@@ -697,15 +748,9 @@ class BaseModel {
 		}
 
 		$pk_list = static::getPrimaryKeys();
-		$stmt = static::getDatabase()->prepare('DELETE FROM ' . static::getEscapedSource() . ' WHERE ' . ModelHelpers::getEscapedWhere($pk_list, static::getSource()) . ' LIMIT 1');
+		$stmt = static::buildStatement('DELETE FROM ' . static::getEscapedSource() . ' WHERE ' . ModelHelpers::getEscapedWhere($pk_list, static::getSource()) . ' LIMIT 1');
 		$this->bindValues($stmt, $pk_list);
-		$this->_error = null;
-		try {
-			$retval = $stmt->execute();
-		} catch (\PDOException $e) {
-			$this->_error = $e;
-			return false;
-		}
+		$retval = $this->executeStatementRetry($stmt, $this->_error);
 
 		if ($retval) {
 			// Run post-delete hooks
@@ -728,7 +773,7 @@ class BaseModel {
 		return $i;
 	}
 
-	protected static function bindValue(\PDOStatement $stmt, string|int $key, mixed $val) {
+	protected static function bindValue(\PDOStatement $stmt, string|int $key, mixed $val): void {
 		if (is_int($val)) {
 			$type = \PDO::PARAM_INT;
 		} elseif (is_bool($val)) {
@@ -752,17 +797,17 @@ class BaseModel {
 		return $this;
 	}
 
-	public function getLastError() {
+	public function getLastError(): ?\PDOException {
 		return $this->_error;
 	}
 
-	public function getLastSaveQuery() {
+	public function getLastSaveQuery(): ?string {
 		return $this->_last_save_query;
 	}
 
 	// Data methods
 
-	protected function getHooks(string $hook_prefix) {
+	protected function getHooks(string $hook_prefix): array {
 		$hooks = [];
 		foreach (get_class_methods($this) as $name) {
 			if (substr($name, 0, strlen($hook_prefix)) === $hook_prefix) {
@@ -780,7 +825,7 @@ class BaseModel {
 		return $this->_modified_columns;
 	}
 
-	public function originalData(?string $key = null) {
+	public function originalData(?string $key = null): mixed {
 		if ($key !== null) {
 			if (!static::columnExists($key)) {
 				$class_name = get_called_class();
@@ -796,7 +841,7 @@ class BaseModel {
 		return $this;
 	}
 
-	public function toArray() {
+	public function toArray(): array {
 		$data = [];
 		foreach (static::getAllColumns() as $column) {
 			$type = static::$columns[$column];
@@ -813,7 +858,7 @@ class BaseModel {
 		return array_intersect_key($this->toArray(), array_flip($this->modifiedColumns()));
 	}
 
-	public function get(string $key, bool $hooks = true) {
+	public function get(string $key, bool $hooks = true): mixed {
 		if (!static::columnExists($key)) {
 			$class_name = get_called_class();
 			throw new \Exception("Column $key is not defined in model $class_name");
