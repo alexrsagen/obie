@@ -268,23 +268,24 @@ class Request {
 
 	// Actions
 
-	public function perform(bool $debug = false, int $numeric_type = Querystring::NUMERIC_TYPE_INDEXED): Response {
+	public function perform(bool $debug = false, int $numeric_type = Querystring::NUMERIC_TYPE_INDEXED, int $max_redirects = 0): Response {
 		// Initialize cURL context
 		$ch = curl_init();
 		curl_setopt($ch, CURLOPT_URL, $this->getURL(numeric_type: $numeric_type));
 		curl_setopt($ch, CURLOPT_USERAGENT, $this->getUseragent());
 		curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $this->getMethod());
+		curl_setopt($ch, CURLINFO_HEADER_OUT, $debug);
 		curl_setopt($ch, CURLOPT_FAILONERROR, false);
 		curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 		curl_setopt($ch, CURLOPT_HEADER, true);
-		curl_setopt($ch, CURLINFO_HEADER_OUT, $debug);
 		curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
 		curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
+		curl_setopt($ch, CURLOPT_FOLLOWLOCATION, $max_redirects > 0);
+		curl_setopt($ch, CURLOPT_MAXREDIRS, $max_redirects);
 
 		// Add POST/PUT/PATCH body data to cURL context
 		if ($this->methodHasBody()) {
 			curl_setopt($ch, CURLOPT_POSTFIELDS, $this->getRawBody());
-			curl_setopt($ch, CURLOPT_SAFE_UPLOAD, true);
 			curl_setopt($ch, CURLOPT_POST, 1);
 		}
 
