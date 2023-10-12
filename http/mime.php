@@ -214,7 +214,7 @@ class Mime {
 		'.jlt' => 'application/vnd.hp-jlyt',
 		'.jnlp' => 'application/x-java-jnlp-file',
 		'.joda' => 'application/vnd.joost.joda-archive',
-		'.js' => 'application/javascript',
+		'.js' => 'text/javascript',
 		'.json' => 'application/json',
 		'.karbon' => 'application/vnd.kde.karbon',
 		'.kfo' => 'application/vnd.kde.kformula',
