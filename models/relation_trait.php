@@ -108,7 +108,7 @@ trait RelationTrait {
 		throw new \Exception("Column $key is not defined in model $class_name");
 	}
 
-	public function getRelated(string $relation_name, string|array $options = [], bool $count = false): BaseModel|ModelCollection|false {
+	public function getRelated(string $relation_name, string|array $options = [], bool $count = false): BaseModel|ModelCollection|int|false {
 		if (is_string($options)) {
 			$options = ['conditions' => $options];
 		}

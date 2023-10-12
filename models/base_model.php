@@ -525,7 +525,7 @@ abstract class BaseModel {
 		return static::$find_error;
 	}
 
-	public static function count(array $options = []): int {
+	public static function count(array $options = []): int|false {
 		// Enforce read only option
 		$options['read_only'] = true;
 
