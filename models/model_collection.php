@@ -15,14 +15,24 @@ class ModelCollection implements \ArrayAccess, \IteratorAggregate, \Countable, \
 
 	// ArrayAccess
 
+	/**
+	 * @param int $offset
+	 */
 	public function offsetExists($offset): bool {
 		return isset($this->models[$offset]);
 	}
 
+	/**
+	 * @return T
+	 */
 	public function offsetGet($offset): mixed {
 		return $this->models[$offset];
 	}
 
+	/**
+	 * @param int $offset
+	 * @param T $value
+	 */
 	public function offsetSet($offset, $value): void {
 		if ($offset === null) {
 			$this->models[] = $value;
@@ -31,6 +41,9 @@ class ModelCollection implements \ArrayAccess, \IteratorAggregate, \Countable, \
 		}
 	}
 
+	/**
+	 * @param int $offset
+	 */
 	public function offsetUnset($offset): void {
 		unset($this->models[$offset]);
 	}
@@ -60,7 +73,7 @@ class ModelCollection implements \ArrayAccess, \IteratorAggregate, \Countable, \
 	}
 
 	/**
-	 * @param T[]
+	 * @param T[] $data
 	 */
 	public function __unserialize(array $data) {
 		$this->models = $data;
@@ -77,7 +90,7 @@ class ModelCollection implements \ArrayAccess, \IteratorAggregate, \Countable, \
 	// Custom methods
 
 	/**
-	 * @param T
+	 * @param T $model
 	 */
 	public function add($model) {
 		$this->models[] = $model;
