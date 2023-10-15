@@ -1,6 +1,4 @@
 <?php namespace Obie\Models;
-
-use InvalidArgumentException;
 use Obie\Formatters\EnglishNoun;
 use Obie\Formatters\Casing;
 use Obie\App;
@@ -34,7 +32,7 @@ abstract class BaseModel {
 	 * @param mixed $column If $type is not null, a string specifying a column name or an array of column names. Otherwise an array of "column" => "type".
 	 * @param string|null $type The type to use for all columns specified. To specify a unique type for each column, leave as null and specify $column as an array of "column" => "type".
 	 * @return void
-	 * @throws InvalidArgumentException If invalid arguments specified
+	 * @throws \InvalidArgumentException If invalid arguments specified
 	 */
 	public static function define(string|array $column, ?string $type = null): void {
 		if ($type !== null) {
@@ -440,7 +438,13 @@ abstract class BaseModel {
 		}
 	}
 
-	public static function findFirst($options = null): static|false {
+	/**
+	 * @param null|string|array $options
+	 * @return static|false
+	 * @throws \InvalidArgumentException If options is invalid
+	 * @throws \Exception If database is unavailable
+	 */
+	public static function findFirst(string|array|null $options = null): static|false {
 		if (is_string($options)) {
 			$options = ['conditions' => $options];
 		}
@@ -480,7 +484,13 @@ abstract class BaseModel {
 		return $model;
 	}
 
-	public static function find($options = null): ModelCollection|false {
+	/**
+	 * @param string|array|null $options
+	 * @return ModelCollection<static>|false False if no results found or query error
+	 * @throws \InvalidArgumentException If options is invalid
+	 * @throws \Exception If database is unavailable
+	 */
+	public static function find(string|array|null $options = null): ModelCollection|false {
 		if (is_string($options)) {
 			$options = ['conditions' => $options];
 		}

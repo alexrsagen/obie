@@ -1,8 +1,13 @@
 <?php namespace Obie\Models;
 
+/**
+ * @template T of BaseModel
+ * @property T[] $models
+ * @package Obie\Models
+ */
 class ModelCollection implements \ArrayAccess, \IteratorAggregate, \Countable, \JsonSerializable {
-	protected $models;
-	protected $error;
+	protected array $models = [];
+	protected ?string $error = null;
 
 	public function __construct(array $models = []) {
 		$this->models = $models;
@@ -30,40 +35,57 @@ class ModelCollection implements \ArrayAccess, \IteratorAggregate, \Countable, \
 		unset($this->models[$offset]);
 	}
 
-	// IteratorAggregate
-
+	/**
+	 * IteratorAggregate
+	 * @return \Traversable<int, T>|T[]
+	 */
 	public function getIterator(): \Traversable {
 		return new \ArrayIterator($this->models);
 	}
 
-	// Countable
-
+	/**
+	 * Countable
+	 * @return int<0, \max>
+	 */
 	public function count(): int {
 		return count($this->models);
 	}
 
-	// Serializable
-
+	/**
+	 * Serializable
+	 * @return T[]
+	 */
 	public function __serialize(): array {
 		return $this->models;
 	}
 
+	/**
+	 * @param T[]
+	 */
 	public function __unserialize(array $data) {
 		$this->models = $data;
 	}
 
-	// JsonSerializable
-
+	/**
+	 * JsonSerializable
+	 * @return T[]
+	 */
 	public function jsonSerialize(): mixed {
 		return $this->toArray();
 	}
 
 	// Custom methods
 
+	/**
+	 * @param T
+	 */
 	public function add($model) {
 		$this->models[] = $model;
 	}
 
+	/**
+	 * @return T[]
+	 */
 	public function toArray() {
 		$arr = [];
 		foreach ($this->models as $model) {
@@ -93,7 +115,7 @@ class ModelCollection implements \ArrayAccess, \IteratorAggregate, \Countable, \
 		return $results;
 	}
 
-	public function load(bool $force_reload = false) {
+	public function load(bool $force_reload = false): bool {
 		foreach ($this->models as $model) {
 			$this->error = null;
 			if (!$model->load($force_reload)) {
@@ -104,7 +126,7 @@ class ModelCollection implements \ArrayAccess, \IteratorAggregate, \Countable, \
 		return true;
 	}
 
-	public function save() {
+	public function save(): bool {
 		foreach ($this->models as $model) {
 			$this->error = null;
 			if (!$model->save()) {
@@ -115,7 +137,7 @@ class ModelCollection implements \ArrayAccess, \IteratorAggregate, \Countable, \
 		return true;
 	}
 
-	public function create() {
+	public function create(): bool {
 		foreach ($this->models as $model) {
 			$this->error = null;
 			if (!$model->create()) {
@@ -126,7 +148,7 @@ class ModelCollection implements \ArrayAccess, \IteratorAggregate, \Countable, \
 		return true;
 	}
 
-	public function update() {
+	public function update(): bool {
 		foreach ($this->models as $model) {
 			$this->error = null;
 			if (!$model->update()) {
@@ -137,7 +159,7 @@ class ModelCollection implements \ArrayAccess, \IteratorAggregate, \Countable, \
 		return true;
 	}
 
-	public function delete() {
+	public function delete(): bool {
 		foreach ($this->models as $model) {
 			$this->error = null;
 			if (!$model->delete()) {
@@ -148,7 +170,7 @@ class ModelCollection implements \ArrayAccess, \IteratorAggregate, \Countable, \
 		return true;
 	}
 
-	public function getLastError() {
+	public function getLastError(): ?string {
 		return $this->error;
 	}
 
