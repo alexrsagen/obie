@@ -41,7 +41,7 @@ class App {
 				error_log(self::$app . '::initTime failed', E_USER_ERROR);
 				return false;
 			}
-		} catch (\Exception $e) {
+		} catch (\Throwable $e) {
 			error_log(self::$app . '::initTime failed: ' . $e->getMessage(), E_USER_ERROR);
 			return false;
 		}
@@ -50,7 +50,7 @@ class App {
 				error_log(self::$app . '::initVendor failed', E_USER_ERROR);
 				return false;
 			}
-		} catch (\Exception $e) {
+		} catch (\Throwable $e) {
 			error_log(self::$app . '::initVendor failed: ' . $e->getMessage(), E_USER_ERROR);
 			return false;
 		}
@@ -59,7 +59,7 @@ class App {
 				error_log(self::$app . '::initAppDir failed', E_USER_ERROR);
 				return false;
 			}
-		} catch (\Exception $e) {
+		} catch (\Throwable $e) {
 			error_log(self::$app . '::initAppDir failed: ' . $e->getMessage(), E_USER_ERROR);
 			return false;
 		}
@@ -68,7 +68,7 @@ class App {
 				error_log(self::$app . '::initConfig failed', E_USER_ERROR);
 				return false;
 			}
-		} catch (\Exception $e) {
+		} catch (\Throwable $e) {
 			error_log(self::$app . '::initConfig failed: ' . $e->getMessage(), E_USER_ERROR);
 			return false;
 		}
@@ -77,7 +77,7 @@ class App {
 				error_log(self::$app . '::initLogger failed', E_USER_ERROR);
 				return false;
 			}
-		} catch (\Exception $e) {
+		} catch (\Throwable $e) {
 			error_log(self::$app . '::initLogger failed: ' . $e->getMessage(), E_USER_ERROR);
 			return false;
 		}
@@ -86,7 +86,7 @@ class App {
 				error_log(self::$app . '::initTemp failed', E_USER_ERROR);
 				return false;
 			}
-		} catch (\Exception $e) {
+		} catch (\Throwable $e) {
 			error_log(self::$app . '::initTemp failed: ' . $e->getMessage(), E_USER_ERROR);
 			return false;
 		}
@@ -95,7 +95,7 @@ class App {
 				error_log(self::$app . '::initEventHandlers failed', E_USER_ERROR);
 				return false;
 			}
-		} catch (\Exception $e) {
+		} catch (\Throwable $e) {
 			error_log(self::$app . '::initEventHandlers failed: ' . $e->getMessage(), E_USER_ERROR);
 			return false;
 		}
@@ -104,7 +104,7 @@ class App {
 				error_log(self::$app . '::initLocale failed', E_USER_ERROR);
 				return false;
 			}
-		} catch (\Exception $e) {
+		} catch (\Throwable $e) {
 			error_log(self::$app . '::initLocale failed: ' . $e->getMessage(), E_USER_ERROR);
 			return false;
 		}
@@ -113,7 +113,7 @@ class App {
 				error_log(self::$app . '::initRouter failed', E_USER_ERROR);
 				return false;
 			}
-		} catch (\Exception $e) {
+		} catch (\Throwable $e) {
 			error_log(self::$app . '::initRouter failed: ' . $e->getMessage(), E_USER_ERROR);
 			return false;
 		}
@@ -122,7 +122,7 @@ class App {
 				error_log(self::$app . '::initViews failed', E_USER_ERROR);
 				return false;
 			}
-		} catch (\Exception $e) {
+		} catch (\Throwable $e) {
 			error_log(self::$app . '::initViews failed: ' . $e->getMessage(), E_USER_ERROR);
 			return false;
 		}
@@ -131,7 +131,7 @@ class App {
 				error_log(self::$app . '::initSessions failed', E_USER_ERROR);
 				return false;
 			}
-		} catch (\Exception $e) {
+		} catch (\Throwable $e) {
 			error_log(self::$app . '::initSessions failed: ' . $e->getMessage(), E_USER_ERROR);
 			return false;
 		}
@@ -140,7 +140,7 @@ class App {
 				error_log(self::$app . '::initMail failed', E_USER_ERROR);
 				return false;
 			}
-		} catch (\Exception $e) {
+		} catch (\Throwable $e) {
 			error_log(self::$app . '::initMail failed: ' . $e->getMessage(), E_USER_ERROR);
 			return false;
 		}
@@ -149,7 +149,7 @@ class App {
 				error_log(self::$app . '::initDatabase failed', E_USER_ERROR);
 				return false;
 			}
-		} catch (\Exception $e) {
+		} catch (\Throwable $e) {
 			error_log(self::$app . '::initDatabase failed: ' . $e->getMessage(), E_USER_ERROR);
 			return false;
 		}
@@ -157,7 +157,7 @@ class App {
 			if (!self::$app::doHostRedirect()) {
 				return false;
 			}
-		} catch (\Exception $e) {
+		} catch (\Throwable $e) {
 			error_log(self::$app . '::doHostRedirect failed: ' . $e->getMessage(), E_USER_ERROR);
 			return false;
 		}
@@ -165,7 +165,7 @@ class App {
 			if (!self::$app::doSchemeRedirect()) {
 				return false;
 			}
-		} catch (\Exception $e) {
+		} catch (\Throwable $e) {
 			error_log(self::$app . '::doSchemeRedirect failed: ' . $e->getMessage(), E_USER_ERROR);
 			return false;
 		}
@@ -214,20 +214,35 @@ class App {
 		return true;
 	}
 
+	protected static ?I18n $i18n = null;
+
 	/**
 	 * Init everything related to localization
 	 */
 	public static function initLocale(): bool {
-		if (!self::$app::initConfig()) return false;
-		if (self::$config->isset('lang')) {
-			// Set language from config
-			putenv('LC_ALL=' . self::$config->get('lang') . (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN' ? '' : '.utf8'));
-			setlocale(LC_ALL, self::$config->get('lang') . (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN' ? '' : '.utf8'));
-		} else {
-			// Set fallback language
-			putenv('LC_ALL=en_US' . (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN' ? '' : '.utf8'));
-			setlocale(LC_ALL, 'en_US' . (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN' ? '' : '.utf8'));
+		if (static::$i18n !== null) return true;
+		self::$app::initAppDir();
+		self::$app::initConfig();
+
+		if (array_key_exists('OBIE_TRANSLATIONS_DIR', $_ENV)) {
+			define('OBIE_TRANSLATIONS_DIR', $_ENV['OBIE_TRANSLATIONS_DIR']);
+		} elseif (array_key_exists('OBIE_TRANSLATIONS_DIR', $_SERVER)) {
+			define('OBIE_TRANSLATIONS_DIR', $_SERVER['OBIE_TRANSLATIONS_DIR']);
+		} elseif (self::$config !== null && !empty($config_translations_dir = self::$config->get('paths', 'translations_dir'))) {
+			if (substr($config_translations_dir, 0, 1) === DIRECTORY_SEPARATOR || preg_match('~\A[A-Z]:(?![^/\\\\])~i', $config_translations_dir) > 0) {
+				define('OBIE_TRANSLATIONS_DIR', $config_translations_dir);
+			} elseif (defined('OBIE_APP_DIR')) {
+				define('OBIE_TRANSLATIONS_DIR', OBIE_APP_DIR . DIRECTORY_SEPARATOR . trim(str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $config_translations_dir), DIRECTORY_SEPARATOR));
+			}
+		} elseif (defined('OBIE_APP_DIR')) {
+			define('OBIE_TRANSLATIONS_DIR', OBIE_APP_DIR . DIRECTORY_SEPARATOR . 'translations');
 		}
+
+		$locale = self::$config?->get('lang') ?? 'en_US';
+		putenv('LC_ALL=' . $locale . (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN' ? '' : '.utf8'));
+		setlocale(LC_ALL, $locale . (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN' ? '' : '.utf8'));
+
+		static::$i18n = I18n::new(OBIE_TRANSLATIONS_DIR, $locale);
 		return true;
 	}
 
@@ -372,8 +387,12 @@ class App {
 			define('OBIE_VIEWS_DIR', $_ENV['OBIE_VIEWS_DIR']);
 		} elseif (array_key_exists('OBIE_VIEWS_DIR', $_SERVER)) {
 			define('OBIE_VIEWS_DIR', $_SERVER['OBIE_VIEWS_DIR']);
-		} elseif (self::$config !== null && self::$config->isset('paths', 'views_dir')) {
-			define('OBIE_VIEWS_DIR', self::$config->get('paths', 'views_dir'));
+		} elseif (self::$config !== null && !empty($config_views_dir = self::$config->get('paths', 'views_dir'))) {
+			if (substr($config_views_dir, 0, 1) === DIRECTORY_SEPARATOR || preg_match('~\A[A-Z]:(?![^/\\\\])~i', $config_views_dir) > 0) {
+				define('OBIE_VIEWS_DIR', $config_views_dir);
+			} else {
+				define('OBIE_VIEWS_DIR', OBIE_APP_DIR . DIRECTORY_SEPARATOR . trim(str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $config_views_dir), DIRECTORY_SEPARATOR));
+			}
 		} else {
 			define('OBIE_VIEWS_DIR', OBIE_APP_DIR . DIRECTORY_SEPARATOR . 'views');
 		}
@@ -396,8 +415,12 @@ class App {
 			define('OBIE_LOGS_DIR', $_ENV['OBIE_LOGS_DIR']);
 		} elseif (array_key_exists('OBIE_LOGS_DIR', $_SERVER)) {
 			define('OBIE_LOGS_DIR', $_SERVER['OBIE_LOGS_DIR']);
-		} elseif (self::$config !== null && self::$config->isset('paths', 'logs_dir')) {
-			define('OBIE_LOGS_DIR', self::$config->get('paths', 'logs_dir'));
+		} elseif (self::$config !== null && !empty($config_logs_dir = self::$config->get('paths', 'logs_dir'))) {
+			if (substr($config_logs_dir, 0, 1) === DIRECTORY_SEPARATOR || preg_match('~\A[A-Z]:(?![^/\\\\])~i', $config_logs_dir) > 0) {
+				define('OBIE_LOGS_DIR', $config_logs_dir);
+			} else {
+				define('OBIE_LOGS_DIR', OBIE_APP_DIR . DIRECTORY_SEPARATOR . trim(str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $config_logs_dir), DIRECTORY_SEPARATOR));
+			}
 		} else {
 			define('OBIE_LOGS_DIR', OBIE_APP_DIR . DIRECTORY_SEPARATOR . 'logs');
 		}
@@ -559,16 +582,13 @@ class App {
 
 		try {
 			return $mailer->send($message);
-		} catch (\Exception $e) {
+		} catch (\Swift_SwiftException $e) {
 			return false;
 		}
 	}
 
-	protected static ?I18n $i18n = null;
 	public static function getI18n(): I18n {
-		if (static::$i18n === null) {
-			static::$i18n = I18n::new();
-		}
+		self::initLocale();
 		return static::$i18n;
 	}
 

@@ -54,7 +54,7 @@ class View {
 		// Eval view code
 		try {
 			require static::getPath($name);
-		} catch (\Exception $e) {
+		} catch (\Throwable $e) {
 			throw new \Exception("Error loading view \"{$name}\": {$e->getMessage()}");
 		}
 	}

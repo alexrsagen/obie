@@ -1,4 +1,26 @@
-vendor/
-!.gitkeep
+# VSCode
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# NPM
+.npm
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# Composer
 composer.lock
+composer-local.json
+composer-local.lock
+vendor/
+
+# Obie
 config.json
+
+# Git
+!.gitkeep

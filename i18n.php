@@ -14,17 +14,19 @@ class I18n {
 		$this->locale = $this->default_locale;
 		$this->translations_dir = rtrim($translations_dir);
 
-		$tlds_glob = glob($this->translations_dir . DIRECTORY_SEPARATOR . '*.jsonc');
-		if ($tlds_glob !== false) {
+		$translations_glob = glob($this->translations_dir . DIRECTORY_SEPARATOR . '*.jsonc');
+		if ($translations_glob !== false) {
 			$this->locales = array_filter(array_map(function($filepath) {
 				return locale_canonicalize(basename($filepath, '.jsonc'));
-			}, $tlds_glob), function($locale) { return !empty($locale); });
+			}, $translations_glob), function($locale) { return !empty($locale); });
 		}
 	}
 
 	public static function new(?string $translations_dir = null, ?string $default_locale = null): static {
-		$translations_dir ??= App::$app::getConfig()->get('paths', 'translations_dir') ?? OBIE_APP_DIR . DIRECTORY_SEPARATOR . 'translations';
-		$default_locale ??= App::$app::getConfig()->get('lang') ?? 'en';
+		if (defined('OBIE_TRANSLATIONS_DIR')) {
+			$translations_dir ??= OBIE_TRANSLATIONS_DIR;
+		}
+		$default_locale ??= App::$app::getConfig()?->get('lang') ?? 'en';
 		return new static($translations_dir, $default_locale);
 	}
 
