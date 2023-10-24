@@ -1,4 +1,5 @@
 <?php namespace Obie\Ip;
+use Obie\Encoding\Bits;
 use Obie\Ip;
 use Obie\Encoding\Spf1;
 
@@ -15,7 +16,7 @@ class Cidr {
 			$this->address_bin = $bin;
 		}
 		if (strlen($address_bits) === 0) {
-			$this->address_bits = Ip::binaryToBitString($this->address_bin);
+			$this->address_bits = Bits::encode($this->address_bin);
 		}
 		if ($mask_bits === -1) {
 			$this->mask_bits = strlen($this->address_bits);
@@ -121,7 +122,7 @@ class Cidr {
 		$next_mask = $this->mask_bits + 1;
 
 		$cur_address_bits = str_pad(substr($this->address_bits, 0, $this->mask_bits) . '0', strlen($this->address_bits), '0', STR_PAD_RIGHT);
-		$cur_address_bin = Ip::bitStringToBinary($cur_address_bits);
+		$cur_address_bin = Bits::decode($cur_address_bits);
 		$cur = new static(
 			inet_ntop($cur_address_bin),
 			$next_mask,
@@ -130,7 +131,7 @@ class Cidr {
 		);
 
 		$next_address_bits = str_pad(substr($this->address_bits, 0, $this->mask_bits) . '1', strlen($this->address_bits), '0', STR_PAD_RIGHT);
-		$next_address_bin = Ip::bitStringToBinary($next_address_bits);
+		$next_address_bin = Bits::decode($next_address_bits);
 		$next = new static(
 			inet_ntop($next_address_bin),
 			$next_mask,
