@@ -59,7 +59,7 @@ class Segment {
 		$raw_len = strlen($raw);
 		$headers = [];
 
-		$last_field_name = null;
+		$field_name = null;
 		$offset = 0;
 		$line = '';
 		while ($offset < $raw_len) {
@@ -72,8 +72,8 @@ class Segment {
 			// parse header
 			if (strlen($line_trim) > 0) {
 				// handle obs-fold
-				if (preg_match('/^\s+.+$/', $line) === 1 && $last_field_name === null) {
-					$headers[$last_field_name] .= ' ' . $line_trim;
+				if (preg_match('/^\s+.+$/', $line) === 1 && $field_name !== null) {
+					$headers[$field_name] .= ' ' . $line_trim;
 				} else {
 					// RFC 7230 section 3.2.4 states that no whitespace is allowed
 					// between the header field-name and colon.
@@ -89,7 +89,6 @@ class Segment {
 
 			// move offset to next line
 			$offset = $lfpos + 1;
-			$last_field_name = $field_name;
 
 			// if this line was blank, set body to rest of string and stop parsing
 			if ($line === "\r\n" || $line === "\n") {

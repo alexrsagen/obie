@@ -38,10 +38,10 @@ class FormDataField {
 		$name_fallback ??= 'unk_' . Random::string(10);
 
 		// parse content-disposition header
-		$cd = ContentDispositionHeader::decode($segment->getHeader('content-disposition'));
+		$cd = ContentDispositionHeader::decode($segment->getHeader('content-disposition', 'string', ''));
 
 		// get filename
-		$filename = array_key_exists('filename', $cd->parameters) ? $cd->parameters['filename']: null;
+		$filename = $cd !== null && array_key_exists('filename', $cd->parameters) ? $cd->parameters['filename']: null;
 
 		// parse content-type header
 		$type = $segment->getHeader('content-type');
@@ -54,7 +54,7 @@ class FormDataField {
 		}
 
 		// get field name (generate random if not found)
-		$name = array_key_exists('name', $cd->parameters) ? $cd->parameters['name'] : $name_fallback;
+		$name = $cd !== null && array_key_exists('name', $cd->parameters) ? $cd->parameters['name'] : $name_fallback;
 
 		// get field(s) from segment
 		if ($type?->type === Multipart::MIME_BASETYPE && $type?->subtype === Multipart::MIME_SUBTYPE_MIXED) {

@@ -99,6 +99,7 @@ class ContentDispositionHeader {
 			elseif (str_ends_with($parameter_name, '*')) {
 				// Set parameterValue to the result of collecting an RFC 8187 ext-value from input, given position and the extract-value flag.
 				$parameter_value = ExtendedHeaderValue::extract($input, $position, true)?->decodeValue();
+				if (!is_string($parameter_value)) continue;
 				// Remove any trailing HTTP whitespace from parameterValue.
 				$parameter_value = rtrim($parameter_value, "\n\r\t ");
 				// If parameterValue is the empty string, then continue.
@@ -120,7 +121,7 @@ class ContentDispositionHeader {
 			// 4.4.11.10 (modified): If all of the following are true then set contentDisposition's parameters[parameterName] to parameterValue.
 			if (
 				// parameterName is not the empty string
-				$parameter_value !== null && strlen($parameter_value) !== 0 &&
+				$parameter_name !== null && strlen($parameter_name) !== 0 &&
 				// (modified) parameterName solely contains RFC 8187 attr-char code points
 				Token::isValidParamName(rtrim($parameter_name, '*')) &&
 				// (modified) contentDisposition's parameters[parameterName] does not exist

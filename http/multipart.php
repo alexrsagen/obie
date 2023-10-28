@@ -45,7 +45,9 @@ class Multipart {
 			if ($segment_raw === false) return null;
 
 			$segment_raw = rtrim($segment_raw, "\r\n");
-			$segments[] = Segment::decode($segment_raw);
+			$segment = Segment::decode($segment_raw);
+			if ($segment !== null) $segments[] = $segment;
+
 			$offset = $bpos_end;
 		}
 		return $segments;

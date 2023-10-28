@@ -50,6 +50,7 @@ class MacroString {
 		// 1. Let positionStart be position.
 		$position_start = $position;
 		// 2. Assert: the code point at position within input is "%"
+		if ($position >= strlen($input)) return null;
 		if ($input[$position] !== '%') {
 			Log::warning(sprintf('Spf1: MacroString::extractExpand: first code point is not "%%" (found "%s")', addslashes(substr($input, $position-1, 3))));
 			return null;
@@ -57,6 +58,7 @@ class MacroString {
 		// 3. Advance position by 1 (skipping "%")
 		$position++;
 		// 4. Let macroOpenOrEscapedLiteral be the code point at position within input.
+		if ($position >= strlen($input)) return null;
 		$macro_open_or_escaped_literal = $input[$position];
 		// 5. Advance position by 1.
 		$position++;
@@ -68,6 +70,7 @@ class MacroString {
 				return null;
 			}
 			// 6.2. Let macroLetter be the code point at position within input.
+			if ($position >= strlen($input)) return null;
 			$macro_letter = $input[$position];
 			// 6.3. Advance position by 1.
 			$position++;

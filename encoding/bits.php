@@ -9,11 +9,18 @@ class Bits {
 		return $output;
 	}
 
-	public static function decode(string $input): string {
-		$bytes_rev = str_split(strrev($input), 8);
+	public static function decode(string $input, bool $ignore_invalid = true): ?string {
+		$input = str_pad($input, ceil(strlen($input) / 8) * 8, '0', STR_PAD_LEFT);
+		$contains_invalid = strlen(strtr($input, '01', '')) > 0;
+		if ($contains_invalid) {
+			if (!$ignore_invalid) return null;
+			$input = preg_replace('/[^01]/', '', $input);
+		}
+		if (strlen($input) === 0) return '';
+		$blocks_rev = str_split(strrev($input), 8);
 		$output = '';
-		for ($i = count($bytes_rev) - 1; $i >= 0; $i--) {
-			$output .= chr(bindec(strrev($bytes_rev[$i])));
+		for ($i = count($blocks_rev) - 1; $i >= 0; $i--) {
+			$output .= chr(bindec(strrev($blocks_rev[$i])));
 		}
 		return $output;
 	}
