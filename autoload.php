@@ -11,7 +11,7 @@ if (!defined('OBIE_BASE_DIR')) {
 
 // Register class autoloader
 spl_autoload_register(function(string $name) {
-	static $base_path = OBIE_BASE_DIR . DIRECTORY_SEPARATOR;
+	static $base_path = OBIE_BASE_DIR . DIRECTORY_SEPARATOR . 'src' . DIRECTORY_SEPARATOR;
 
 	$ns_parts = explode('\\', $name);
 
