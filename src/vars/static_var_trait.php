@@ -18,14 +18,14 @@ trait StaticVarTrait {
 		return self::$vars?->get(...$v);
 	}
 
-	public static function getHTMLEscaped(...$v): string {
+	public static function getHTMLEscaped(...$v): ?string {
 		self::_init_vars();
 		$res = self::$vars?->get(...$v);
 		if ($res === null) return null;
 		return htmlentities((string)$res);
 	}
 
-	public static function getURLEscaped(...$v): string {
+	public static function getURLEscaped(...$v): ?string {
 		self::_init_vars();
 		$res = self::$vars?->get(...$v);
 		if ($res === null) return null;

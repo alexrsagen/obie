@@ -63,7 +63,6 @@ class Spf1 {
 
 		// decode SPF record
 		$buf = '';
-		$buf_key = '';
 		$directive = null;
 		for ($position = 7; $position < strlen($input); $position++) {
 			$c = $input[$position];
@@ -86,11 +85,6 @@ class Spf1 {
 
 			// modifier key-value delimiter
 			case '=':
-				// assert that we have not already started decoding a value
-				if ($buf_key !== '') {
-					Log::warning('Spf1: double modifier key');
-					return null;
-				}
 				// store the key in the key buffer
 				$buf_key = $buf;
 				// assert that the key is a valid modifier name
@@ -111,7 +105,7 @@ class Spf1 {
 				$record->modifiers[$buf_key] = $buf;
 				// empty the buffers
 				$buf = '';
-				$buf_key = '';
+				unset($buf_key);
 				break;
 
 			// mechanism key-value delimiter
@@ -154,7 +148,7 @@ class Spf1 {
 						return null;
 					}
 					$buf = $buf_key . $buf;
-					$buf_key = '';
+					unset($buf_key);
 				}
 				// store mechanism value in directive
 				if (!static::storeDirective($buf, $directive)) return null;

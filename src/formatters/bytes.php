@@ -11,17 +11,18 @@ class Bytes {
 
 	public static function toString(int $bytes, int $base = 2, int $decimals = 2, string $dec_point = '.', string $thousands_sep = '', bool $show_zero_dec = false): string {
 		if (!array_key_exists($base, self::SUFFIXES)) return '';
+		$bytes = (string)$bytes;
 		$suffixes = self::SUFFIXES[$base];
-		$mul = $base === 2 ? 1024 : 1000;
-		$suffix_min = 1;
+		$mul = $base === 2 ? '1024' : '1000';
+		$suffix_min = '1';
 		for ($i = 0; $i < count($suffixes); $i++) {
 			$suffix = $suffixes[$i];
 			$suffix_div = $suffix_min;
-			$suffix_min = bcpow($mul, $i + 1);
-			if (bccomp($bytes, $suffix_min) < 0) break;
+			$suffix_min = bcpow($mul, (string)($i + 1), 0);
+			if (bccomp($bytes, $suffix_min, $decimals) < 0) break;
 		}
-		$dec_div = bcpow(10, $decimals);
-		$suffix_n = (float)bcdiv(bcmul(bcdiv($bytes, $suffix_div, $decimals), $dec_div), $dec_div, $decimals);
+		$dec_div = bcpow('10', (string)$decimals);
+		$suffix_n = (float)bcdiv(bcmul(bcdiv($bytes, $suffix_div, $decimals), $dec_div, $decimals), $dec_div, $decimals);
 		$suffix_n_fmt = number_format($suffix_n, $decimals, $dec_point, $thousands_sep);
 		if (!$show_zero_dec) {
 			$suffix_n_fmt = rtrim(rtrim($suffix_n_fmt, '0'), $dec_point);

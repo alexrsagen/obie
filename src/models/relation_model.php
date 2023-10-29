@@ -1,6 +1,6 @@
 <?php namespace Obie\Models;
 
-class RelationModel extends BaseModel {
+abstract class RelationModel extends BaseModel {
 	const TYPE_BELONGS_TO_ONE              = 1;
 	const TYPE_BELONGS_TO_MANY             = 2;
 	const TYPE_HAS_ONE                     = 4;

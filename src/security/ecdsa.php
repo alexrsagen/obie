@@ -137,7 +137,7 @@ class Ecdsa {
 	public static function sign(string $data, string $private_key, string|int $alg = OPENSSL_ALGO_SHA256, ?string $curve_oid_for_raw_key = null): ?string {
 		// PEM-encode public key if in raw DER form, so OpenSSL can use it
 		$private_key_pem = static::privkeyToPem($private_key, $curve_oid_for_raw_key);
-		if ($private_key_pem === null) return false;
+		if ($private_key_pem === null) return null;
 
 		// create signature
 		if (!openssl_sign($data, $signature, $private_key_pem, $alg)) {

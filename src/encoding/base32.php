@@ -39,6 +39,7 @@ class Base32 {
 	 * RFC 4648-compliant base 32 encode
 	 *
 	 * @param string $input
+	 * @param string $alphabet
 	 * @return string
 	 */
 	public static function encode(string $input, string $alphabet = self::ALPHABET): string {
@@ -90,6 +91,8 @@ class Base32 {
 	 * RFC 4648-compliant base 32 decode
 	 *
 	 * @param string $input
+	 * @param array<string, int> $lookup
+	 * @param bool $ignore_invalid
 	 * @return string
 	 */
 	public static function decode(string $input, array $lookup = self::LOOKUP, bool $ignore_invalid = true): ?string {

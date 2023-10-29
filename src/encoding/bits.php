@@ -10,7 +10,7 @@ class Bits {
 	}
 
 	public static function decode(string $input, bool $ignore_invalid = true): ?string {
-		$input = str_pad($input, ceil(strlen($input) / 8) * 8, '0', STR_PAD_LEFT);
+		$input = str_pad($input, (int)(ceil(strlen($input) / 8) * 8), '0', STR_PAD_LEFT);
 		$contains_invalid = strlen(strtr($input, '01', '')) > 0;
 		if ($contains_invalid) {
 			if (!$ignore_invalid) return null;

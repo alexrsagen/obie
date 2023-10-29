@@ -34,31 +34,31 @@ class TinyHtmlMinifier {
 			'textarea'
 		],
 		public array $tags_inline = [
-			'b',
-			'big',
-			'i',
-			'small',
-			'tt',
+			'a',
 			'abbr',
 			'acronym',
+			'b',
+			'bdo',
+			'big',
+			'br',
 			'cite',
 			'code',
 			'dfn',
 			'em',
-			'kbd',
-			'strong',
-			'samp',
-			'var',
-			'a',
-			'bdo',
-			'br',
+			'i',
 			'img',
+			'kbd',
 			'map',
 			'object',
-			'q',
+			'samp',
+			'small',
 			'span',
+			'strong',
 			'sub',
 			'sup',
+			'tt',
+			'var',
+			'q',
 		],
 		public array $tags_hard = [
 			'!doctype',
@@ -73,7 +73,7 @@ class TinyHtmlMinifier {
 		if (!empty($this->options['keep_empty_comments'])) {
 			$html = preg_replace('/(?!<!-- -->)<!--(?:.|\s)*?-->/', '', $html);
 		} else {
-			$html = preg_replace('/<!--(.|\s)*?-->/', '', $html);
+			$html = preg_replace('/(?=<!--)([\s\S]*?)-->/', '', $html);
 		}
 
 		// Walk trough html
@@ -169,8 +169,9 @@ class TinyHtmlMinifier {
 						if ($content_tag_name === 'script') {
 							if (str_contains(strtolower($element), 'application/ld+json') && !empty($this->options['collapse_json_ld'])) {
 								$content = Json::encode(Json::decode($content));
+							} else {
+								$content = Minify::JS($content);
 							}
-							$content = Minify::JS($content);
 						} elseif ($content_tag_name === 'style') {
 							$content = Minify::CSS($content);
 						} elseif (in_array($content_tag_name, $this->tags_skip)) {

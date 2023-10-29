@@ -179,7 +179,7 @@ class Route {
 	 *
 	 * The entire path is not one of the matches.
 	 *
-	 * @param callable[] $handlers The request handlers to execute
+	 * @param callable $handlers,... The request handlers to execute
 	 * @return int One of the status codes defined as constants of this class
 	 */
 	public function apply(callable ...$handlers) {

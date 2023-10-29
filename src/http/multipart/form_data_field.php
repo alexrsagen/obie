@@ -41,15 +41,13 @@ class FormDataField {
 		$cd = ContentDispositionHeader::decode($segment->getHeader('content-disposition', 'string', ''));
 
 		// get filename
-		$filename = $cd !== null && array_key_exists('filename', $cd->parameters) ? $cd->parameters['filename']: null;
+		$filename = $cd !== null && array_key_exists('filename', $cd->parameters) ? $cd->parameters['filename'] : null;
 
 		// parse content-type header
-		$type = $segment->getHeader('content-type');
-		if ($type !== null) {
-			$type = Mime::decode($type);
-		}
+		$typestr = $segment->getHeader('content-type');
+		$type = $typestr !== null? Mime::decode($typestr) : null;
 		// as a fallback, get content-type from filename
-		if (empty($type) && !empty($filename)) {
+		if ($type === null && !empty($filename)) {
 			$type = Mime::getByFilename($filename);
 		}
 
@@ -57,10 +55,10 @@ class FormDataField {
 		$name = $cd !== null && array_key_exists('name', $cd->parameters) ? $cd->parameters['name'] : $name_fallback;
 
 		// get field(s) from segment
-		if ($type?->type === Multipart::MIME_BASETYPE && $type?->subtype === Multipart::MIME_SUBTYPE_MIXED) {
+		if ($type !== null && $type->type === Multipart::MIME_BASETYPE && $type->subtype === Multipart::MIME_SUBTYPE_MIXED) {
 			if ($max_nesting_level < 1) return null;
 
-			$boundary = $type?->getParameter('boundary');
+			$boundary = $type->getParameter('boundary');
 			$nested_segments = Multipart::decode($segment->getBody(), $boundary);
 			if ($nested_segments === null) return null;
 

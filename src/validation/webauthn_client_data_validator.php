@@ -31,7 +31,7 @@ class WebauthnClientDataValidator implements IValidator {
 				return false;
 			}
 
-			if (!in_array(['present', 'supported'], $input['tokenBinding']['status'], true)) {
+			if (!in_array($input['tokenBinding']['status'], ['present', 'supported'], true)) {
 				$this->message = 'tokenBinding.status string value is not known';
 				return false;
 			}

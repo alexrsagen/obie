@@ -73,7 +73,6 @@ class FidoMds {
 		// spec: https://fidoalliance.org/specs/mds/fido-metadata-service-v3.0-ps-20210518.html#dictdef-metadatablobpayload
 		$blob_data = $this->getBlobData();
 		if (!is_array($blob_data) || !array_key_exists('entries', $blob_data) || !is_array($blob_data['entries'])) return null;
-		file_put_contents('mds.json', \Obie\Encoding\Json::encode($blob_data)); exit;
 
 		foreach ($blob_data['entries'] as $entry) {
 			if (!array_key_exists('aaguid', $entry) || !array_key_exists('metadataStatement', $entry)) continue;

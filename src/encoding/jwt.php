@@ -169,13 +169,13 @@ class Jwt {
 		switch ($alg) {
 		// HMAC with SHA-256
 		case self::ALG_HS256:
-			if (!is_string($key)) {
+			if (!is_string($keys)) {
 				Log::info('JWT: Invalid key (not a HMAC key string)');
 				return null;
 			}
 
 			// verify signature
-			if (!hash_equals(hash_hmac('sha256', $sig_data, $key, true), $sig)) {
+			if (!hash_equals(hash_hmac('sha256', $sig_data, $keys, true), $sig)) {
 				Log::info('JWT: Invalid signature');
 				return null;
 			}

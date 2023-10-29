@@ -10,5 +10,7 @@ class Exception extends \Exception {
 	const ERR_INVALID_SIGNATURE_LENGTH = -6;
 	const ERR_VERSION_NOT_SUPPORTED    = -7;
 
-	function __construct(string $message = '', int $code = 0, ?\Throwable $previous = null, public int $client_error_code = U2f::ERROR_CODE_OK) {}
+	function __construct(string $message = '', int $code = 0, ?\Throwable $previous = null, public int $client_error_code = U2f::ERROR_CODE_OK) {
+		parent::__construct($message, $code, $previous);
+	}
 }

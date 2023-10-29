@@ -299,7 +299,7 @@ class Request {
 		if ($res_body === false) {
 			$res_errno = curl_errno($ch);
 			curl_close($ch);
-			$res = new Response($res_body, errors: [sprintf('cURL error (%d): %s', $res_errno, curl_strerror($res_errno))]);
+			$res = new Response(errors: [sprintf('cURL error (%d): %s', $res_errno, curl_strerror($res_errno))]);
 			return $res;
 		}
 

@@ -86,7 +86,7 @@ trait RelationTrait {
 			if ($hooks) {
 				foreach ($this->getHooks('beforeGet') as $name) {
 					// hook arguments: key, value, is_relation, type
-					$value = $this->{$name}($key, $value, false, static::$columns[$key]);
+					$value = $this->{$name}($key, $value, false, static::getColumnType($key));
 				}
 			}
 			return $value;
@@ -277,4 +277,6 @@ trait RelationTrait {
 	public static function hasMany(string|array|callable $source_fields, $target_model, string|array|callable $target_fields, string $relation_name = null, array $default_options = []): void {
 		static::addRelation(RelationModel::TYPE_HAS_MANY, $source_fields, $target_model, $target_fields, $relation_name, $default_options);
 	}
+
+	abstract public static function getColumnType(string $column): ?string;
 }

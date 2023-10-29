@@ -25,7 +25,6 @@ class Time {
 	public static function toRelativeString(int|string|DateTime $input, int|string|DateTime|null $now = null, ?DateTimeZone $timezone = null, int $precision = 0, string $past_prefix = '', string $past_suffix = ' ago', string $future_prefix = 'in ', string $future_suffix = '', string $nowstr = 'just now', string $fallback = 'unknown'): string {
 		$input = static::toDateTime($input);
 		$now = static::toDateTime($now) ?? new DateTime('now', $timezone);
-		if ($input === null || $now === null) return $fallback;
 		$diff = $now->diff($input);
 
 		if ($diff->invert === 0) {

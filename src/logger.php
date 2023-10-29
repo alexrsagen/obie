@@ -3,7 +3,11 @@ use Obie\Encoding\Json;
 use Obie\Encoding\Url;
 use Monolog\Handler\StreamHandler;
 use Monolog\Formatter\LineFormatter;
+use Psr\Log\InvalidArgumentException;
 
+/**
+ * @phpstan-import-type Level from \Monolog\Logger
+ */
 class Logger extends \Monolog\Logger {
 	public static $logs_dir = '';
 	protected $default_context = [];
@@ -36,6 +40,10 @@ class Logger extends \Monolog\Logger {
 		return $path;
 	}
 
+	/**
+	 * @return Level
+	 * @throws InvalidArgumentException
+	 */
 	protected function getLogLevel(): int {
 		$config = App::$app::getConfig();
 		if (!$config) return \Monolog\Logger::DEBUG;

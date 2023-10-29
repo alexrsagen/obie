@@ -60,7 +60,7 @@ class Base58 {
 		$str = substr($str, $zeroes);
 
 		// Allocate enough space in big-endian base256 representation.
-		$size = ceil(strlen($str) * 733 / 1000); // log(58) / log(256), rounded up.
+		$size = (int)ceil(strlen($str) * 733 / 1000); // log(58) / log(256), rounded up.
 		$b256 = array_fill(0, $size, 0);
 
 		// Process the characters.

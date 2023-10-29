@@ -22,14 +22,14 @@ class Tel {
 	const NON_DIGIT_REGEX = '/[^\d\x{FF10}-\x{FF19}\x{0660}-\x{0669}\x{06F0}-\x{06F9}a-zA-Z\s()\.\-]/u';
 	const NON_INT_PREFIX_OR_DIGIT_REGEX = '/[^\d\x{FF10}-\x{FF19}\x{0660}-\x{0669}\x{06F0}-\x{06F9}a-zA-Z\s()\.\-\+\x{FF0B}]/u';
 
-	protected $fmt = '';
-	protected $int = '';
-	protected $calling_code = '';
-	protected $country_code = '';
-	protected $typ = '';
-	protected $num = '';
-	protected $ext = '';
-	protected $params = [];
+	protected string $fmt = '';
+	protected string $int = '';
+	protected string $calling_code = '';
+	protected string $country_code = '';
+	protected string $typ = '';
+	protected string $num = '';
+	protected string $ext = '';
+	protected array $params = [];
 
 	public function getFormat(): string {
 		return $this->fmt;

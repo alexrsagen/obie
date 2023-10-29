@@ -1,6 +1,6 @@
 <?php namespace Obie\Security;
 use Obie\Log;
-use Obie\ApiClients\FidoMds;
+use Obie\App;
 use Obie\Encoding\Pem;
 use Obie\Encoding\Cbor;
 use Obie\Encoding\Json;
@@ -161,10 +161,13 @@ class Webauthn {
 		];
 	}
 
-	public static function getAttestationMetadata(string $aaguid, string $fido_mds2_token = null): array {
-		if ($fido_mds2_token === null) return [];
-		$mds = new FidoMds($fido_mds2_token, true);
-		return $mds->getMetadata($aaguid) ?? [];
+	public static function getAttestationMetadata(string $aaguid, ?string $fido_mds2_token = null, bool $debug = false): array {
+		$mds = App::getFidoMds();
+		$debug_old = $mds->getDebug();
+		$mds->setDebug($debug);
+		$metadata = $mds->getMetadata($aaguid) ?? [];
+		$mds->setDebug($debug_old);
+		return $metadata;
 	}
 
 	/**

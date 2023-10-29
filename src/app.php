@@ -5,10 +5,8 @@ use Obie\Http\Response;
 use Obie\Http\RouterInstance;
 use Obie\ApiClients\FidoMds;
 
-/**
- * @property self $app
- */
 class App {
+	/** @var self */
 	public static string $app = self::class;
 	protected static ?Config $config = null;
 	protected static ?RouterInstance $router = null;

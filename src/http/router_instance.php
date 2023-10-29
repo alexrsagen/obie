@@ -9,11 +9,11 @@ class RouterInstance {
 
 	public ?VarCollection $vars = null;
 
-	protected array $routes         = [];
-	protected array $deferred       = [];
-	protected ?self $instance       = null;
-	protected bool $ran_deferred    = false;
-	protected ?Route $matched_route = null;
+	protected array $routes             = [];
+	protected array $deferred           = [];
+	protected ?RouterInstance $instance = null;
+	protected bool $ran_deferred        = false;
+	protected ?Route $matched_route     = null;
 
 	public function __construct(?VarCollection $vars = null) {
 		if ($vars === null) {
@@ -31,15 +31,15 @@ class RouterInstance {
 	 *
 	 * This method is called by Router::defer() on the global RouterInstance.
 	 *
-	 * @param callable[] $handlers
-	 * @return static 
+	 * @param callable $handlers,...
+	 * @return static
 	 */
 	public function defer(callable ...$handlers): static {
 		$this->deferred = array_merge($this->deferred, $handlers);
 		return $this;
 	}
 
-	public function getInstance(): static {
+	public function getInstance(): RouterInstance {
 		return $this->instance ?? $this;
 	}
 

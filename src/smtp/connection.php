@@ -3,9 +3,9 @@
 class Connection {
 	function __construct(
 		protected string $server,
-		protected int $port = 587,
 		protected string $username,
 		protected string $password,
+		protected int $port = 587,
 		protected string $ehlo_hostname = 'localhost',
 		protected bool $tls = true,
 		protected bool $starttls = true,

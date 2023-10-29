@@ -327,7 +327,7 @@ class Router {
 	 * @param null|string $key
 	 * @return string
 	 */
-	public static function getRequestHeader(?string $key = null): string {
+	public static function getRequestHeader(?string $key = null): ?string {
 		return Request::current()?->getHeader($key);
 	}
 
@@ -402,7 +402,7 @@ class Router {
 	 * @param bool $validate_strict
 	 * @return null|string
 	 */
-	public static function getHost(bool $validate_strict = false): string {
+	public static function getHost(bool $validate_strict = false): ?string {
 		$host = Request::current()?->getHost();
 		if ($validate_strict && filter_var($host, FILTER_VALIDATE_DOMAIN, FILTER_FLAG_HOSTNAME) === false) {
 			return null;
@@ -472,7 +472,7 @@ class Router {
 	}
 
 	/**
-	 * @return false
+	 * @return bool
 	 */
 	public static function isResponseSent() {
 		return self::$response_sent;

@@ -18,7 +18,7 @@ class Multipart {
 	/**
 	 * Decode a multipart body into an array of segments
 	 *
-	 * @param Segment[] $segments
+	 * @param string $raw
 	 * @param string $boundary
 	 * @return Segment[]|null Returns null on decode failure
 	 */

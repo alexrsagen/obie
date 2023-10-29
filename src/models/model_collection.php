@@ -30,7 +30,7 @@ class ModelCollection implements \ArrayAccess, \IteratorAggregate, \Countable, \
 	}
 
 	/**
-	 * @param int $offset
+	 * @param ?int $offset
 	 * @param T $value
 	 */
 	public function offsetSet($offset, $value): void {
@@ -58,7 +58,7 @@ class ModelCollection implements \ArrayAccess, \IteratorAggregate, \Countable, \
 
 	/**
 	 * Countable
-	 * @return int<0, \max>
+	 * @return int<0, max>
 	 */
 	public function count(): int {
 		return count($this->models);
@@ -81,7 +81,7 @@ class ModelCollection implements \ArrayAccess, \IteratorAggregate, \Countable, \
 
 	/**
 	 * JsonSerializable
-	 * @return T[]
+	 * @return array[]
 	 */
 	public function jsonSerialize(): mixed {
 		return $this->toArray();
@@ -97,7 +97,7 @@ class ModelCollection implements \ArrayAccess, \IteratorAggregate, \Countable, \
 	}
 
 	/**
-	 * @return T[]
+	 * @return array[]
 	 */
 	public function toArray() {
 		$arr = [];
@@ -114,24 +114,25 @@ class ModelCollection implements \ArrayAccess, \IteratorAggregate, \Countable, \
 			$results = new static();
 		}
 		foreach ($this->models as $model) {
+			if (!method_exists($model, 'getRelated')) continue;
 			$model_results = $model->getRelated($relation_name, $options, $count);
-			if ($model_results instanceof static) {
+			if ($count) {
+				if (is_int($model_results)) $results += $model_results;
+			} elseif ($model_results instanceof static) {
 				foreach ($model_results as $model_result) {
-					$results[] = $model_result;
+					$results->add($model_result);
 				}
-			} elseif (is_int($model_results) && $count) {
-				$results += $model_results;
-			} else {
+			} elseif (!empty($model_results)) {
 				$results[] = $model_results;
 			}
 		}
 		return $results;
 	}
 
-	public function load(bool $force_reload = false): bool {
+	public function load(): bool {
 		foreach ($this->models as $model) {
 			$this->error = null;
-			if (!$model->load($force_reload)) {
+			if (!$model->load()) {
 				$this->error = $model->getLastError();
 				return false;
 			}

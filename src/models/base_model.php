@@ -1,5 +1,4 @@
 <?php namespace Obie\Models;
-use Obie\Formatters\EnglishNoun;
 use Obie\Formatters\Casing;
 use Obie\App;
 
@@ -18,82 +17,41 @@ abstract class BaseModel {
 	protected array $_data                      = [];
 	protected array $_original_data             = [];
 	protected array $_modified_columns          = [];
+
 	protected static ?\PDO $_default_db         = null;
 	protected static ?\PDO $_default_ro_db      = null;
 	protected static string $_timezone          = 'UTC';
-	public static int $max_connect_retries      = 5;
-	public static int $connect_interval_seconds = 5;
+
+	public static int $max_connect_retries       = 5;
+	public static int $connect_interval_seconds  = 5;
 
 	// Model definition methods
 
-	/**
-	 * Define one or more columns on this table.
-	 *
-	 * @param mixed $column If $type is not null, a string specifying a column name or an array of column names. Otherwise an array of "column" => "type".
-	 * @param string|null $type The type to use for all columns specified. To specify a unique type for each column, leave as null and specify $column as an array of "column" => "type".
-	 * @return void
-	 * @throws \InvalidArgumentException If invalid arguments specified
-	 */
-	public static function define(string|array $column, ?string $type = null): void {
-		if ($type !== null) {
-			if (is_string($column)) {
-				$column = [$column];
-			}
-			if (is_array($column)) {
-				$old = $column;
-				$column = [];
-				foreach ($old as $key) {
-					$column[$key] = $type;
-				}
-			} else {
-				throw new \InvalidArgumentException('Column must be a string or array of "column" => "type"');
-			}
-		}
-		if (is_array($column)) {
-			foreach ($column as $key => $type) {
-				if (!is_string($key) || !is_string($type)) {
-					throw new \InvalidArgumentException('Column must be a string or array of "column" => "type"');
-				}
-				$type = strtolower($type);
-				if (!in_array($type, self::VALID_TYPES, true)) {
-					throw new \InvalidArgumentException('Type must be a member of BaseModel::VALID_TYPES');
-				}
-				static::$columns[$key] = $type;
-			}
-		} else {
-			throw new \InvalidArgumentException('Column must be a string or array of "column" => "type"');
-		}
-	}
-
 	protected static function initPrimaryKeys(): void {
-		if (count(static::$pk) === 0) {
-			$class_name = get_called_class();
-			$columns = static::getAllColumns();
+		$class_name = get_called_class();
+		$columns = static::getAllColumns();
 
-			static::$pk = [];
-			if (!($stmt = static::executeQueryRetry('SHOW KEYS FROM ' . static::getEscapedSource() . ' WHERE `Key_name` = \'PRIMARY\'', ['read_only' => true], static::$find_error))) return;
-			foreach ($stmt->fetchAll() as $row) {
-				// Ensure that primary key exists as a public variable of this model
-				if (!in_array($row['Column_name'], $columns)) {
-					throw new \Exception("Primary key \"{$row['Column_name']}\" not defined in model \"$class_name\"");
-				}
-
-				static::$pk[] = $row['Column_name'];
+		$pk = [];
+		$stmt = static::executeQueryRetry('SHOW KEYS FROM ' . static::getEscapedSource() . ' WHERE `Key_name` = \'PRIMARY\'', ['read_only' => true], $find_error);
+		static::setLastFindError($find_error);
+		if (!$stmt) return;
+		foreach ($stmt->fetchAll() as $row) {
+			// Ensure that primary key exists as a public variable of this model
+			if (!in_array($row['Column_name'], $columns)) {
+				throw new \Exception("Primary key \"{$row['Column_name']}\" not defined in model \"$class_name\"");
 			}
-		}
-	}
 
-	public static function getPrimaryKeys(): array {
-		static::initPrimaryKeys();
-		return static::$pk;
+			$pk[] = $row['Column_name'];
+		}
+		static::setPrimaryKeys($pk);
 	}
 
 	public static function getAllColumns(): array {
-		return array_keys(static::$columns);
+		return array_keys(static::getColumnDefinitions());
 	}
 
 	public static function columnExists(string $name): bool {
-		return array_key_exists($name, static::$columns);
+		return array_key_exists($name, static::getColumnDefinitions());
 	}
 
 	public static function columnsExist(string ...$names): bool {
@@ -102,44 +60,6 @@ abstract class BaseModel {
 
 	protected static function canGetOrSet(string $name): bool {
 		return static::columnExists($name);
-	}
-
-	protected static function initSource(): void {
-		if (static::$source === null) {
-			static::$source_singular = EnglishNoun::classNameToSingular(get_called_class());
-			static::$source = EnglishNoun::toPlural(static::$source_singular);
-		}
-		if (static::$source_singular === null) {
-			static::$source_singular = EnglishNoun::toSingular(static::$source);
-		}
-	}
-
-	public static function setSource(string $source, string $source_singular = null): void {
-		static::$source = $source;
-		static::$source_singular = $source_singular;
-		static::initSource();
-	}
-
-	public static function getSource(): ?string {
-		static::initSource();
-		return static::$source;
-	}
-
-	public static function getEscapedSource(): ?string {
-		$source = static::getSource();
-		if ($source === null) return null;
-		return ModelHelpers::getEscapedSource($source);
-	}
-
-	public static function setDatabase(\PDO $db): void {
-		static::$db = $db;
-	}
-
-	public static function getDatabase(): ?\PDO {
-		if (static::$db === null) {
-			return static::getDefaultDatabase();
-		}
-		return static::$db;
 	}
 
 	public static function setDefaultDatabase(\PDO $db): void {
@@ -158,17 +78,6 @@ abstract class BaseModel {
 			return $parent::$_default_db;
 		}
 		return self::$_default_db;
-	}
-
-	public static function setReadOnlyDatabase(\PDO $db): void {
-		static::$ro_db = $db;
-	}
-
-	public static function getReadOnlyDatabase(): ?\PDO {
-		if (static::$ro_db === null) {
-			return static::getDefaultReadOnlyDatabase();
-		}
-		return static::$ro_db;
 	}
 
 	public static function setDefaultReadOnlyDatabase(\PDO $db): void {
@@ -297,9 +206,6 @@ abstract class BaseModel {
 		if (is_array($options['order'])) {
 			$is_first = true;
 			foreach ($options['order'] as $column => $type) {
-				if (!is_string($column) && !is_int($column)) {
-					throw new \InvalidArgumentException('Order must be an associative array of (col_name | position) => ("ASC" | "DESC")');
-				}
 				if (!is_string($type)) {
 					throw new \InvalidArgumentException('Order must be an associative array of (col_name | position) => ("ASC" | "DESC")');
 				}
@@ -393,7 +299,7 @@ abstract class BaseModel {
 	}
 
 	protected static function buildStatement(string $query, array $options = []): \PDOStatement {
-		static::$last_query = $query;
+		static::setLastQuery($query);
 
 		$stmt = false;
 		for ($i = 0; $i < static::$max_connect_retries; $i++) {
@@ -424,10 +330,6 @@ abstract class BaseModel {
 		}
 
 		return $stmt;
-	}
-
-	public static function getLastQuery(): ?string {
-		return static::$last_query;
 	}
 
 	// Initializers
@@ -463,7 +365,9 @@ abstract class BaseModel {
 		$options['read_only'] = true;
 
 		// Build and execute statement
-		if (!($stmt = static::executeQueryRetry(static::buildSelect($options), $options, static::$find_error))) return false;
+		$stmt = static::executeQueryRetry(static::buildSelect($options), $options, $find_error);
+		static::setLastFindError($find_error);
+		if (!$stmt) return false;
 		$result = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 		if (count($result) === 0) return false;
 
@@ -486,7 +390,7 @@ abstract class BaseModel {
 
 	/**
 	 * @param string|array|null $options
-	 * @return ModelCollection<static>|false False if no results found or query error
+	 * @return ModelCollection<BaseModel>|false False if no results found or query error
 	 * @throws \InvalidArgumentException If options is invalid
 	 * @throws \Exception If database is unavailable
 	 */
@@ -505,7 +409,9 @@ abstract class BaseModel {
 		$options['read_only'] = true;
 
 		// Build and execute statement
-		if (!($stmt = static::executeQueryRetry(static::buildSelect($options), $options, static::$find_error))) return false;
+		$stmt = static::executeQueryRetry(static::buildSelect($options), $options, $find_error);
+		static::setLastFindError($find_error);
+		if (!$stmt) return false;
 		$result = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 		if (count($result) === 0) return false;
 
@@ -525,14 +431,10 @@ abstract class BaseModel {
 			}
 
 			$model->forceCleanState();
-			$models[] = $model;
+			$models->add($model);
 		}
 
 		return $models;
-	}
-
-	public static function getLastFindError(): ?\PDOException {
-		return static::$find_error;
 	}
 
 	public static function count(array $options = []): int|false {
@@ -543,7 +445,9 @@ abstract class BaseModel {
 		$options['what'] = 'COUNT(' . ModelHelpers::getEscapedList(static::getPrimaryKeys(), static::getSource()) . ') AS `rowcount`';
 
 		// Build and execute statement which gets row count efficiently with given options
-		if (!($stmt = static::executeQueryRetry(static::buildSelect($options), $options, static::$count_error))) return false;
+		$stmt = static::executeQueryRetry(static::buildSelect($options), $options, $count_error);
+		static::setLastCountError($count_error);
+		if (!$stmt) return false;
 		$res = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 		if (count($res) === 0) return 0;
 		if (array_key_exists('group', $options) && !empty($options['group'])) {
@@ -553,10 +457,6 @@ abstract class BaseModel {
 			return count($res);
 		}
 		return (int)$res[0]['rowcount'];
-	}
-
-	public static function getLastCountError(): ?\PDOException {
-		return static::$count_error;
 	}
 
 	// Database interaction methods
@@ -728,7 +628,7 @@ abstract class BaseModel {
 				$id !== false &&
 				$id !== 0 &&
 				static::columnExists($primary_key) &&
-				in_array(static::$columns[$primary_key], ['int', 'integer'], true)
+				in_array(static::getColumnType($primary_key), ['int', 'integer'], true)
 			) {
 				$this->set($primary_key, $id, false);
 			}
@@ -858,8 +758,7 @@ abstract class BaseModel {
 
 	public function toArray(): array {
 		$data = [];
-		foreach (static::getAllColumns() as $column) {
-			$type = static::$columns[$column];
+		foreach (static::getColumnDefinitions() as $column => $type) {
 			if ($type === 'date') {
 				$data[$column] = $this->get($column, false)?->format(\DateTime::RFC3339);
 			} else {
@@ -883,7 +782,7 @@ abstract class BaseModel {
 		if ($hooks) {
 			foreach ($this->getHooks('beforeGet') as $name) {
 				// hook arguments: key, value, is_relation, type
-				$value = $this->{$name}($key, $value, false, static::$columns[$key]);
+				$value = $this->{$name}($key, $value, false, static::getColumnType($key));
 			}
 		}
 		return $value;
@@ -899,7 +798,7 @@ abstract class BaseModel {
 			$class_name = get_called_class();
 			throw new \Exception("Column $key is not defined in model $class_name");
 		}
-		$type = static::$columns[$key];
+		$type = static::getColumnType($key);
 
 		// Get current column data (before change)
 		$current_value = $this->get($key, false);
@@ -974,4 +873,24 @@ abstract class BaseModel {
 		$class_name = get_called_class();
 		throw new \Exception("Method $method not defined in model $class_name");
 	}
+
+	// BaseModelTrait methods
+	abstract public static function getSource(): ?string;
+	abstract public static function setSource(string $source, ?string $source_singular = null): void;
+	abstract public static function getEscapedSource(): ?string;
+	abstract public static function define(string|array $column, ?string $type = null): void;
+	abstract public static function getColumnDefinitions(): array;
+	abstract public static function getColumnType(string $column): ?string;
+	abstract public static function getPrimaryKeys(): array;
+	abstract public static function setPrimaryKeys(array $primary_keys): void;
+	abstract public static function getDatabase(): ?\PDO;
+	abstract public static function setDatabase(\PDO $db): void;
+	abstract public static function getReadOnlyDatabase(): ?\PDO;
+	abstract public static function setReadOnlyDatabase(\PDO $db): void;
+	abstract public static function getLastFindError(): ?\PDOException;
+	abstract public static function setLastFindError(?\PDOException $find_error): void;
+	abstract public static function getLastCountError(): ?\PDOException;
+	abstract public static function setLastCountError(?\PDOException $count_error): void;
+	abstract public static function getLastQuery(): ?string;
+	abstract public static function setLastQuery(?string $last_query): void;
 }

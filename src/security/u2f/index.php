@@ -111,7 +111,9 @@ class U2f {
 	 * Does NOT verify the signature (use U2f::verify to verify the signature)
 	 *
 	 * @link https://fidoalliance.org/specs/fido-u2f-v1.2-ps-20170411/fido-u2f-javascript-api-v1.2-ps-20170411.html#idl-def-SignResponse
-	 * @param SignResponse The u2f.SignResponse object obtained from the client JS API
+	 * @param array $sign_response The u2f.SignResponse object obtained from the client JS API
+	 * @param string $rp_id The relying party ID (used for verification)
+	 * @return SignResponse
 	 * @throws Exception
 	 */
 	public static function decodeSignResponse(array $sign_response, string $rp_id): SignResponse {
@@ -196,7 +198,9 @@ class U2f {
 	 * Decodes a U2F JS API u2f.RegisterResponse
 	 *
 	 * @link https://fidoalliance.org/specs/fido-u2f-v1.2-ps-20170411/fido-u2f-javascript-api-v1.2-ps-20170411.html#idl-def-RegisterResponse
-	 * @param RegisterResponse The u2f.RegisterResponse object obtained from the client JS API
+	 * @param array $reg_response The u2f.RegisterResponse object obtained from the client JS API
+	 * @param string $rp_id The relying party ID (used for verification)
+	 * @return RegisterResponse
 	 * @throws Exception
 	 */
 	public static function decodeRegisterResponse(array $reg_response, string $rp_id): RegisterResponse {

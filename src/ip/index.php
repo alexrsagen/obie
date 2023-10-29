@@ -131,7 +131,10 @@ class Ip {
 		}
 
 		// validate each IP (checking for private/reserved range)
-		$host_ips = filter_var_array($host_ips, FILTER_VALIDATE_IP, ($allow_private ? FILTER_FLAG_NONE : FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE));
+		$host_ips = filter_var_array($host_ips, [
+			'filter' => FILTER_VALIDATE_IP,
+			'flags' => ($allow_private ? FILTER_FLAG_NONE : FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE),
+		]);
 
 		natcasesort($host_ips);
 		return array_values($host_ips);

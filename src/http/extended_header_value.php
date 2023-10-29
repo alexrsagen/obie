@@ -14,7 +14,7 @@ class ExtendedHeaderValue {
 		public string $value = '',
 	) {}
 
-	public static function needsEncoding(string $input): string {
+	public static function needsEncoding(string $input): bool {
 		return !Token::isValidToken($input);
 	}
 

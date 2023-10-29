@@ -3,7 +3,7 @@
 class Totp {
 	/**
 	 * Gets the current timestamp in UTC
-	 * @return int
+	 * @return \DateTime
 	 */
 	protected static function now(): \DateTime {
 		return (new \DateTime('now', new \DateTimeZone('UTC')));

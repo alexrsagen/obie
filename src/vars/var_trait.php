@@ -3,7 +3,7 @@
 trait VarTrait {
 	public ?VarCollection $vars = null;
 
-	protected function _init_vars(array|VarCollection &$storage = [], bool $assoc = false) {
+	protected function _init_vars(array|VarCollection &$storage = [], bool $assoc = false): void {
 		if ($this->vars === null) {
 			if (is_array($storage)) {
 				$this->vars = new VarCollection($storage, $assoc);
@@ -18,14 +18,14 @@ trait VarTrait {
 		return $this->vars?->get(...$v);
 	}
 
-	public function getHTMLEscaped(...$v): string {
+	public function getHTMLEscaped(...$v): ?string {
 		$this->_init_vars();
 		$res = $this->vars?->get(...$v);
 		if ($res === null) return null;
 		return htmlentities((string)$res);
 	}
 
-	public function getURLEscaped(...$v): string {
+	public function getURLEscaped(...$v): ?string {
 		$this->_init_vars();
 		$res = $this->vars?->get(...$v);
 		if ($res === null) return null;

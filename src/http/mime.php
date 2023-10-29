@@ -403,7 +403,6 @@ class Mime {
 		'.qxd' => 'application/vnd.quark.quarkxpress',
 		'.qxl' => 'application/vnd.quark.quarkxpress',
 		'.qxt' => 'application/vnd.quark.quarkxpress',
-		'.rar' => 'application/x-rar-compressed',
 		'.rcprofile' => 'application/vnd.ipunplugged.rcprofile',
 		'.rdf' => 'application/rdf+xml',
 		'.rdz' => 'application/vnd.data-vision.rdz',
