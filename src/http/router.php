@@ -186,16 +186,16 @@ class Router {
 	}
 
 	/** @see RouterInstance::defer() */
-	public static function defer(): void {
-		static::getInstance()->defer();
+	public static function defer(callable ...$handlers): void {
+		static::getInstance()->defer(...$handlers);
 	}
 	/** @see RouterInstance::runDeferred() */
 	public static function runDeferred(): bool {
 		return static::getInstance()->runDeferred();
 	}
 	/** @see RouterInstance::execute() */
-	public static function execute(): int {
-		return static::getInstance()->execute();
+	public static function execute(?string $method = null, ?string $path = null): int {
+		return static::getInstance()->execute($method, $path);
 	}
 	/** @see RouterInstance::route() */
 	public static function route(string $method_str, string $route_str, callable ...$handlers): Route {
