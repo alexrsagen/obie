@@ -93,7 +93,7 @@ class Base32 {
 	 * @param string $input
 	 * @param array<string, int> $lookup
 	 * @param bool $ignore_invalid
-	 * @return string
+	 * @return ?string
 	 */
 	public static function decode(string $input, array $lookup = self::LOOKUP, bool $ignore_invalid = true): ?string {
 		$grp_dec = array_fill(0, 8, 0);
