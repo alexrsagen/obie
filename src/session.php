@@ -95,9 +95,9 @@ class Session {
 		// set session parameters from config
 		ini_set('session.save_handler', $config->get('sessions', 'save_handler'));
 		ini_set('session.save_path', $config->get('sessions', 'save_path'));
-		ini_set('session.gc_maxlifetime', (int)($config->get('sessions', 'lifetime') ?? 3600));
-		ini_set('session.use_cookies', (int)(bool)($config->get('sessions', 'use_cookies') ?? true));
-		ini_set('session.use_only_cookies', (int)(bool)($config->get('sessions', 'use_only_cookies') ?? true));
+		ini_set('session.gc_maxlifetime', (string)(int)($config->get('sessions', 'lifetime') ?? 3600));
+		ini_set('session.use_cookies', (string)(int)(bool)($config->get('sessions', 'use_cookies') ?? true));
+		ini_set('session.use_only_cookies', (string)(int)(bool)($config->get('sessions', 'use_only_cookies') ?? true));
 		session_set_cookie_params([
 			'lifetime' => (int)($config->get('sessions', 'lifetime') ?? 3600),
 			'path'     => '/',
