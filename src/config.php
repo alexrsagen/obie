@@ -25,6 +25,9 @@ class Config {
     }
 
     public static function getGlobal(): static {
+        if (self::$global_config === null) {
+            self::$global_config = new static();
+        }
         return self::$global_config;
     }
 }
