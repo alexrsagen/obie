@@ -40,20 +40,20 @@ class Request {
 		string $body = '',
 		mixed $body_data = null,
 	) {
-		if (!empty($method)) $this->setMethod($method);
-		if (!empty($url)) {
+		if (is_string($method) && strlen($method) > 0) $this->setMethod($method);
+		if (is_string($url) && strlen($url) > 0) {
 			$this->setURL($url);
-			if (!empty($query)) $this->setQuery(array_merge_recursive($this->getQuery(), $query));
-		} elseif (!empty($query)) {
+			if (is_array($query) && count($query) > 0) $this->setQuery(array_merge_recursive($this->getQuery(), $query));
+		} elseif (is_array($query) && count($query) > 0) {
 			$this->setQuery($query);
 		}
-		if (!empty($scheme)) $this->setScheme($scheme);
-		if (!empty($username)) $this->setUsername($username);
-		if (!empty($password)) $this->setPassword($password);
-		if (!empty($host)) $this->setHost($host);
-		if (!empty($remote_port)) $this->setRemotePort($remote_port);
-		if (!empty($path)) $this->setPath($path);
-		if (!empty($headers)) $this->setHeaders($headers);
+		if (is_string($scheme) && strlen($scheme) > 0) $this->setScheme($scheme);
+		if (is_string($username) && strlen($username) > 0) $this->setUsername($username);
+		if (is_string($password) && strlen($password) > 0) $this->setPassword($password);
+		if (is_string($host) && strlen($host) > 0) $this->setHost($host);
+		if (is_int($remote_port) && $remote_port !== 0) $this->setRemotePort($remote_port);
+		if (is_string($path) && strlen($path) > 0) $this->setPath($path);
+		if (is_array($headers) && count($headers) > 0) $this->setHeaders($headers);
 		if ($content_type !== null) $this->setContentType($content_type);
 		if ($accept !== null) $this->setAccept($accept);
 		if ($this->methodHasBody()) {
@@ -84,7 +84,7 @@ class Request {
 			}
 			// get current request
 			$current = new static(
-				scheme: !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' || !empty($_SERVER['SERVER_PORT']) && (int)$_SERVER['SERVER_PORT'] === 443 ? 'https' : 'http',
+				scheme: array_key_exists('HTTPS', $_SERVER) && $_SERVER['HTTPS'] === 'on' || array_key_exists('SERVER_PORT', $_SERVER) && (int)$_SERVER['SERVER_PORT'] === 443 ? 'https' : 'http',
 				username: array_key_exists('PHP_AUTH_USER', $_SERVER) ? $_SERVER['PHP_AUTH_USER'] : null,
 				password: array_key_exists('PHP_AUTH_PW', $_SERVER) ? $_SERVER['PHP_AUTH_PW'] : null,
 				host: $host,
@@ -177,14 +177,17 @@ class Request {
 			'host' => $this->getHost(),
 			'path' => $this->getPath(),
 		];
-		if (!empty($this->getUsername())) {
-			$parts['user'] = $this->getUsername();
+		$username = $this->getUsername();
+		if (is_string($username) && strlen($username) > 0) {
+			$parts['user'] = $username;
 		}
-		if (!empty($this->getPassword())) {
-			$parts['pass'] = $this->getPassword();
+		$password = $this->getPassword();
+		if (is_string($password) && strlen($password) > 0) {
+			$parts['pass'] = $password;
 		}
-		if (!empty($this->getQueryString(numeric_type: $numeric_type))) {
-			$parts['query'] = $this->getQueryString(numeric_type: $numeric_type);
+		$qs = $this->getQueryString(numeric_type: $numeric_type);
+		if (is_string($qs) && strlen($qs) > 0) {
+			$parts['query'] = $qs;
 		}
 		return Url::encode($parts);
 	}
