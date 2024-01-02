@@ -390,7 +390,7 @@ abstract class BaseModel {
 
 	/**
 	 * @param string|array|null $options
-	 * @return ModelCollection<BaseModel>|false False if no results found or query error
+	 * @return ModelCollection<static>|false False if no results found or query error
 	 * @throws \InvalidArgumentException If options is invalid
 	 * @throws \Exception If database is unavailable
 	 */
