@@ -2,6 +2,7 @@
 use Obie\Encoding\Bits;
 use Obie\Ip;
 use Obie\Encoding\Spf1;
+use Obie\Encoding\Spf1\Record;
 
 class Cidr {
 	function __construct(
@@ -47,10 +48,15 @@ class Cidr {
 		}
 	}
 
-	public static function fromSPFRecord(string $dns_name, int &$max_dns_lookup = 10, int $max_dns_mx_host_lookup = 10): ?array {
-		if ($max_dns_lookup <= 0) return null; $max_dns_lookup -= 1;
-		$spf_txt_records = @dns_get_record($dns_name, DNS_TXT);
-		if (!is_array($spf_txt_records)) return [];
+	/**
+	 * Extract a list of Cidr objects from an SPF Record
+	 *
+	 * @param Record $record The SPF Record to extract Cidr objects from
+	 * @param int $max_dns_lookup Max amount of DNS lookups to perform
+	 * @param int $max_dns_mx_host_lookup Max amount of MX host lookups to perform (these are separate from $max_dns_lookups)
+	 * @return static[]|null
+	 */
+	public static function fromSpf1Record(Record $record, int &$max_dns_lookup = 9, int $max_dns_mx_host_lookup = 10): ?array {
 		$host_cidr_by_qualifier = [
 			Spf1::QUALIFIER_PASS => [],
 			Spf1::QUALIFIER_FAIL => [],
@@ -58,55 +64,100 @@ class Cidr {
 			Spf1::QUALIFIER_NEUTRAL => [],
 		];
 		$all_redirects_host_cidr_pass = [];
-		foreach ($spf_txt_records as $txt_record) {
-			if ($txt_record['type'] !== 'TXT') continue;
-			$record = Spf1::decode($txt_record['txt']);
-			if (!$record) continue;
-			$record_has_all_mechanism = false;
-			foreach ($record->directives as $directive) {
-				switch ($directive->mechanism) {
-				case Spf1::MECHANISM_A:
-					if ($max_dns_lookup <= 0) return null; $max_dns_lookup -= 1;
-					$a_host_cidr = Ip::resolve($directive->value);
-					$host_cidr_by_qualifier[$directive->qualifier] = array_merge($host_cidr_by_qualifier[$directive->qualifier], $a_host_cidr);
-					break;
-				case Spf1::MECHANISM_MX:
-					if ($max_dns_lookup <= 0) return null; $max_dns_lookup -= 1;
-					if (@dns_get_mx($directive->value, $hosts)) {
-						foreach ($hosts as $host) {
-							if ($max_dns_mx_host_lookup <= 0) return null; $max_dns_mx_host_lookup -= 1;
-							$mx_host_cidr = Ip::resolve($host);
-							$host_cidr_by_qualifier[$directive->qualifier] = array_merge($host_cidr_by_qualifier[$directive->qualifier], $mx_host_cidr);
-						}
+		$record_has_all_mechanism = false;
+
+		foreach ($record->directives as $directive) {
+			switch ($directive->mechanism) {
+			case Spf1::MECHANISM_A:
+				if ($max_dns_lookup <= 0) return null; $max_dns_lookup -= 1;
+				$a_host_cidr = Ip::resolve($directive->value);
+
+				$host_cidr_by_qualifier[$directive->qualifier] = array_merge($host_cidr_by_qualifier[$directive->qualifier], $a_host_cidr);
+				break;
+
+			case Spf1::MECHANISM_MX:
+				if ($max_dns_lookup <= 0) return null; $max_dns_lookup -= 1;
+				if (@dns_get_mx($directive->value, $hosts)) {
+					foreach ($hosts as $host) {
+						if ($max_dns_mx_host_lookup <= 0) return null; $max_dns_mx_host_lookup -= 1;
+						$mx_host_cidr = Ip::resolve($host);
+
+						$host_cidr_by_qualifier[$directive->qualifier] = array_merge($host_cidr_by_qualifier[$directive->qualifier], $mx_host_cidr);
 					}
-					break;
-				case Spf1::MECHANISM_PTR:
-					// explicitly ingored, as it is deprecated in RFC 7208
-					break;
-				case Spf1::MECHANISM_IP4:
-				case Spf1::MECHANISM_IP6:
-					$host_cidr_by_qualifier[$directive->qualifier][] = $directive->value;
-					break;
-				case Spf1::MECHANISM_INCLUDE:
-					$include_host_cidr = static::fromSPFRecord($directive->value, $max_dns_lookup, $max_dns_mx_host_lookup);
-					if ($include_host_cidr === null) return null;
-					$host_cidr_by_qualifier[$directive->qualifier] = array_merge($host_cidr_by_qualifier[$directive->qualifier], $include_host_cidr);
-					break;
-				case Spf1::MECHANISM_ALL:
-					$record_has_all_mechanism = true;
-					break;
 				}
-			}
-			if (!$record_has_all_mechanism && array_key_exists('redirect', $record->modifiers)) {
-				$redirect_host_cidr_pass = static::fromSPFRecord($record->modifiers['redirect'], $max_dns_lookup, $max_dns_mx_host_lookup);
-				if ($redirect_host_cidr_pass === null) return null;
-				$all_redirects_host_cidr_pass = array_merge($all_redirects_host_cidr_pass, $redirect_host_cidr_pass);
+				break;
+
+			case Spf1::MECHANISM_PTR:
+				// explicitly ingored, as it is deprecated in RFC 7208
+				break;
+
+			case Spf1::MECHANISM_IP4:
+			case Spf1::MECHANISM_IP6:
+				$host_cidr_by_qualifier[$directive->qualifier][] = $directive->value;
+				break;
+
+			case Spf1::MECHANISM_INCLUDE:
+				$include_host_cidr = static::fromSpf1RecordLookup($directive->value, $max_dns_lookup, $max_dns_mx_host_lookup);
+				if ($include_host_cidr === null) return null;
+				$host_cidr_by_qualifier[$directive->qualifier] = array_merge($host_cidr_by_qualifier[$directive->qualifier], $include_host_cidr);
+				break;
+
+			case Spf1::MECHANISM_ALL:
+				$record_has_all_mechanism = true;
+				break;
 			}
 		}
+
+		if (!$record_has_all_mechanism && array_key_exists('redirect', $record->modifiers)) {
+			$redirect_host_cidr_pass = static::fromSpf1RecordLookup($record->modifiers['redirect'], $max_dns_lookup, $max_dns_mx_host_lookup);
+			if ($redirect_host_cidr_pass === null) return null;
+			$all_redirects_host_cidr_pass = array_merge($all_redirects_host_cidr_pass, $redirect_host_cidr_pass);
+		}
+
 		$host_cidr_pass = $host_cidr_by_qualifier[Spf1::QUALIFIER_PASS];
 		$host_cidr_pass = static::excludeMultiple($host_cidr_by_qualifier[Spf1::QUALIFIER_FAIL], $host_cidr_pass);
 		$host_cidr_pass = static::excludeMultiple($host_cidr_by_qualifier[Spf1::QUALIFIER_SOFTFAIL], $host_cidr_pass);
 		return array_merge($host_cidr_pass, $all_redirects_host_cidr_pass);
+	}
+
+	/**
+	 * Extract a list of Cidr objects from a DNS name
+	 *
+	 * @param string $dns_name The DNS name in which to look for the initial SPF Record
+	 * @param int $max_dns_lookup Max amount of DNS lookups to perform
+	 * @param int $max_dns_mx_host_lookup Max amount of MX host lookups to perform (these are separate from $max_dns_lookups)
+	 * @return static[]|null
+	 */
+	public static function fromSpf1RecordLookup(string $dns_name, int &$max_dns_lookup = 10, int $max_dns_mx_host_lookup = 10): ?array {
+		if ($max_dns_lookup <= 0) return null; $max_dns_lookup -= 1;
+		$spf_txt_records = @dns_get_record($dns_name, DNS_TXT);
+
+		if (!is_array($spf_txt_records)) return [];
+
+		foreach ($spf_txt_records as $txt_record) {
+			if ($txt_record['type'] !== 'TXT') continue;
+
+			$record = Spf1::decode($txt_record['txt']);
+			if (!$record) continue;
+
+			return static::fromSpf1Record($record, $max_dns_lookup, $max_dns_mx_host_lookup);
+		}
+
+		return [];
+	}
+
+	/**
+	 * Extract a list of Cidr objects from a DNS name
+	 *
+	 * @deprecated
+	 * @see static::fromSpf1RecordLookup()
+	 * @param string $dns_name The DNS name in which to look for the initial SPF Record
+	 * @param int $max_dns_lookup Max amount of DNS lookups to perform
+	 * @param int $max_dns_mx_host_lookup Max amount of MX host lookups to perform (these are separate from $max_dns_lookups)
+	 * @return static[]|null
+	 */
+	public static function fromSPFRecord(string $dns_name, int &$max_dns_lookup = 10, int $max_dns_mx_host_lookup = 10): ?array {
+		return static::fromSpf1RecordLookup($dns_name, $max_dns_lookup, $max_dns_mx_host_lookup);
 	}
 
 	public function contains(Cidr $other): bool {
@@ -115,6 +166,12 @@ class Cidr {
 		return $other_net_bits === $this_net_bits && ($other->mask_bits >= $this->mask_bits);
 	}
 
+	/**
+	 * Create an array of Cidr matching $this excluding $other
+	 *
+	 * @param Cidr $other
+	 * @return Cidr[]
+	 */
 	public function exclude(Cidr $other): array {
 		if ($this == $other || $other->contains($this)) return [];
 		if (!$this->contains($other)) return [$this];
@@ -145,6 +202,12 @@ class Cidr {
 		);
 	}
 
+	/**
+	 * Create an array of Cidr matching $source excluding $exclude
+	 *
+	 * @param Cidr $other
+	 * @return Cidr[]
+	 */
 	public static function excludeMultiple(Cidr|string|array $exclude, Cidr|string|array $source): array {
 		$exclude = array_map(function(Cidr|string $cidr) {
 			return is_string($cidr) ? Cidr::fromCIDR($cidr) : $cidr;
