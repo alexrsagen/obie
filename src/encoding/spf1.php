@@ -74,7 +74,7 @@ class Spf1 {
 			case self::QUALIFIER_NEUTRAL:
 				// assert that we have not already started decoding a directive
 				if ($directive !== null) {
-					Log::warning('Spf1: unexpected qualifier');
+					Log::warning(sprintf('Spf1: unexpected qualifier "%s" at position %d', $c, $position));
 					return null;
 				}
 				// create a new directive
@@ -89,7 +89,7 @@ class Spf1 {
 				$buf_key = $buf;
 				// assert that the key is a valid modifier name
 				if (preg_match('/^[a-z0-9\-_\.]+$/i', $buf_key) !== 1) {
-					Log::warning('Spf1: ');
+					Log::warning(sprintf('Spf1: invalid modifier name at position %d', $position));
 					return null;
 				}
 				// advance position by 1
@@ -98,7 +98,7 @@ class Spf1 {
 				$buf = MacroString::extractString($input, $position);
 				// assert that the buffer contains a valid macro-string
 				if ($buf === null) {
-					Log::warning('Spf1: invalid macro-string');
+					Log::warning(sprintf('Spf1: invalid macro-string at position %d', $position));
 					return null;
 				}
 				// append the modifier to the record
@@ -112,7 +112,7 @@ class Spf1 {
 			case ':':
 				// assert that the directive does not already have a mechanism set
 				if ($directive !== null && $directive->mechanism !== '') {
-					Log::warning('Spf1: double mechanism key');
+					Log::warning(sprintf('Spf1: double mechanism key at position %d', $position));
 					return null;
 				}
 				// store mechanism key in directive
@@ -123,11 +123,11 @@ class Spf1 {
 				$buf = MacroString::extractString($input, $position);
 				// assert that the buffer contains a valid macro-string
 				if ($buf === null) {
-					Log::warning('Spf1: invalid macro-string');
+					Log::warning(sprintf('Spf1: invalid macro-string at position %d', $position));
 					return null;
 				}
 				if ($position >= strlen($input)) {
-					Log::warning('Spf1: invalid domain-spec: ended before domain-end');
+					Log::warning(sprintf('Spf1: invalid domain-spec: ended before domain-end at position %d', $position));
 					return null;
 				}
 				if ($input[$position] === '.') {
@@ -144,7 +144,7 @@ class Spf1 {
 					$buf_key = $buf;
 					$buf = MacroString::extranctExpand($input, $position);
 					if ($buf === null) {
-						Log::warning('Spf1: invalid macro-expand');
+						Log::warning(sprintf('Spf1: invalid macro-expand at position %d', $position));
 						return null;
 					}
 					$buf = $buf_key . $buf;
