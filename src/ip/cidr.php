@@ -3,6 +3,7 @@ use Obie\Encoding\Bits;
 use Obie\Ip;
 use Obie\Encoding\Spf1;
 use Obie\Encoding\Spf1\Record;
+use Obie\Log;
 
 class Cidr {
 	function __construct(
@@ -69,17 +70,29 @@ class Cidr {
 		foreach ($record->directives as $directive) {
 			switch ($directive->mechanism) {
 			case Spf1::MECHANISM_A:
-				if ($max_dns_lookup <= 0) return null; $max_dns_lookup -= 1;
+				if ($max_dns_lookup <= 0) {
+					Log::warning(sprintf('Cidr: exhausted max DNS lookups while looking up A record %s', $directive->value));
+					return null;
+				}
+				$max_dns_lookup -= 1;
 				$a_host_cidr = Ip::resolve($directive->value);
 
 				$host_cidr_by_qualifier[$directive->qualifier] = array_merge($host_cidr_by_qualifier[$directive->qualifier], $a_host_cidr);
 				break;
 
 			case Spf1::MECHANISM_MX:
-				if ($max_dns_lookup <= 0) return null; $max_dns_lookup -= 1;
+				if ($max_dns_lookup <= 0) {
+					Log::warning(sprintf('Cidr: exhausted max DNS lookups while looking up MX record %s', $directive->value));
+					return null;
+				}
+				$max_dns_lookup -= 1;
 				if (@dns_get_mx($directive->value, $hosts)) {
 					foreach ($hosts as $host) {
-						if ($max_dns_mx_host_lookup <= 0) return null; $max_dns_mx_host_lookup -= 1;
+						if ($max_dns_mx_host_lookup <= 0) {
+							Log::warning(sprintf('Cidr: exhausted max DNS lookups while looking up MX host %s', $host));
+							return null;
+						}
+						$max_dns_mx_host_lookup -= 1;
 						$mx_host_cidr = Ip::resolve($host);
 
 						$host_cidr_by_qualifier[$directive->qualifier] = array_merge($host_cidr_by_qualifier[$directive->qualifier], $mx_host_cidr);
@@ -129,7 +142,11 @@ class Cidr {
 	 * @return static[]|null
 	 */
 	public static function fromSpf1RecordLookup(string $dns_name, int &$max_dns_lookup = 10, int $max_dns_mx_host_lookup = 10): ?array {
-		if ($max_dns_lookup <= 0) return null; $max_dns_lookup -= 1;
+		if ($max_dns_lookup <= 0) {
+			Log::warning(sprintf('Cidr: exhausted max DNS lookups while looking up SPF record %s', $dns_name));
+			return null;
+		}
+		$max_dns_lookup -= 1;
 		$spf_txt_records = @dns_get_record($dns_name, DNS_TXT);
 
 		if (!is_array($spf_txt_records)) return [];
