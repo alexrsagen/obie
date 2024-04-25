@@ -54,7 +54,7 @@ class Spf1 {
 		return true;
 	}
 
-	public static function decode(string $input): ?Record {
+	public static function decode(string $input, bool $strict = true): ?Record {
 		$record = new Record();
 
 		// check version
@@ -160,6 +160,10 @@ class Spf1 {
 
 			// term delimiter
 			case ' ':
+				// non-strict: ignore multiple whitespace
+				if (!$strict && strlen($buf) === 0 && $directive === null) {
+					break;
+				}
 				if (!static::storeDirective($buf, $directive)) return null;
 				// add the directive to the record
 				$record->directives[] = $directive;
