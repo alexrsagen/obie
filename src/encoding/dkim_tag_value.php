@@ -23,7 +23,13 @@ class DkimTagValue {
 		$output = new TagList();
 
 		$tag_list = explode(';', $input);
-		foreach ($tag_list as $tag_spec) {
+		foreach ($tag_list as $i => $tag_spec) {
+			// allow trailing separator
+			if ($i === count($tag_list) - 1 && strlen($tag_spec) === 0) {
+				break;
+			}
+
+			// extract tag-name and tag-value
 			$tag_name_value = explode('=', $tag_spec, 2);
 			if (count($tag_name_value) !== 2) {
 				Log::warning('DkimTagValue: unexpected tag-spec without tag-value');
