@@ -1,7 +1,6 @@
 <?php namespace Obie\Encoding\DkimTagValue;
 use Obie\Encoding\DkimTagValue;
 use Obie\Log;
-use Obie\Validation\SimpleValidator;
 
 class Tag {
 	const REGEX_PART_HYPHENATED_WORD = '[a-z](?:[a-z0-9\\-]*[a-z0-9])?';
@@ -36,7 +35,7 @@ class Tag {
 				Log::warning('DkimTagValue/Tag: invalid hyphenated-word value for DKIM1 tag "t="');
 				return false;
 			}
-			if ($this->name === 'p' && !SimpleValidator::isValid($this->value, SimpleValidator::TYPE_BASE64)) {
+			if ($this->name === 'p' && preg_match('/^(?:[A-Za-z0-9+\/]{4})*(?:[A-Za-z0-9+\/]{2}(?:==)?|[A-Za-z0-9+\/]{3}=?)?$/', $this->value) !== 1) {
 				Log::warning('DkimTagValue/Tag: invalid public key value for DKIM1 tag "p="');
 				return false;
 			}
