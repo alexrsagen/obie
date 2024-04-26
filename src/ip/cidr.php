@@ -157,6 +157,16 @@ class Cidr {
 			$record = Spf1::decode($txt_record['txt']);
 			if (!$record) continue;
 
+			// set <target-name> to <domain> ($dns_name) if not explicitly specified
+			foreach ($record->directives as $directive) {
+				if (strlen($directive->value) === 0 && in_array($directive->mechanism, [
+					Spf1::MECHANISM_A,
+					Spf1::MECHANISM_MX,
+				])) {
+					$directive->value = $dns_name;
+				}
+			}
+
 			return static::fromSpf1Record($record, $max_dns_lookup, $max_dns_mx_host_lookup);
 		}
 
