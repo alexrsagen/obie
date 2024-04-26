@@ -54,7 +54,7 @@ class Spf1 {
 		return true;
 	}
 
-	public static function decode(string $input, bool $strict = true): ?Record {
+	public static function decode(string $input): ?Record {
 		$record = new Record();
 
 		// check version
@@ -126,29 +126,27 @@ class Spf1 {
 					Log::warning(sprintf('Spf1: invalid macro-string at position %d', $position));
 					return null;
 				}
-				if ($position >= strlen($input)) {
-					Log::warning(sprintf('Spf1: invalid domain-spec: ended before domain-end at position %d', $position));
-					return null;
-				}
-				if ($input[$position] === '.') {
-					// extract a toplabel from input, append to buffer
-					for (; $position < strlen($input) && preg_match('/^[a-z0-9\-]$/i', $input[$position]) === 1; $position++) {
-						$buf .= $input[$position];
+				if ($position < strlen($input)) {
+					if ($input[$position] === '.') {
+						// extract a toplabel from input, append to buffer
+						for (; $position < strlen($input) && preg_match('/^[a-z0-9\-]$/i', $input[$position]) === 1; $position++) {
+							$buf .= $input[$position];
+						}
+						if ($position < strlen($input) && $input[$position] === '.') {
+							$buf .= $input[$position];
+							$position++;
+						}
+					} elseif ($input[$position] === '%') {
+						// append to buffer the result of extracting a macro-expand from input, given position
+						$buf_key = $buf;
+						$buf = MacroString::extractExpand($input, $position);
+						if ($buf === null) {
+							Log::warning(sprintf('Spf1: invalid macro-expand at position %d', $position));
+							return null;
+						}
+						$buf = $buf_key . $buf;
+						unset($buf_key);
 					}
-					if ($position < strlen($input) && $input[$position] === '.') {
-						$buf .= $input[$position];
-						$position++;
-					}
-				} elseif ($input[$position] === '%') {
-					// append to buffer the result of extracting a macro-expand from input, given position
-					$buf_key = $buf;
-					$buf = MacroString::extranctExpand($input, $position);
-					if ($buf === null) {
-						Log::warning(sprintf('Spf1: invalid macro-expand at position %d', $position));
-						return null;
-					}
-					$buf = $buf_key . $buf;
-					unset($buf_key);
 				}
 				// store mechanism value in directive
 				if (!static::storeDirective($buf, $directive)) return null;
@@ -160,8 +158,8 @@ class Spf1 {
 
 			// term delimiter
 			case ' ':
-				// non-strict: ignore multiple whitespace
-				if (!$strict && strlen($buf) === 0 && $directive === null) {
+				// ignore multiple whitespace
+				if (strlen($buf) === 0 && $directive === null) {
 					break;
 				}
 				if (!static::storeDirective($buf, $directive)) return null;

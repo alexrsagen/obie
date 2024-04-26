@@ -40,13 +40,13 @@ class MacroString {
 			// 3.3. If the code point at position within input is not "%", break.
 			if ($input[$position] !== '%') break;
 			// 3.4. Extract macro-expand
-			if (static::extranctExpand($input, $position) === null) return null;
+			if (static::extractExpand($input, $position) === null) return null;
 		}
 		// 4. Return the code points from positionStart to position, inclusive, within input.
 		return substr($input, $position_start, $position - $position_start);
 	}
 
-	public static function extranctExpand(string $input, int &$position): ?string {
+	public static function extractExpand(string $input, int &$position): ?string {
 		// 1. Let positionStart be position.
 		$position_start = $position;
 		// 2. Assert: the code point at position within input is "%"
