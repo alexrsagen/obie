@@ -19,8 +19,10 @@ class Tel {
 	const TYP_UAN = 'uan';
 	const TYP_VMN = 'voicemail';
 
-	const NON_DIGIT_REGEX = '/[^\d\x{FF10}-\x{FF19}\x{0660}-\x{0669}\x{06F0}-\x{06F9}a-zA-Z\s()\.\-]/u';
-	const NON_INT_PREFIX_OR_DIGIT_REGEX = '/[^\d\x{FF10}-\x{FF19}\x{0660}-\x{0669}\x{06F0}-\x{06F9}a-zA-Z\s()\.\-\+\x{FF0B}]/u';
+	const NON_DIGIT_REGEX = '/[^\\d\\x{FF10}-\\x{FF19}\\x{0660}-\\x{0669}\\x{06F0}-\\x{06F9}a-zA-Z\\s()\\.\\-]/u';
+	const NON_INT_PREFIX_OR_DIGIT_REGEX = '/[^\\d\\x{FF10}-\\x{FF19}\\x{0660}-\\x{0669}\\x{06F0}-\\x{06F9}a-zA-Z\\s()\\.\\-\\+\\x{FF0B}]/u';
+	const NON_PAUSE_PARAMS_OR_EXTENSION_DIGIT_REGEX = '/[^\\d\\x{FF10}-\\x{FF19}\\x{0660}-\\x{0669}\\x{06F0}-\\x{06F9}a-zA-Z\\s()\\.\\-\\*#,~;]/u';
+	const NON_PAUSE_OR_EXTENSION_DIGIT_REGEX = '/[^\\d\\x{FF10}-\\x{FF19}\\x{0660}-\\x{0669}\\x{06F0}-\\x{06F9}a-zA-Z\\s()\\.\\-\\*#,]/u';
 
 	protected string $fmt = '';
 	protected string $int = '';
@@ -51,6 +53,9 @@ class Tel {
 	}
 	public function getExt(): string {
 		return $this->ext;
+	}
+	public function getExtDigits(): string {
+		return static::normalize($this->ext);
 	}
 	public function getParams(): array {
 		return $this->params;
@@ -85,7 +90,7 @@ class Tel {
 		return $this;
 	}
 	public function setExt(string $ext): static {
-		$this->ext = static::normalize($ext);
+		$this->ext = static::normalize($ext, true);
 		return $this;
 	}
 	public function setParam(string $key, string $value): static {
@@ -99,7 +104,7 @@ class Tel {
 	public function setParams(array $params): static {
 		if (array_key_exists('ext', $params)) {
 			if (is_string($params['ext'])) {
-				$this->ext = static::normalize($params['ext']);
+				$this->ext = static::normalize($params['ext'], true);
 			} else {
 				$this->ext = '';
 			}
@@ -442,8 +447,29 @@ class Tel {
 		$res->num = static::normalize($res->num);
 		$offset += $num_len;
 
-		// parse extension, if present
+		// skip anything that isn't a digit, comma, tilde or semicolon
+		for (; preg_match(self::NON_PAUSE_PARAMS_OR_EXTENSION_DIGIT_REGEX, substr($number, $offset, 1)) === 1 && $offset < strlen($number); $offset++) {}
+		if ($offset >= strlen($number)) return $res;
+
+		// parse extension denoted by comma (auto-dialer pause character), if present
+		if (substr($number, $offset, 1) === ',') {
+			// find extension length by finding first non-digit char
+			$ext_len = strlen($number) - $offset;
+			for ($i = $offset; $i < strlen($number); $i++) {
+				if (preg_match(self::NON_PAUSE_OR_EXTENSION_DIGIT_REGEX, $number[$i]) === 1) {
+					$ext_len = $i - $offset;
+					break;
+				}
+			}
+
+			// set extension
+			$res->ext = static::normalize(substr($number, $offset, $ext_len), true);
+			$offset += $ext_len;
+		}
+
+		// parse extension denoted by tilde, if present
 		if (substr($number, $offset, 1) === '~') {
+			// skip tilde character
 			$offset++;
 
 			// find extension length by finding first non-digit char
@@ -456,7 +482,7 @@ class Tel {
 			}
 
 			// set extension
-			$res->ext = static::normalize(substr($number, $offset, $ext_len));
+			$res->ext = static::normalize(substr($number, $offset, $ext_len), true);
 			$offset += $ext_len;
 		}
 
@@ -475,7 +501,7 @@ class Tel {
 
 			// extract extension from params
 			if (array_key_exists('ext', $res->params)) {
-				$res->ext = static::normalize($res->params['ext']);
+				$res->ext = static::normalize($res->params['ext'], true);
 				unset($res->params['ext']);
 			}
 		}
@@ -587,7 +613,7 @@ class Tel {
 		return $res;
 	}
 
-	protected static function normalize(string $number): string {
+	protected static function normalize(string $number, bool $extension = false): string {
 		// replace lowercase letters with uppercase letters
 		$number = strtoupper($number);
 
@@ -673,7 +699,11 @@ class Tel {
 		], $number);
 
 		// remove non-digits from number
-		$number = preg_replace('/[^\d]/', '', $number);
+		if ($extension) {
+			$number = preg_replace('/[^\\d\\*#,]/', '', $number);
+		} else {
+			$number = preg_replace('/[^\\d]/', '', $number);
+		}
 
 		return $number;
 	}
