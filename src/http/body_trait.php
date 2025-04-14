@@ -31,18 +31,44 @@ trait BodyTrait {
 
 	protected function decodeBody(string $input): mixed {
 		if (strlen($input) === 0) return null;
-		return match($this->getContentType()?->getType()) {
-			'multipart/form-data' => FormData::decode($input),
-			'application/x-www-form-urlencoded' => Querystring::decode($input),
-			'application/json' => Json::decode($input),
-			default => $input,
-		};
+
+		// Get Content-Type header
+		$mime = $this->getContentType();
+
+		// Get type, subtype and structured syntax suffix of Content-Type header (RFC 6839)
+		$type = $mime?->type;
+		$subtype_parts = explode('+', $mime?->subtype ?? '', 2);
+		$subtype = $subtype_parts[0];
+		$suffix = count($subtype_parts) === 2
+			? $subtype_parts[1]
+			: null;
+
+		if ($type === 'multipart' && $subtype === 'form-data') {
+			return FormData::decode($input);
+		} elseif ($type === 'application' && $subtype === 'x-www-form-urlencoded') {
+			return Querystring::decode($input);
+		} elseif ($type === 'application' && ($subtype === 'json' || $suffix === 'json')) {
+			return Json::decode($input);
+		}
+
+		return $input;
 	}
 
 	protected function encodeBody(mixed $input): string {
 		if ($input === null) return '';
-		switch ($this->getContentType()?->getType()) {
-		case 'multipart/form-data':
+
+		// Get Content-Type header
+		$mime = $this->getContentType();
+
+		// Get type, subtype and structured syntax suffix of Content-Type header (RFC 6839)
+		$type = $mime?->type;
+		$subtype_parts = explode('+', $mime?->subtype ?? '', 2);
+		$subtype = $subtype_parts[0];
+		$suffix = count($subtype_parts) === 2
+			? $subtype_parts[1]
+			: null;
+
+		if ($type === 'multipart' && $subtype === 'form-data') {
 			if (!is_array($input)) return '';
 			$boundary = $this->getContentType()?->getParameter('boundary');
 			if ($boundary === null) {
@@ -58,27 +84,24 @@ trait BodyTrait {
 				}
 			}
 			return (new FormData($fields, $boundary))->encode();
-		case 'application/x-www-form-urlencoded':
+		} elseif ($type === 'application' && $subtype === 'x-www-form-urlencoded') {
 			return Querystring::encode($input);
-		case 'application/json':
+		} elseif ($type === 'application' && ($subtype === 'json' || $suffix === 'json')) {
 			return Json::encode($input, $this->minify ? 0 : JSON_PRETTY_PRINT);
-		case 'text/html':
+		} elseif ($type === 'text' && $subtype === 'html') {
 			if ($this->minify) {
 				return Minify::HTML((string)$input, $this->html_minify_options);
 			}
-			break;
-		case 'text/css':
+		} elseif ($type === 'text' && $subtype === 'css') {
 			if ($this->minify) {
 				return Minify::CSS((string)$input);
 			}
-			break;
-		case 'application/javascript':
-		case 'text/javascript':
+		} elseif (($type === 'application' || $type === 'text') && $subtype === 'javascript') {
 			if ($this->minify) {
 				return Minify::JS((string)$input);
 			}
-			break;
 		}
+
 		return (string)$input;
 	}
 
