@@ -8,7 +8,7 @@ class Request {
 	use BodyTrait;
 
 	public static $request_log_format  = "----- BEGIN HTTP REQUEST -----\n%s\n%s\n----- END HTTP REQUEST -----";
-	public static $response_log_format = "----- BEGIN HTTP RESPONSE -----\n%s\n----- END HTTP RESPONSE -----";
+	public static $response_log_format = "----- BEGIN HTTP RESPONSE -----\n%s\n%s\n----- END HTTP RESPONSE -----";
 
 	// Request methods
 	const METHOD_GET     = 'GET';
@@ -111,6 +111,14 @@ class Request {
 	public static function patch(string $url = ''): static { return new static(method: self::METHOD_PATCH, url: $url); }
 
 	// Helpers
+
+	public static function formatRequestLog(string $headers, string $body): string {
+		return sprintf(static::$request_log_format, $headers, $body);
+	}
+
+	public static function formatResponseLog(string $headers, string $body): string {
+		return sprintf(static::$response_log_format, $headers, $body);
+	}
 
 	protected static function normalizeAddress(string $address, bool $binary = false): ?string {
 		$address_bin = inet_pton($address);
@@ -271,7 +279,7 @@ class Request {
 
 	// Actions
 
-	public function perform(bool $debug = false, int $numeric_type = Querystring::NUMERIC_TYPE_INDEXED, int $max_redirects = 0): Response {
+	public function perform(bool $debug = false, int $numeric_type = Querystring::NUMERIC_TYPE_INDEXED, int $max_redirects = 0, int $connect_timeout = 300, int $timeout = 900): Response {
 		// Initialize cURL context
 		$ch = curl_init();
 		curl_setopt($ch, CURLOPT_URL, $this->getURL(numeric_type: $numeric_type));
@@ -285,11 +293,16 @@ class Request {
 		curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
 		curl_setopt($ch, CURLOPT_FOLLOWLOCATION, $max_redirects > 0);
 		curl_setopt($ch, CURLOPT_MAXREDIRS, $max_redirects);
+		curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, $connect_timeout);
+		curl_setopt($ch, CURLOPT_TIMEOUT, $timeout);
 
 		// Add POST/PUT/PATCH body data to cURL context
 		if ($this->methodHasBody()) {
-			curl_setopt($ch, CURLOPT_POSTFIELDS, $this->getRawBody());
+			$req_body = $this->getRawBody();
+			curl_setopt($ch, CURLOPT_POSTFIELDS, $req_body);
 			curl_setopt($ch, CURLOPT_POST, 1);
+		} else {
+			$req_body = '';
 		}
 
 		// Add headers to cURL context
@@ -306,15 +319,9 @@ class Request {
 			return $res;
 		}
 
-		// Dump request + response if debugging
-		if ($debug) {
-			Log::debug(sprintf(static::$request_log_format, curl_getinfo($ch, CURLINFO_HEADER_OUT), $this->getRawBody()));
-			Log::debug(sprintf(static::$response_log_format, $res_body));
-		}
-
 		// Get response code and size of response headers
-		$res_code         = curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
-		$res_header_size  = curl_getinfo($ch, CURLINFO_HEADER_SIZE);
+		$res_code        = curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
+		$res_header_size = curl_getinfo($ch, CURLINFO_HEADER_SIZE);
 		curl_close($ch);
 
 		// Get the headers of the last request (ignoring the headers of any redirects)
@@ -323,6 +330,13 @@ class Request {
 		$res_headerstr_startpos = strrpos("\r\n\r\n", $res_headerstr);
 		if ($res_headerstr_startpos !== false) {
 			$res_headerstr = substr($res_headerstr, $res_headerstr_startpos);
+		}
+
+		// Dump request + response if debugging
+		if ($debug) {
+			$req_headerstr = curl_getinfo($ch, CURLINFO_HEADER_OUT);
+			Log::debug(static::formatRequestLog($req_headerstr, $req_body));
+			Log::debug(static::formatResponseLog($res_headerstr, $res_body));
 		}
 
 		return new Response($res_body, code: (int)$res_code, headers: $res_headerstr);
