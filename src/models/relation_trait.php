@@ -239,7 +239,7 @@ trait RelationTrait {
 		return $join;
 	}
 
-	public static function addRelation(int $relation_type, string|array|callable $source_fields, $target_model, string|array|callable $target_fields, string $relation_name = null, array $default_options = []): void {
+	public static function addRelation(int $relation_type, string|array|callable $source_fields, $target_model, string|array|callable $target_fields, ?string $relation_name = null, array $default_options = []): void {
 		if (is_string($source_fields)) {
 			$source_fields = [$source_fields];
 		}
@@ -262,19 +262,19 @@ trait RelationTrait {
 		];
 	}
 
-	public static function belongsTo(string|array|callable $source_fields, $target_model, string|array|callable $target_fields, string $relation_name = null, array $default_options = []): void {
+	public static function belongsTo(string|array|callable $source_fields, $target_model, string|array|callable $target_fields, ?string $relation_name = null, array $default_options = []): void {
 		static::addRelation(RelationModel::TYPE_BELONGS_TO_ONE, $source_fields, $target_model, $target_fields, $relation_name, $default_options);
 	}
 
-	public static function belongsToMany(string|array|callable $source_fields, $target_model, string|array|callable $target_fields, string $relation_name = null, array $default_options = []): void {
+	public static function belongsToMany(string|array|callable $source_fields, $target_model, string|array|callable $target_fields, ?string $relation_name = null, array $default_options = []): void {
 		static::addRelation(RelationModel::TYPE_BELONGS_TO_MANY, $source_fields, $target_model, $target_fields, $relation_name, $default_options);
 	}
 
-	public static function hasOne(string|array|callable $source_fields, $target_model, string|array|callable $target_fields, string $relation_name = null, array $default_options = []): void {
+	public static function hasOne(string|array|callable $source_fields, $target_model, string|array|callable $target_fields, ?string $relation_name = null, array $default_options = []): void {
 		static::addRelation(RelationModel::TYPE_HAS_ONE, $source_fields, $target_model, $target_fields, $relation_name, $default_options);
 	}
 
-	public static function hasMany(string|array|callable $source_fields, $target_model, string|array|callable $target_fields, string $relation_name = null, array $default_options = []): void {
+	public static function hasMany(string|array|callable $source_fields, $target_model, string|array|callable $target_fields, ?string $relation_name = null, array $default_options = []): void {
 		static::addRelation(RelationModel::TYPE_HAS_MANY, $source_fields, $target_model, $target_fields, $relation_name, $default_options);
 	}
 

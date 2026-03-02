@@ -1,5 +1,5 @@
 <?php namespace Obie;
-use Obie\Http\Router;
+use Obie\Http\Request;
 use Obie\Log;
 use Obie\Vars\StaticVarTrait;
 
@@ -47,7 +47,8 @@ class Session {
 			return $_COOKIE[static::getName()];
 		}
 		if ($only_cookie) return null;
-		return Router::getPost(static::getName()) ?? Router::getQuery(static::getName());
+		$req = Request::current();
+		return $req?->getBody(static::getName()) ?? $req?->getQuery(static::getName());
 	}
 
 	public static function new(): void {
@@ -86,25 +87,33 @@ class Session {
 
 		// get app configuration
 		$config = App::$app::getConfig();
+		$url = $config->get('url');
+		$use_cookies = (bool)$config->get('sessions', 'use_cookies') ?? true;
+		$lifetime = (int)$config->get('sessions', 'lifetime') ?? 3600;
+		$save_handler = $config->get('sessions', 'save_handler');
+		$save_path = $config->get('sessions', 'save_path');
+		$samesite = $config->get('sessions', 'samesite') ?? 'Lax';
 
 		// ensure redis module is loaded if configured save handler is redis
-		if ($config->get('sessions', 'save_handler') === 'redis' && !extension_loaded('redis')) {
+		if ($save_handler === 'redis' && !extension_loaded('redis')) {
 			throw new \Exception('Redis module is not loaded');
 		}
 
 		// set session parameters from config
-		ini_set('session.save_handler', $config->get('sessions', 'save_handler'));
-		ini_set('session.save_path', $config->get('sessions', 'save_path'));
-		ini_set('session.gc_maxlifetime', (string)(int)($config->get('sessions', 'lifetime') ?? 3600));
-		ini_set('session.use_cookies', (string)(int)(bool)($config->get('sessions', 'use_cookies') ?? true));
-		ini_set('session.use_only_cookies', (string)(int)(bool)($config->get('sessions', 'use_only_cookies') ?? true));
+		ini_set('session.save_handler', $save_handler);
+		ini_set('session.save_path', $save_path);
+		ini_set('session.gc_maxlifetime', (string)$lifetime);
+		ini_set('session.use_cookies', (string)(int)$use_cookies);
+		if ($use_cookies) {
+			ini_set('session.use_only_cookies', '1');
+		}
 		session_set_cookie_params([
-			'lifetime' => (int)($config->get('sessions', 'lifetime') ?? 3600),
+			'lifetime' => $lifetime,
 			'path'     => '/',
-			'domain'   => substr($config->get('url'), strpos($config->get('url'), '://') + 3),
-			'secure'   => strpos($config->get('url'), 'https://') === 0,
+			'domain'   => substr($url, strpos($url, '://') + 3),
+			'secure'   => strpos($url, 'https://') === 0,
 			'httponly' => true,
-			'samesite' => $config->get('sessions', 'samesite') ?? 'Lax'
+			'samesite' => $samesite,
 		]);
 		session_name(static::getName());
 

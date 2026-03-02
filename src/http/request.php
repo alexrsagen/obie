@@ -3,6 +3,7 @@ use Obie\Encoding\Querystring;
 use Obie\Encoding\Url;
 use Obie\Log;
 
+/** @phpstan-consistent-constructor */
 class Request {
 	use HeaderTrait;
 	use BodyTrait;
@@ -67,7 +68,7 @@ class Request {
 		if ($current === null) {
 			// get path and query string
 			$path = $_SERVER['REQUEST_URI'];
-			$qs_pos = strpos($path, '?');
+			$qs_pos = strpos($path, Querystring::BEGIN);
 			$qs = '';
 			if ($qs_pos !== false) {
 				$qs = substr($path, $qs_pos + 1);
@@ -161,6 +162,19 @@ class Request {
 
 	public function getQueryString(int $numeric_type = Querystring::NUMERIC_TYPE_INDEXED): string {
 		return Querystring::encode($this->getQuery(), $numeric_type);
+	}
+
+	public function getPathWithQueryString(bool $trim_trailing_slash = false, int $numeric_type = Querystring::NUMERIC_TYPE_INDEXED): string {
+		$path = $this->getPath();
+		if ($trim_trailing_slash) {
+			$path = rtrim($path, '/');
+		}
+		$qs = $this->getQueryString($numeric_type);
+		if (strlen($qs) > 0) {
+			$path .= Querystring::BEGIN;
+			$path .= $qs;
+		}
+		return $path;
 	}
 
 	public function getMethod(): string {

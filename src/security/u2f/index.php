@@ -12,7 +12,6 @@ use Sop\CryptoTypes\AlgorithmIdentifier\Asymmetric\ECPublicKeyAlgorithmIdentifie
 
 /**
  * @deprecated FIDO U2F is deprecated. Use FIDO2 / WebAuthn instead.
- * @package Obie\Security
  */
 class U2f {
 	// https://fidoalliance.org/specs/fido-u2f-v1.2-ps-20170411/fido-u2f-javascript-api-v1.2-ps-20170411.html#idl-def-SignResponse

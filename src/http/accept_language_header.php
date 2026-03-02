@@ -1,5 +1,6 @@
 <?php namespace Obie\Http;
 
+/** @phpstan-consistent-constructor */
 class AcceptLanguageHeader {
 	public function __construct(
 		public array $languages = [],

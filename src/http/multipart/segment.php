@@ -1,6 +1,7 @@
 <?php namespace Obie\Http\Multipart;
 use Obie\Http\HeaderTrait;
 
+/** @phpstan-consistent-constructor */
 class Segment {
 	use HeaderTrait;
 

@@ -1,6 +1,6 @@
 {
     "name": "alexrsagen/obie",
-    "version": "1.6.12",
+    "version": "1.6.13",
     "type": "framework",
     "description": "Obie is a simple PHP framework. It aims to provide basic services needed for any web app.",
     "keywords": ["framework", "php", "http", "template", "view", "router", "routing", "model", "models", "session", "sessions"],
@@ -23,15 +23,15 @@
     },
     "require": {
         "php": ">=8.0.0",
-        "swiftmailer/swiftmailer": "^6.0",
+        "symfony/mailer": "^8.0",
         "matthiasmullie/minify": "^1.3",
         "2tvenom/cborencode": "^1.0",
-        "monolog/monolog": "^2.1",
+        "monolog/monolog": "^3.10",
         "sop/crypto-types": "^0.3.0"
     },
     "require-dev": {
-        "phpunit/phpunit": "^9",
-        "phpstan/phpstan": "^1.10",
-        "nikic/php-fuzzer": "^0.0.10"
+        "phpunit/phpunit": "^13",
+        "phpstan/phpstan": "^2.1",
+        "nikic/php-fuzzer": "^0.0.11"
     }
 }

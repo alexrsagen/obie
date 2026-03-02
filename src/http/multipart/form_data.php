@@ -9,7 +9,7 @@ use Obie\Http\Mime;
  * @property string $boundary
  *
  * @link https://datatracker.ietf.org/doc/html/rfc7578
- * @package Obie\Http\Multipart
+ * @phpstan-consistent-constructor
  */
 class FormData {
 	const DISPOSITION_FORM_DATA = 'form-data';

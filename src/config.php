@@ -3,6 +3,7 @@ use Obie\Vars\VarTrait;
 use Obie\Encoding\Json;
 use Obie\Vars\VarCollection;
 
+/** @phpstan-consistent-constructor */
 class Config {
     use VarTrait;
 

@@ -5,6 +5,7 @@ use Obie\Encoding\Spf1;
 use Obie\Encoding\Spf1\Record;
 use Obie\Log;
 
+/** @phpstan-consistent-constructor */
 class Cidr {
 	function __construct(
 		public string $address,

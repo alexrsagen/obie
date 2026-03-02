@@ -3,7 +3,7 @@
 /**
  * ExtendedHeaderValue implements an RFC 8187 compliant HTTP ext-value encoder/decoder.
  *
- * @package Obie\Encoding
+ * @phpstan-consistent-constructor
  */
 class ExtendedHeaderValue {
 	const CHARSET_UTF8 = 'UTF-8';

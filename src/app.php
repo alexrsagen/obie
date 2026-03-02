@@ -433,15 +433,6 @@ class App {
 		if (!self::$app::initConfig()) return false;
 		if (!self::$app::initTemp()) return false;
 		if (!self::$config->get('mail', 'enable')) return true;
-
-		// Set up SwiftMailer
-		if (!class_exists('Swift_Preferences')) {
-			error_log(self::$app . '::initMail: Unable to load SwiftMailer.', E_USER_ERROR);
-			return false;
-		}
-
-		// Set SwiftMailer temp folder
-		\Swift_Preferences::getInstance()->setTempDir(OBIE_TMP_DIR)->setCacheType('disk');
 		return true;
 	}
 
@@ -522,7 +513,6 @@ class App {
 			E_USER_ERROR => 'E_USER_ERROR',
 			E_USER_WARNING => 'E_USER_WARNING',
 			E_USER_NOTICE => 'E_USER_NOTICE',
-			E_STRICT => 'E_STRICT',
 			E_RECOVERABLE_ERROR => 'E_RECOVERABLE_ERROR',
 			E_DEPRECATED => 'E_DEPRECATED',
 			E_USER_DEPRECATED => 'E_USER_DEPRECATED',
@@ -567,20 +557,32 @@ class App {
 			throw new \Exception('Mail is not enabled in the server configuration');
 		}
 
-		$transport = new \Swift_SmtpTransport(self::$config->get('mail', 'host'), self::$config->get('mail', 'port'), self::$config->get('mail', 'security'));
+		$tls = strcasecmp(self::$config->get('mail', 'security'), 'ssl') === 0 ||
+			strcasecmp(self::$config->get('mail', 'security'), 'tls') === 0 ||
+			self::$config->get('mail', 'security') === true;
+
+		$transport = new \Symfony\Component\Mailer\Transport\Smtp\EsmtpTransport(self::$config->get('mail', 'host'), (int)self::$config->get('mail', 'port'), $tls);
 		$transport->setUsername(self::$config->get('mail', 'username'));
 		$transport->setPassword(self::$config->get('mail', 'password'));
+		$transport->setAutoTls($tls);
 
-		$mailer = new \Swift_Mailer($transport);
+		$mailer = new \Symfony\Component\Mailer\Mailer($transport);
 
-		$message = new \Swift_Message($subject);
-		$message->setFrom([self::$config->get('mail', 'from_email') => self::$config->get('mail', 'from_name')]);
-		$message->setTo($recipients);
-		$message->setBody($body, $is_html ? 'text/html' : 'text/plain');
+		$message = (new \Symfony\Component\Mime\Email())
+			->subject($subject)
+			->from(new \Symfony\Component\Mime\Address(self::$config->get('mail', 'from_email'), self::$config->get('mail', 'from_name')))
+			->to(...$recipients);
+
+		if ($is_html) {
+			$message->html($body);
+		} else {
+			$message->text($body);
+		}
 
 		try {
-			return $mailer->send($message);
-		} catch (\Swift_SwiftException $e) {
+			$mailer->send($message);
+			return true;
+		} catch (\Exception $e) {
 			return false;
 		}
 	}

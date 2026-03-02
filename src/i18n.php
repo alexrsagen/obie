@@ -1,6 +1,7 @@
 <?php namespace Obie;
 use Obie\Encoding\Jsonc;
 
+/** @phpstan-consistent-constructor */
 class I18n {
 	protected string $locale = '';
 	protected array $locales = [];

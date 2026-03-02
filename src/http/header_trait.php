@@ -4,6 +4,7 @@ trait HeaderTrait {
 	protected array $headers = [];
 	protected ?Mime $content_type = null;
 	protected ?AcceptHeader $accept = null;
+	protected ?\DateTime $datetime = null;
 
 	public static function normalizeHeaderKey(string $key): string {
 		$key = trim($key);
@@ -86,15 +87,19 @@ trait HeaderTrait {
 		return $this->content_type;
 	}
 
-	public function setContentType(string|Mime $mime): static {
+	public function setContentType(null|string|Mime $mime): static {
 		if (is_string($mime)) {
 			$mime = Mime::decode($mime);
-			if (empty($mime->getParameter('charset'))) {
+			if ($mime !== null && empty($mime->getParameter('charset'))) {
 				$mime->setParameter('charset', 'utf-8');
 			}
 		}
 		$this->content_type = $mime;
-		$this->setHeader('content-type', $mime->encode());
+		if ($mime !== null) {
+			$this->setHeader('content-type', $mime->encode());
+		} else {
+			$this->unsetHeader('content-type');
+		}
 		return $this;
 	}
 
@@ -108,12 +113,40 @@ trait HeaderTrait {
 		return $this->accept;
 	}
 
-	public function setAccept(string|AcceptHeader $accept): static {
+	public function setAccept(null|string|AcceptHeader $accept): static {
 		if (is_string($accept)) {
 			$accept = AcceptHeader::decode($accept);
 		}
 		$this->accept = $accept;
-		$this->setHeader('accept', $accept->encode());
+		if ($accept !== null) {
+			$this->setHeader('accept', $accept->encode());
+		} else {
+			$this->unsetHeader('accept');
+		}
+		return $this;
+	}
+
+	public function getDate(): ?\DateTime {
+		if ($this->datetime === null) {
+			$datetime = $this->getHeader('date');
+			if (!empty($datetime)) {
+				$this->datetime = DateTime::createFromHttpDate($datetime);
+			}
+		}
+		return $this->datetime;
+	}
+
+	public function setDate(null|string|\DateTime $datetime): static {
+		if (is_string($datetime)) {
+			$datetime = DateTime::createFromHttpDate($datetime);
+			if ($datetime === false) $datetime = null;
+		}
+		$this->datetime = $datetime;
+		if ($datetime !== null) {
+			$this->setHeader('date', $datetime->format(DateTime::HTTP_DATE_FORMATS[0]));
+		} else {
+			$this->unsetHeader('date');
+		}
 		return $this;
 	}
 }

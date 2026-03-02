@@ -44,7 +44,7 @@ class Webauthn {
 	 * @param array $raw_key_handles - Array containing raw key handle strings
 	 * @param array $transports - This OPTIONAL member contains a hint as to how the client might communicate with the managing authenticator of the public key credential the caller is referring to.
 	 */
-	public static function buildAllowCredentials(array $raw_key_handles, array $transports = null): array {
+	public static function buildAllowCredentials(array $raw_key_handles, ?array $transports = null): array {
 		$keys = [];
 		foreach ($raw_key_handles as $key_handle) {
 			$key = [
@@ -70,7 +70,7 @@ class Webauthn {
 	 * @param string $user_verification - Optional, see https://www.w3.org/TR/webauthn-2/#enumdef-userverificationrequirement
 	 * @param array $extensions - Optional, see https://www.w3.org/TR/webauthn-2/#dictdef-authenticationextensionsclientinputs
 	 */
-	public static function buildPublicKeyCredentialRequestOptions(string $challenge = null, array $allow_credentials = null, int $timeout = null, string $rp_id = null, string $user_verification = self::UV_PREFERRED, array $extensions = null): array {
+	public static function buildPublicKeyCredentialRequestOptions(?string $challenge = null, ?array $allow_credentials = null, ?int $timeout = null, ?string $rp_id = null, string $user_verification = self::UV_PREFERRED, ?array $extensions = null): array {
 		if ($challenge === null) $challenge = random_bytes(32);
 		$res = ['challenge' => array_values(unpack('C*', $challenge))];
 		if ($timeout !== null) $res['timeout'] = $timeout;
@@ -87,15 +87,15 @@ class Webauthn {
 	 * @link https://www.w3.org/TR/webauthn-2/#dictdef-publickeycredentialcreationoptions
 	 * @param array $rp - Relying party, see https://www.w3.org/TR/webauthn-2/#dictdef-publickeycredentialrpentity
 	 * @param array $user - User, see https://www.w3.org/TR/webauthn-2/#dictdef-publickeycredentialuserentity
-	 * @param string $challenge - Challenge string, should be 32 bytes long for ECDSA-SHA256, will be generated if not specified. See https://www.w3.org/TR/webauthn-2/#sctn-cryptographic-challenges
+	 * @param ?string $challenge - Challenge string, should be 32 bytes long for ECDSA-SHA256, will be generated if not specified. See https://www.w3.org/TR/webauthn-2/#sctn-cryptographic-challenges
 	 * @param array $cred_params - Credential parameters (type and algorithm), see https://www.w3.org/TR/webauthn-2/#dictdef-publickeycredentialparameters
-	 * @param int $timeout - Optional client register timeout in milliseconds
-	 * @param array $exclude_creds - Optional, see https://www.w3.org/TR/webauthn-2/#dictdef-publickeycredentialdescriptor
-	 * @param array $authenticator_selection - Optional, see https://www.w3.org/TR/webauthn-2/#dictdef-authenticatorselectioncriteria
+	 * @param ?int $timeout - Optional client register timeout in milliseconds
+	 * @param ?array $exclude_creds - Optional, see https://www.w3.org/TR/webauthn-2/#dictdef-publickeycredentialdescriptor
+	 * @param ?array $authenticator_selection - Optional, see https://www.w3.org/TR/webauthn-2/#dictdef-authenticatorselectioncriteria
 	 * @param string $attestation - Optional, should be one of https://www.w3.org/TR/webauthn-2/#enumdef-attestationconveyancepreference
-	 * @param array $extensions - Optional, see https://www.w3.org/TR/webauthn-2/#dictdef-authenticationextensionsclientinputs
+	 * @param ?array $extensions - Optional, see https://www.w3.org/TR/webauthn-2/#dictdef-authenticationextensionsclientinputs
 	 */
-	public static function buildPublicKeyCredentialCreationOptions(array $rp, array $user, string $challenge = null, array $cred_params = [['type' => 'public-key', 'alg' => Cose::ALG_ES256]], int $timeout = null, array $exclude_creds = null, array $authenticator_selection = null, string $attestation = self::AT_NONE, array $extensions = null): array {
+	public static function buildPublicKeyCredentialCreationOptions(array $rp, array $user, ?string $challenge = null, array $cred_params = [['type' => 'public-key', 'alg' => Cose::ALG_ES256]], ?int $timeout = null, ?array $exclude_creds = null, ?array $authenticator_selection = null, string $attestation = self::AT_NONE, ?array $extensions = null): array {
 		if ($challenge === null) $challenge = random_bytes(32);
 		$res = ['challenge' => array_values(unpack('C*', $challenge)), 'pubKeyCredParams' => $cred_params];
 		if ($rp !== null) $res['rp'] = $rp;
@@ -294,7 +294,7 @@ class Webauthn {
 	 * @param bool $attestation_required - Whether attestation is required
 	 * @param array $cred_params - Credential parameters (type and algorithm), see https://www.w3.org/TR/webauthn-2/#dictdef-publickeycredentialparameters
 	 */
-	public static function verifyRegistration(string $client_data_json, array $att_obj, string $known_challenge, string $known_origin, string $known_rp_id, string $fido_mds2_token = null, bool $uv_required = false, bool $attestation_required = true, array $cred_params = [['type' => 'public-key', 'alg' => Cose::ALG_ES256]]): bool {
+	public static function verifyRegistration(string $client_data_json, array $att_obj, string $known_challenge, string $known_origin, string $known_rp_id, ?string $fido_mds2_token = null, bool $uv_required = false, bool $attestation_required = true, array $cred_params = [['type' => 'public-key', 'alg' => Cose::ALG_ES256]]): bool {
 		$client_data = Json::decode($client_data_json); // §7.1 step 6
 
 		// - validate client data and attestation object against validation models
@@ -455,7 +455,6 @@ class Webauthn {
 					$cert = Pem::encode($att_obj['attStmt']['x5c'][0], Pem::LABEL_CERTIFICATE);
 					$key_res = openssl_pkey_get_public($cert);
 					$key_details = openssl_pkey_get_details($key_res);
-					openssl_free_key($key_res);
 					if (
 						!is_array($key_details) ||
 						!array_key_exists('key', $key_details) ||

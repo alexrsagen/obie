@@ -122,6 +122,8 @@ class RouterInstance {
 	/**
 	 * Register a new route with a set of handlers
 	 *
+	 * @param-closure-this Route $handlers
+	 * @param-later-invoked-callable $handlers
 	 * @param string $method_str A comma-separated list of HTTP methods to handle (case insensitive)
 	 * @param string $route_str A slash-delimited list of regexes or match groups, for example: /path/(r?eg[ex]+)/:some_match_group
 	 * @param callable $handlers,... A list of middleware/request handlers to apply when executing the route, if the route matches
@@ -135,39 +137,119 @@ class RouterInstance {
 		return $route;
 	}
 
-	/** @see self::route() */
+	/**
+	 * Register a new GET route with a set of handlers
+	 *
+	 * @param-closure-this Route $handlers
+	 * @param-later-invoked-callable $handlers
+	 * @param string $route_str A slash-delimited list of regexes or match groups, for example: /path/(r?eg[ex]+)/:some_match_group
+	 * @param callable $handlers,... A list of middleware/request handlers to apply when executing the route, if the route matches
+	 * @return Route The new route
+	 */
 	public function get(string $route_str, callable ...$handlers): Route {
 		return $this->route('GET', $route_str, ...$handlers);
 	}
-	/** @see self::route() */
+
+	/**
+	 * Register a new HEAD route with a set of handlers
+	 *
+	 * @param-closure-this Route $handlers
+	 * @param-later-invoked-callable $handlers
+	 * @param string $route_str A slash-delimited list of regexes or match groups, for example: /path/(r?eg[ex]+)/:some_match_group
+	 * @param callable $handlers,... A list of middleware/request handlers to apply when executing the route, if the route matches
+	 * @return Route The new route
+	 */
 	public function head(string $route_str, callable ...$handlers): Route {
 		return $this->route('HEAD', $route_str, ...$handlers);
 	}
-	/** @see self::route() */
+
+	/**
+	 * Register a new POST route with a set of handlers
+	 *
+	 * @param-closure-this Route $handlers
+	 * @param-later-invoked-callable $handlers
+	 * @param string $route_str A slash-delimited list of regexes or match groups, for example: /path/(r?eg[ex]+)/:some_match_group
+	 * @param callable $handlers,... A list of middleware/request handlers to apply when executing the route, if the route matches
+	 * @return Route The new route
+	 */
 	public function post(string $route_str, callable ...$handlers): Route {
 		return $this->route('POST', $route_str, ...$handlers);
 	}
-	/** @see self::route() */
+
+	/**
+	 * Register a new PUT route with a set of handlers
+	 *
+	 * @param-closure-this Route $handlers
+	 * @param-later-invoked-callable $handlers
+	 * @param string $route_str A slash-delimited list of regexes or match groups, for example: /path/(r?eg[ex]+)/:some_match_group
+	 * @param callable $handlers,... A list of middleware/request handlers to apply when executing the route, if the route matches
+	 * @return Route The new route
+	 */
 	public function put(string $route_str, callable ...$handlers): Route {
 		return $this->route('PUT', $route_str, ...$handlers);
 	}
-	/** @see self::route() */
+
+	/**
+	 * Register a new DELETE route with a set of handlers
+	 *
+	 * @param-closure-this Route $handlers
+	 * @param-later-invoked-callable $handlers
+	 * @param string $route_str A slash-delimited list of regexes or match groups, for example: /path/(r?eg[ex]+)/:some_match_group
+	 * @param callable $handlers,... A list of middleware/request handlers to apply when executing the route, if the route matches
+	 * @return Route The new route
+	 */
 	public function delete(string $route_str, callable ...$handlers): Route {
 		return $this->route('DELETE', $route_str, ...$handlers);
 	}
-	/** @see self::route() */
+
+	/**
+	 * Register a new OPTIONS route with a set of handlers
+	 *
+	 * @param-closure-this Route $handlers
+	 * @param-later-invoked-callable $handlers
+	 * @param string $route_str A slash-delimited list of regexes or match groups, for example: /path/(r?eg[ex]+)/:some_match_group
+	 * @param callable $handlers,... A list of middleware/request handlers to apply when executing the route, if the route matches
+	 * @return Route The new route
+	 */
 	public function options(string $route_str, callable ...$handlers): Route {
 		return $this->route('OPTIONS', $route_str, ...$handlers);
 	}
-	/** @see self::route() */
+
+	/**
+	 * Register a new PATCH route with a set of handlers
+	 *
+	 * @param-closure-this Route $handlers
+	 * @param-later-invoked-callable $handlers
+	 * @param string $route_str A slash-delimited list of regexes or match groups, for example: /path/(r?eg[ex]+)/:some_match_group
+	 * @param callable $handlers,... A list of middleware/request handlers to apply when executing the route, if the route matches
+	 * @return Route The new route
+	 */
 	public function patch(string $route_str, callable ...$handlers): Route {
 		return $this->route('PATCH', $route_str, ...$handlers);
 	}
-	/** @see self::route() */
+
+	/**
+	 * Register a new catch-all route with a set of handlers, intended to allow use of middleware.
+	 *
+	 * @param-closure-this Route $handlers
+	 * @param-later-invoked-callable $handlers
+	 * @param string $route_str A slash-delimited list of regexes or match groups, for example: /path/(r?eg[ex]+)/:some_match_group
+	 * @param callable $handlers,... A list of middleware/request handlers to apply when executing the route, if the route matches
+	 * @return Route The new route
+	 */
 	public function use(string $route_str, callable ...$handlers): Route {
 		return $this->route('USE', $route_str, ...$handlers);
 	}
-	/** @see self::route() */
+
+	/**
+	 * Register a new catch-all route with a set of handlers.
+	 *
+	 * @param-closure-this Route $handlers
+	 * @param-later-invoked-callable $handlers
+	 * @param string $route_str A slash-delimited list of regexes or match groups, for example: /path/(r?eg[ex]+)/:some_match_group
+	 * @param callable $handlers,... A list of middleware/request handlers to apply when executing the route, if the route matches
+	 * @return Route The new route
+	 */
 	public function any(string $route_str, callable ...$handlers): Route {
 		return $this->route('ANY', $route_str, ...$handlers);
 	}

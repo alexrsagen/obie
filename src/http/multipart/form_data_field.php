@@ -4,6 +4,7 @@ use Obie\Http\Mime;
 use Obie\Http\Multipart;
 use Obie\Random;
 
+/** @phpstan-consistent-constructor */
 class FormDataField {
 	const DEFAULT_FIELD_NAME = 'file';
 

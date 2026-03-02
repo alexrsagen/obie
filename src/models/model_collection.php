@@ -3,7 +3,7 @@
 /**
  * @template T of BaseModel
  * @property T[] $models
- * @package Obie\Models
+ * @phpstan-consistent-constructor
  */
 class ModelCollection implements \ArrayAccess, \IteratorAggregate, \Countable, \JsonSerializable {
 	protected array $models = [];

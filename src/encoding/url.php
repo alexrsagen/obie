@@ -35,7 +35,7 @@ class Url {
 			if (is_array($parts['query'])) {
 				$parts['query'] = Querystring::encode($parts['query']);
 			}
-			$url .= '?' . $parts['query'];
+			$url .= Querystring::BEGIN . $parts['query'];
 		}
 		if (array_key_exists('fragment', $parts)) {
 			$url .= '#' . $parts['fragment'];

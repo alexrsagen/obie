@@ -1,6 +1,7 @@
 <?php namespace Obie\Http;
 use Obie\Encoding\Json;
 
+/** @phpstan-consistent-constructor */
 class Response {
 	use HeaderTrait;
 	use BodyTrait;

@@ -2,6 +2,7 @@
 use Obie\Formatters\Casing;
 use Obie\App;
 
+/** @phpstan-consistent-constructor */
 abstract class BaseModel {
 	const VALID_TYPES = [
 		'int', 'integer',

@@ -3,8 +3,6 @@
 /**
  * @property string[] $modifiers
  * @property Directive[] $directives
- *
- * @package Obie\Encoding\Spf1
  */
 class Record {
 	function __construct(

@@ -1,5 +1,6 @@
 <?php namespace Obie\Http;
 
+/** @phpstan-consistent-constructor */
 class Mime {
 	public function __construct(
 		public string $type = '',

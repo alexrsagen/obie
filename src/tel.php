@@ -1,5 +1,6 @@
 <?php namespace Obie;
 
+/** @phpstan-consistent-constructor */
 class Tel {
 	const FMT_NUM = 'num'; // Just the number, no prefix or calling code
 	const FMT_LOC = 'loc'; // Local format without international prefix or calling code
@@ -325,6 +326,16 @@ class Tel {
 		return null;
 	}
 
+	/**
+	 * Parse a phone number (in any supported format)
+	 *
+	 * You may want to consider providing a fallback calling code and only guessing calling code if the phone number has a specific length.
+	 *
+	 * @param string $number
+	 * @param ?string $fallback_cc Fallback calling code
+	 * @param bool $raw_guess_cc Whether to guess calling code without an international dialing prefix in the input `$number`. If false, `$fallback_cc` will always be used when an international dialing prefix is not used.
+	 * @return static
+	 */
 	public static function parse(string $number, ?string $fallback_cc = null, bool $raw_guess_cc = false): static {
 		$res = new static;
 		if (strlen($number) === 0) return $res;

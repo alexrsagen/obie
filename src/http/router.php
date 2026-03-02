@@ -1,5 +1,6 @@
 <?php namespace Obie\Http;
 use Obie\App;
+use Obie\Encoding\Querystring;
 use Obie\Vars\VarCollection;
 
 class Router {
@@ -185,55 +186,194 @@ class Router {
 		}
 	}
 
-	/** @see RouterInstance::defer() */
+	/**
+	 * Wrapper method to provide type for $this variable
+	 *
+	 * @param-closure-this Route $handler
+	 * @param callable $handler
+	 * @return callable
+	 */
+	public static function middleware(callable $handler): callable {
+		return $handler;
+	}
+
+	/**
+	 * Defer one or more request handlers for execution after a response
+	 * is sent.
+	 *
+	 * The handlers are called by RouterInstance::runDeferred().
+	 *
+	 * This method is called by Router::defer() on the global RouterInstance.
+	 *
+	 * @param-closure-this Route $handlers
+	 * @param-later-invoked-callable $handlers
+	 * @param callable $handlers,...
+	 * @return static
+	 */
 	public static function defer(callable ...$handlers): void {
 		static::getInstance()->defer(...$handlers);
 	}
-	/** @see RouterInstance::runDeferred() */
+
+	/**
+	 * Run all the handlers deferred by calling RouterInstance::defer().
+	 *
+	 * Closure handlers are bound to the context of the matched Route instance
+	 * and passed all matches from the regex capture groups in the path as
+	 * their arguments.
+	 *
+	 * Other callable handlers are passed the matched Route instance as the
+	 * first argument. The second argument then contains all matches from the
+	 * regex capture groups as an array.
+	 *
+	 * The entire path is not one of the matches.
+	 *
+	 * This method is called by Router::runDeferred() and Router::sendResponse()
+	 * on the global RouterInstance.
+	 *
+	 * @return bool Whether the deferred handlers were executed
+	 */
 	public static function runDeferred(): bool {
 		return static::getInstance()->runDeferred();
 	}
-	/** @see RouterInstance::execute() */
+
+	/**
+	 * Call the Route::execute() method on all registered routes
+	 *
+	 * @param string|null $method Defaults to the current request method
+	 * @param string|null $path Defaults to the current request path
+	 * @return int One of the status codes defined as constants of this class
+	 */
 	public static function execute(?string $method = null, ?string $path = null): int {
 		return static::getInstance()->execute($method, $path);
 	}
-	/** @see RouterInstance::route() */
+
+	/**
+	 * Register a new route with a set of handlers
+	 *
+	 * @param-closure-this Route $handlers
+	 * @param-later-invoked-callable $handlers
+	 * @param string $method_str A comma-separated list of HTTP methods to handle (case insensitive)
+	 * @param string $route_str A slash-delimited list of regexes or match groups, for example: /path/(r?eg[ex]+)/:some_match_group
+	 * @param callable $handlers,... A list of middleware/request handlers to apply when executing the route, if the route matches
+	 * @return Route The new route
+	 */
 	public static function route(string $method_str, string $route_str, callable ...$handlers): Route {
 		return static::getInstance()->route($method_str, $route_str, ...$handlers);
 	}
-	/** @see RouterInstance::get() */
+
+	/**
+	 * Register a new GET route with a set of handlers
+	 *
+	 * @param-closure-this Route $handlers
+	 * @param-later-invoked-callable $handlers
+	 * @param string $route_str A slash-delimited list of regexes or match groups, for example: /path/(r?eg[ex]+)/:some_match_group
+	 * @param callable $handlers,... A list of middleware/request handlers to apply when executing the route, if the route matches
+	 * @return Route The new route
+	 */
 	public static function get(string $route_str, callable ...$handlers): Route {
 		return static::getInstance()->get($route_str, ...$handlers);
 	}
-	/** @see RouterInstance::head() */
+
+	/**
+	 * Register a new HEAD route with a set of handlers
+	 *
+	 * @param-closure-this Route $handlers
+	 * @param-later-invoked-callable $handlers
+	 * @param string $route_str A slash-delimited list of regexes or match groups, for example: /path/(r?eg[ex]+)/:some_match_group
+	 * @param callable $handlers,... A list of middleware/request handlers to apply when executing the route, if the route matches
+	 * @return Route The new route
+	 */
 	public static function head(string $route_str, callable ...$handlers): Route {
 		return static::getInstance()->head($route_str, ...$handlers);
 	}
-	/** @see RouterInstance::post() */
+
+	/**
+	 * Register a new POST route with a set of handlers
+	 *
+	 * @param-closure-this Route $handlers
+	 * @param-later-invoked-callable $handlers
+	 * @param string $route_str A slash-delimited list of regexes or match groups, for example: /path/(r?eg[ex]+)/:some_match_group
+	 * @param callable $handlers,... A list of middleware/request handlers to apply when executing the route, if the route matches
+	 * @return Route The new route
+	 */
 	public static function post(string $route_str, callable ...$handlers): Route {
 		return static::getInstance()->post($route_str, ...$handlers);
 	}
-	/** @see RouterInstance::put() */
+
+	/**
+	 * Register a new PUT route with a set of handlers
+	 *
+	 * @param-closure-this Route $handlers
+	 * @param-later-invoked-callable $handlers
+	 * @param string $route_str A slash-delimited list of regexes or match groups, for example: /path/(r?eg[ex]+)/:some_match_group
+	 * @param callable $handlers,... A list of middleware/request handlers to apply when executing the route, if the route matches
+	 * @return Route The new route
+	 */
 	public static function put(string $route_str, callable ...$handlers): Route {
 		return static::getInstance()->put($route_str, ...$handlers);
 	}
-	/** @see RouterInstance::delete() */
+
+	/**
+	 * Register a new DELETE route with a set of handlers
+	 *
+	 * @param-closure-this Route $handlers
+	 * @param-later-invoked-callable $handlers
+	 * @param string $route_str A slash-delimited list of regexes or match groups, for example: /path/(r?eg[ex]+)/:some_match_group
+	 * @param callable $handlers,... A list of middleware/request handlers to apply when executing the route, if the route matches
+	 * @return Route The new route
+	 */
 	public static function delete(string $route_str, callable ...$handlers): Route {
 		return static::getInstance()->delete($route_str, ...$handlers);
 	}
-	/** @see RouterInstance::options() */
+
+	/**
+	 * Register a new OPTIONS route with a set of handlers
+	 *
+	 * @param-closure-this Route $handlers
+	 * @param-later-invoked-callable $handlers
+	 * @param string $route_str A slash-delimited list of regexes or match groups, for example: /path/(r?eg[ex]+)/:some_match_group
+	 * @param callable $handlers,... A list of middleware/request handlers to apply when executing the route, if the route matches
+	 * @return Route The new route
+	 */
 	public static function options(string $route_str, callable ...$handlers): Route {
 		return static::getInstance()->options($route_str, ...$handlers);
 	}
-	/** @see RouterInstance::patch() */
+
+	/**
+	 * Register a new PATCH route with a set of handlers
+	 *
+	 * @param-closure-this Route $handlers
+	 * @param-later-invoked-callable $handlers
+	 * @param string $route_str A slash-delimited list of regexes or match groups, for example: /path/(r?eg[ex]+)/:some_match_group
+	 * @param callable $handlers,... A list of middleware/request handlers to apply when executing the route, if the route matches
+	 * @return Route The new route
+	 */
 	public static function patch(string $route_str, callable ...$handlers): Route {
 		return static::getInstance()->patch($route_str, ...$handlers);
 	}
-	/** @see RouterInstance::use() */
+
+	/**
+	 * Register a new catch-all route with a set of handlers, intended to allow use of middleware.
+	 *
+	 * @param-closure-this Route $handlers
+	 * @param-later-invoked-callable $handlers
+	 * @param string $route_str A slash-delimited list of regexes or match groups, for example: /path/(r?eg[ex]+)/:some_match_group
+	 * @param callable $handlers,... A list of middleware/request handlers to apply when executing the route, if the route matches
+	 * @return Route The new route
+	 */
 	public static function use(string $route_str, callable ...$handlers): Route {
 		return static::getInstance()->use($route_str, ...$handlers);
 	}
-	/** @see RouterInstance::any() */
+
+	/**
+	 * Register a new catch-all route with a set of handlers.
+	 *
+	 * @param-closure-this Route $handlers
+	 * @param-later-invoked-callable $handlers
+	 * @param string $route_str A slash-delimited list of regexes or match groups, for example: /path/(r?eg[ex]+)/:some_match_group
+	 * @param callable $handlers,... A list of middleware/request handlers to apply when executing the route, if the route matches
+	 * @return Route The new route
+	 */
 	public static function any(string $route_str, callable ...$handlers): Route {
 		return static::getInstance()->any($route_str, ...$handlers);
 	}
@@ -263,10 +403,10 @@ class Router {
 	 * @return bool Whether a redirect response was sent
 	 */
 	public static function stripTrailingSlash(): bool {
-		$path = static::getPath();
-		$qs = static::getQueryString();
-		if (substr($path, -1) === '/' && strlen($path) > 1) {
-			static::redirect(rtrim($path, '/') . $qs, static::HTTP_TEMPORARY_REDIRECT);
+		$req = Request::current();
+		$path = $req?->getPath();
+		if ($path !== null && substr($path, -1) === '/' && strlen($path) > 1) {
+			static::redirect($req->getPathWithQueryString(trim_trailing_slash: true), static::HTTP_TEMPORARY_REDIRECT);
 			return true;
 		}
 		return false;
@@ -382,7 +522,7 @@ class Router {
 	public static function getQueryString(): string {
 		$qs = Request::current()?->getQueryString();
 		if (empty($qs)) return '';
-		return '?' . $qs;
+		return Querystring::BEGIN . $qs;
 	}
 
 	/**
@@ -422,7 +562,7 @@ class Router {
 	 * @return array
 	 */
 	public static function parseRequestHeader(string $key, string $delimiter = ',', string $endchar = ';'): array {
-		$val = static::getRequestHeader($key);
+		$val = Request::current()?->getHeader($key);
 		if ($val === null) return [];
 		$end = strpos($val, $endchar);
 		if ($end === false || empty($endchar)) $end = strlen($val);
@@ -485,8 +625,9 @@ class Router {
 	 */
 	public static function redirectOut(string $location, int $code = self::HTTP_FOUND): void {
 		if (self::$response_sent) return;
-		static::setResponseHeader('location', str_replace(array(';', "\r", "\n"), '', $location));
-		static::setResponseCode($code);
+		$res = Response::current();
+		$res->setHeader('location', str_replace(array(';', "\r", "\n"), '', $location));
+		$res->setCode($code);
 		static::sendResponse();
 	}
 

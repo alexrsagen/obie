@@ -1,6 +1,7 @@
 <?php namespace Obie\Encoding;
 
 class Querystring {
+	const BEGIN = '?';
 	const DELIMITER = '&';
 
 	const NUMERIC_TYPE_INDEXED = 0;
@@ -10,7 +11,7 @@ class Querystring {
 	public static function decode(string $qs): array {
 		// get last possible query string,
 		// in case invalid input or a full URL is passed
-		$qs_pos = strrpos($qs, '?');
+		$qs_pos = strrpos($qs, self::BEGIN);
 		if ($qs_pos !== false) {
 			$qs = substr($qs, $qs_pos + 1);
 		}

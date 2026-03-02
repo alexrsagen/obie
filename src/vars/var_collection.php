@@ -1,5 +1,6 @@
 <?php namespace Obie\Vars;
 
+/** @phpstan-consistent-constructor */
 class VarCollection implements \ArrayAccess, \IteratorAggregate, \Countable, \JsonSerializable {
 	// Magic methods
 

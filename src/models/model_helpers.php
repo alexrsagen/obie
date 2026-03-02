@@ -1,7 +1,9 @@
 <?php namespace Obie\Models;
 
+/** @phpstan-consistent-constructor */
 class ModelHelpers {
-	public static function getEscapedList(array $column_names = [], string $table_prefix = null, bool $column_names_are_escaped = false, bool $table_prefix_is_escaped = false) {
+	public static function getEscapedList(array|string $column_names = [], ?string $table_prefix = null, bool $column_names_are_escaped = false, bool $table_prefix_is_escaped = false) {
+		if (is_string($column_names)) $column_names = [$column_names];
 		$list_parts = [];
 		foreach ($column_names as $i => $key) {
 			$list_parts[$i] = '';
@@ -21,7 +23,8 @@ class ModelHelpers {
 		return implode(',', $list_parts);
 	}
 
-	public static function getEscapedSet(array $column_names = [], string $table_prefix = null, bool $column_names_are_escaped = false, bool $table_prefix_is_escaped = false) {
+	public static function getEscapedSet(array|string $column_names = [], ?string $table_prefix = null, bool $column_names_are_escaped = false, bool $table_prefix_is_escaped = false) {
+		if (is_string($column_names)) $column_names = [$column_names];
 		$set_parts = [];
 		foreach ($column_names as $i => $key) {
 			$set_parts[$i] = '';
@@ -41,7 +44,8 @@ class ModelHelpers {
 		return implode(',', $set_parts);
 	}
 
-	public static function getEscapedWhere(array $column_names = [], string $table_prefix = null, string $kind = 'AND', string $op = '=', int $value_count = 1, string $unsafe_value = '?', bool $column_names_are_escaped = false, $table_prefix_is_escaped = false) {
+	public static function getEscapedWhere(array|string $column_names = [], ?string $table_prefix = null, string $kind = 'AND', string $op = '=', int $value_count = 1, string $unsafe_value = '?', bool $column_names_are_escaped = false, $table_prefix_is_escaped = false) {
+		if (is_string($column_names)) $column_names = [$column_names];
 		$where_parts = [];
 		foreach ($column_names as $i => $key) {
 			$where_parts[$i] = '';
@@ -69,7 +73,9 @@ class ModelHelpers {
 		return implode(' ' . trim($kind) . ' ', $where_parts);
 	}
 
-	public static function getEscapedOn(array $source_column_names = [], string $source_table_prefix = null, array $target_column_names = [], string $target_table_prefix = null, bool $column_names_are_escaped = false, bool $table_prefix_is_escaped = false) {
+	public static function getEscapedOn(array|string $source_column_names = [], ?string $source_table_prefix = null, array|string $target_column_names = [], ?string $target_table_prefix = null, bool $column_names_are_escaped = false, bool $table_prefix_is_escaped = false) {
+		if (is_string($source_column_names)) $source_column_names = [$source_column_names];
+		if (is_string($target_column_names)) $target_column_names = [$target_column_names];
 		if (count($source_column_names) !== count($target_column_names)) {
 			throw new \InvalidArgumentException('Source and target column count must be equal');
 		}

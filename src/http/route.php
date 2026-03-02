@@ -179,6 +179,7 @@ class Route {
 	 *
 	 * The entire path is not one of the matches.
 	 *
+	 * @param-closure-this Route $handlers
 	 * @param callable $handlers,... The request handlers to execute
 	 * @return int One of the status codes defined as constants of this class
 	 */

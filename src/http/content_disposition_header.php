@@ -1,5 +1,6 @@
 <?php namespace Obie\Http;
 
+/** @phpstan-consistent-constructor */
 class ContentDispositionHeader {
 	const DISP_INLINE                 = 'inline';                 // RFC 2183 (section 2.1)
 	const DISP_ATTACHMENT             = 'attachment';             // RFC 2183 (section 2.2)

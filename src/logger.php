@@ -1,6 +1,7 @@
 <?php namespace Obie;
 use Obie\Encoding\Json;
 use Obie\Encoding\Url;
+use Monolog\Level;
 use Monolog\Handler\StreamHandler;
 use Monolog\Formatter\LineFormatter;
 use Psr\Log\InvalidArgumentException;
@@ -44,9 +45,9 @@ class Logger extends \Monolog\Logger {
 	 * @return Level
 	 * @throws InvalidArgumentException
 	 */
-	protected function getLogLevel(): int {
+	protected function getLogLevel(): Level {
 		$config = App::$app::getConfig();
-		if (!$config) return \Monolog\Logger::DEBUG;
+		if (!$config) return Level::Debug;
 		return static::toMonologLevel($config->get('log_level'));
 	}
 
