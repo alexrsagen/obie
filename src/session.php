@@ -106,15 +106,15 @@ class Session {
 		ini_set('session.use_cookies', (string)(int)$use_cookies);
 		if ($use_cookies) {
 			ini_set('session.use_only_cookies', '1');
+			session_set_cookie_params([
+				'lifetime' => $lifetime,
+				'path'     => '/',
+				'domain'   => substr($url, strpos($url, '://') + 3),
+				'secure'   => strpos($url, 'https://') === 0,
+				'httponly' => true,
+				'samesite' => $samesite,
+			]);
 		}
-		session_set_cookie_params([
-			'lifetime' => $lifetime,
-			'path'     => '/',
-			'domain'   => substr($url, strpos($url, '://') + 3),
-			'secure'   => strpos($url, 'https://') === 0,
-			'httponly' => true,
-			'samesite' => $samesite,
-		]);
 		session_name(static::getName());
 
 		// ensure session is only started once
