@@ -328,7 +328,6 @@ class Request {
 		$res_body = curl_exec($ch);
 		if ($res_body === false) {
 			$res_errno = curl_errno($ch);
-			curl_close($ch);
 			$res = new Response(errors: [sprintf('cURL error (%d): %s', $res_errno, curl_strerror($res_errno))]);
 			return $res;
 		}
@@ -336,7 +335,6 @@ class Request {
 		// Get response code and size of response headers
 		$res_code        = curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
 		$res_header_size = curl_getinfo($ch, CURLINFO_HEADER_SIZE);
-		curl_close($ch);
 
 		// Get the headers of the last request (ignoring the headers of any redirects)
 		$res_headerstr          = substr($res_body, 0, $res_header_size);
