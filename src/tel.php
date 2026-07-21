@@ -387,15 +387,14 @@ class Tel {
 		if (strlen($res->calling_code) === 0 && $fallback_cc !== null && array_key_exists($fallback_cc, self::METADATA) && !$raw_guess_cc) {
 			$res->calling_code = $fallback_cc;
 			$res->country_code = self::METADATA[$res->calling_code]['main_country'];
+			$num_no_cc = $num;
+		} elseif (strlen($res->calling_code) > 0 && substr($num, 0, strlen($res->calling_code)) === $res->calling_code) {
+			$num_no_cc = substr($num, strlen($res->calling_code));
+		} else {
+			$num_no_cc = $num;
 		}
 
 		if (strlen($res->calling_code) > 0) {
-			if (substr($num, 0, strlen($res->calling_code)) === $res->calling_code) {
-				$num_no_cc = substr($num, strlen($res->calling_code));
-			} else {
-				$num_no_cc = $num;
-			}
-
 			if (strlen($res->country_code) === 0) {
 				$country_code = static::findCountryCode($res->calling_code, $num_no_cc);
 				if (is_string($country_code)) {
