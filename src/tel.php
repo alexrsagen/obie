@@ -29,7 +29,7 @@ class Tel {
 	protected string $int = '';
 	protected string $calling_code = '';
 	protected string $country_code = '';
-	protected string $typ = '';
+	protected array $typ = [];
 	protected string $num = '';
 	protected string $ext = '';
 	protected array $params = [];
@@ -46,8 +46,33 @@ class Tel {
 	public function getCountry(): ?string {
 		return strlen($this->country_code) > 0 ? $this->country_code : null;
 	}
+	/**
+	 * Returns the type of the phone number, if exactly one type matches.
+	 *
+	 * @deprecated Use getTypes() or matchesType() instead
+	 * @return ?string
+	 */
 	public function getType(): ?string {
-		return strlen($this->typ) > 0 ? $this->typ : null;
+		return count($this->typ) === 1 ? $this->typ[0] : null;
+	}
+	/**
+	 * Returns an array of types the phone number matches
+	 *
+	 * The possible types are defined as "TYP_" constants in the Tel class.
+	 *
+	 * @return string[]
+	 */
+	public function getTypes(): array {
+		return $this->typ;
+	}
+	/**
+	 * Check if the phone number matches the given type
+	 *
+	 * @param string $type The type to check against
+	 * @return bool True if the phone number matches the given type
+	 */
+	public function matchesType(string $type): bool {
+		return in_array($type, $this->typ, true);
 	}
 	public function getNumber(): string {
 		return $this->num;
@@ -300,16 +325,17 @@ class Tel {
 		return $country_codes_by_score_desc;
 	}
 
-	protected static function findType(string $calling_code, string $country_code, string $num_no_cc): ?string {
-		if (!array_key_exists($calling_code, self::METADATA)) return null;
-		if (!array_key_exists($country_code, self::METADATA[$calling_code]['countries'])) return null;
+	protected static function findType(string $calling_code, string $country_code, string $num_no_cc): array {
+		if (!array_key_exists($calling_code, self::METADATA)) return [];
+		if (!array_key_exists($country_code, self::METADATA[$calling_code]['countries'])) return [];
 		$country = self::METADATA[$calling_code]['countries'][$country_code];
-		if ($country['pattern'] === null) return null;
+		if ($country['pattern'] === []) return [];
 
 		// return early if number doesn't match national number pattern
-		if (preg_match($country['pattern'], $num_no_cc) !== 1) return null;
+		if (preg_match($country['pattern'], $num_no_cc) !== 1) return [];
 
 		// return first usage type which pattern matches number
+		$matching_types = [];
 		foreach ($country['patterns'] as $typ => $pattern) {
 			if ($pattern['pattern'] === null) continue;
 			if (
@@ -320,10 +346,11 @@ class Tel {
 			// skip numbers not matching usage-specific number pattern
 			if (preg_match($pattern['pattern'], $num_no_cc) !== 1) continue;
 
-			return $typ;
+			// add matching type
+			$matching_types[] = $typ;
 		}
 
-		return null;
+		return $matching_types;
 	}
 
 	/**
@@ -403,10 +430,7 @@ class Tel {
 			}
 
 			if (strlen($res->country_code) > 0) {
-				$typ = static::findType($res->calling_code, $res->country_code, $num_no_cc);
-				if (is_string($typ)) {
-					$res->typ = $typ;
-				}
+				$res->typ = static::findType($res->calling_code, $res->country_code, $num_no_cc);
 			}
 
 			if (array_key_exists($res->calling_code, self::METADATA) && array_key_exists($res->country_code, self::METADATA[$res->calling_code]['countries'])) {
